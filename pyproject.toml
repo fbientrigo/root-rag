@@ -12,6 +12,7 @@ license = {text = "MIT"}
 authors = [{name = "FisicoFabi"}]
 dependencies = [
     "click>=8.0",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
