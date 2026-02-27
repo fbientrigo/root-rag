@@ -1,0 +1,7 @@
+# python cache
+__pycache__/
+# virtual environment
+venv/
+src/root_rag.egg-info/dependency_links.txt
+src/root_rag.egg-info/entry_points.txt
+*.egg-info
