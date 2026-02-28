@@ -1,5 +1,8 @@
-"""Chunk schema and validation following docs/spec/index_schema.md."""
+"""Chunk and IndexManifest schemas with validation."""
 import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -160,3 +163,99 @@ class Chunk(BaseModel):
             symbol_path=symbol_path,
             has_doxygen=has_doxygen,
         )
+
+
+class IndexManifest(BaseModel):
+    """Index metadata schema following versioning and determinism contracts.
+    
+    Records the provenance of an FTS5 lexical index and its configuration.
+    Enables reproducible index rebuilds and version integrity validation.
+    """
+
+    # === Index identification ===
+    index_id: str = Field(..., description="Unique index identifier (deterministic from corpus + timestamp)")
+    corpus_id: str = Field(..., description="Deterministic corpus identifier (root_ref + commit SHA[:12])")
+
+    # === Corpus and versioning ===
+    root_ref: str = Field(..., description="User-requested ROOT reference (tag/branch/commit)")
+    resolved_commit: str = Field(..., description="Immutable commit SHA resolved from root_ref")
+    corpus_url: str = Field(..., description="Repository URL")
+
+    # === Artifact paths ===
+    chunks_path: str = Field(..., description="Path to chunks.jsonl file")
+    fts_db_path: str = Field(..., description="Path to FTS5 SQLite database")
+
+    # === Versions and configuration ===
+    schema_version: str = Field(default="1.0.0", description="Index manifest schema version")
+    index_schema_version: str = Field(default="1.0.0", description="Chunk schema version (from chunks)")
+
+    # === Statistics ===
+    chunk_count: int = Field(..., ge=0, description="Total chunks in index")
+    file_count: int = Field(..., ge=0, description="Total unique source files indexed")
+    retrieval_modes: list = Field(default_factory=lambda: ["lexical"], description="Available retrieval modes")
+
+    # === Metadata ===
+    created_at: str = Field(..., description="Index creation timestamp (ISO8601)")
+    tool_version: str = Field(default="0.1.0", description="root-rag tool version")
+
+    @staticmethod
+    def compute_corpus_id(root_ref: str, resolved_commit: str) -> str:
+        """Compute deterministic corpus ID from reference and commit.
+
+        Format: {root_ref}__{commit[:12]}
+        Example: v6-32-00__0123456789ab
+        """
+        commit_short = resolved_commit[:12]
+        return f"{root_ref}__{commit_short}"
+
+    @staticmethod
+    def compute_index_id(corpus_id: str, created_at: str) -> str:
+        """Compute unique index ID from corpus and timestamp.
+
+        Format: {corpus_id}__<timestamp_compact>
+        Example: v6-32-00__0123456789ab__20260227T235900Z
+        """
+        # Extract YYYYMMDDTHHMMSSZ format from ISO8601
+        # created_at example: "2026-02-27T23:59:00Z"
+        timestamp_compact = created_at.replace("-", "").replace(":", "").replace(".", "")
+        return f"{corpus_id}__{timestamp_compact}"
+
+    def to_dict(self) -> dict:
+        """Serialize to dictionary."""
+        return self.model_dump()
+
+    def save(self, path: Path) -> None:
+        """Save manifest to JSON file."""
+        path = Path(path)
+        path.parent.mkdir(exist_ok=True, parents=True)
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def load(cls, path: Path) -> "IndexManifest":
+        """Load manifest from JSON file."""
+        path = Path(path)
+        with open(path, "r") as f:
+            data = json.load(f)
+        return cls(**data)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "index_id": "v6-32-00__0123456789ab__20260227T235900Z",
+                "corpus_id": "v6-32-00__0123456789ab",
+                "root_ref": "v6-32-00",
+                "resolved_commit": "0123456789abcdefabcdefabcdefabcdefabcdef",
+                "corpus_url": "https://github.com/root-project/root.git",
+                "chunks_path": "data/processed/chunks/v6-32-00__0123456789ab/chunks.jsonl",
+                "fts_db_path": "data/indexes/v6-32-00__0123456789ab__20260227T235900Z/fts.sqlite",
+                "schema_version": "1.0.0",
+                "index_schema_version": "1.0.0",
+                "chunk_count": 42,
+                "file_count": 5,
+                "retrieval_modes": ["lexical"],
+                "created_at": "2026-02-27T23:59:00Z",
+                "tool_version": "0.1.0",
+            }
+        }
+    )
