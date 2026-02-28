@@ -19,3 +19,18 @@ class GitOperationError(RootRagError):
 class CorpusError(RootRagError):
     """Raised when corpus operations fail."""
     pass
+
+
+class ParserError(RootRagError):
+    """Raised when file parsing fails."""
+    pass
+
+
+class ChunkingError(RootRagError):
+    """Raised when chunking operation fails."""
+    pass
+
+
+class IndexBuildError(RootRagError):
+    """Raised when index build fails."""
+    pass
