@@ -34,3 +34,13 @@ class ChunkingError(RootRagError):
 class IndexBuildError(RootRagError):
     """Raised when index build fails."""
     pass
+
+
+class IndexNotFoundError(RootRagError):
+    """Raised when an index cannot be found or resolved."""
+    pass
+
+
+class RetrievalError(RootRagError):
+    """Raised when retrieval operations fail."""
+    pass

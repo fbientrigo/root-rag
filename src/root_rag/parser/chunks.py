@@ -171,14 +171,16 @@ def chunk_corpus(
     repo_root: Path,
     window_lines: int = 80,
     overlap_lines: int = 10,
+    seed_corpus_config: Path = None,
 ) -> List[Chunk]:
-    """Chunk an entire corpus (all files).
+    """Chunk an entire corpus (all files or seed corpus subset).
     
     Args:
         manifest: Manifest object with root_ref, resolved_commit, local_path
         repo_root: Repository root directory to search
         window_lines: Lines per window (default 80)
         overlap_lines: Lines of overlap (default 10)
+        seed_corpus_config: Optional path to seed corpus YAML config for filtering
     
     Returns:
         Flat list of all chunks, sorted by file path then line number
@@ -189,6 +191,20 @@ def chunk_corpus(
     
     # Discover all text files
     file_paths = discover_text_files(repo_root)
+    
+    # Apply seed corpus filter if provided
+    if seed_corpus_config:
+        from root_rag.parser.seed_filter import (
+            load_seed_corpus_config,
+            get_seed_corpus_paths,
+            filter_files_by_seed_corpus,
+        )
+        
+        logger.info(f"Using seed corpus config: {seed_corpus_config}")
+        config = load_seed_corpus_config(seed_corpus_config)
+        seed_paths = get_seed_corpus_paths(config, repo_root)
+        file_paths = filter_files_by_seed_corpus(file_paths, seed_paths)
+        logger.info(f"Filtered to {len(file_paths)} seed corpus files")
     
     all_chunks = []
     for file_path in file_paths:

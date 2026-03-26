@@ -16,6 +16,7 @@ def build_index(
     output_dir: Path,
     window_lines: int = 80,
     overlap_lines: int = 10,
+    seed_corpus_config: Path = None,
 ) -> Dict[str, any]:
     """Build index from manifest: chunk corpus and write JSONL.
     
@@ -24,6 +25,7 @@ def build_index(
         output_dir: Directory where chunks.jsonl will be written
         window_lines: Lines per window (default 80)
         overlap_lines: Lines of overlap (default 10)
+        seed_corpus_config: Optional path to seed corpus config for filtering
     
     Returns:
         Metadata dict: {
@@ -54,6 +56,7 @@ def build_index(
         repo_root=repo_root,
         window_lines=window_lines,
         overlap_lines=overlap_lines,
+        seed_corpus_config=seed_corpus_config,
     )
     
     if not chunks:
@@ -105,6 +108,7 @@ def build_full_index(
     output_dir: Path,
     window_lines: int = 80,
     overlap_lines: int = 10,
+    seed_corpus_config: Path = None,
 ) -> Dict[str, any]:
     """Build full index: chunk corpus → JSONL + FTS5 + IndexManifest.
     
@@ -119,6 +123,7 @@ def build_full_index(
         output_dir: Directory where indexes/<index_id>/ will be created
         window_lines: Lines per window (default 80)
         overlap_lines: Lines of overlap (default 10)
+        seed_corpus_config: Optional path to seed corpus config for filtering
     
     Returns:
         Dict with keys:
@@ -147,6 +152,7 @@ def build_full_index(
         repo_root=repo_root,
         window_lines=window_lines,
         overlap_lines=overlap_lines,
+        seed_corpus_config=seed_corpus_config,
     )
     
     if not chunks:
