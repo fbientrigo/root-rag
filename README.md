@@ -103,6 +103,21 @@ root-rag grep "TGeoManager"
 root-rag versions
 ```
 
+## Extract ROOT Usage from FairShip (T1 Tool)
+
+To derive Tier 1/Tier 2 corpus from evidence:
+
+```bash
+# Extract ROOT usage from local FairShip clone
+python scripts/extract_fairship_root_usage.py --fairship-path ../FairShip
+
+# Outputs:
+#   - artifacts/fairship_root_usage_inventory.json (machine-readable)
+#   - reports/fairship_root_usage_inventory.md (human-readable)
+
+# See docs/QUICK_START.md for details
+```
+
 Expected output:
 
 ```
@@ -217,7 +232,8 @@ MIT — see `LICENSE`
 
 ## Status
 
-**Retrieval MVP**: ✅ Complete
+**Retrieval MVP**: ✅ Complete  
+**T1 Extraction Tool**: ✅ Complete
 
 **Completed**:
 - ✅ FairShip ROOT/SOFIE/ONNX audit ([report](reports/fairship_root_sofie_audit.md))
@@ -228,6 +244,7 @@ MIT — see `LICENSE`
 - ✅ SQLite FTS5 lexical retrieval
 - ✅ Evidence-based output with version tagging
 - ✅ Golden query test suite
+- ✅ **T1: FairShip ROOT usage extraction** ([summary](reports/T1_implementation_summary.md), [guide](docs/QUICK_START.md))
 
 **Current Capabilities**:
 - Index ROOT 6.36.08 with FairShip-focused seed corpus

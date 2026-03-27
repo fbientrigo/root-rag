@@ -7,4 +7,6 @@ chunks.jsonl
 venv/
 .venv/
 
-
+# artifacts
+artifacts/
+data/
