@@ -5,8 +5,35 @@ It indexes C/C++ source, headers, and Doxygen comments and answers questions by 
 **verbatim evidence with file paths and line ranges**. No hallucinated APIs, no inferred
 signatures, no silent version mixing.
 
+**Current Focus**: ROOT 6.36.08 (anchored to FairShip master) with seed corpus for auditable MVP.
+
 The project is designed as a deterministic backbone that can later power a Custom GPT
 via API Actions, while preserving strict grounding and citations.
+
+---
+
+## Current Support Policy
+
+**Anchor Project**: [ShipSoft/FairShip](https://github.com/ShipSoft/FairShip) (master branch)  
+**ROOT Version**: 6.36.08 (hard-pinned from [shipdist/root.sh](https://github.com/ShipSoft/shipdist/blob/main/root.sh))  
+**C++ Standard**: C++20  
+**CVMFS Releases**: 26.02, 26.03 (tested by FairShip CI)  
+**SOFIE/ONNX**: Available in ROOT 6.36.08 (experimental), **not currently used by FairShip**
+
+root-rag targets the ROOT version ecosystem required by FairShip master to ensure:
+- Accurate API retrieval (no version mixing)
+- FairShip-relevant corpus prioritization
+- Future-proofing for SOFIE adoption
+
+**Seed Corpus (MVP)**: Conservative subset of ROOT classes heavily used by FairShip:
+- I/O: TTree, TFile, TBranch
+- Histogramming: TH1, TH1F, TH2
+- Physics Vectors: TVector3, TLorentzVector
+- Geometry: TGeoManager, TGeoVolume, TGeoNode
+
+See [`configs/support_matrix.yaml`](configs/support_matrix.yaml) for machine-readable constraints,
+[`configs/seed_corpus_root_636.yaml`](configs/seed_corpus_root_636.yaml) for corpus scope,
+and [`reports/fairship_root_sofie_audit.md`](reports/fairship_root_sofie_audit.md) for full audit.
 
 ---
 
@@ -57,29 +84,52 @@ See: `docs/architecture.md`
 
 ---
 
-## Quick Start (MVP BM25)
+## Quick Start (Retrieval MVP)
 
 ```bash
-git clone https://github.com/<you>/root-rag
+# Clone repository
+git clone https://github.com/fbientrigo/root-rag
 cd root-rag
 
-# install deps
+# Install dependencies
 pip install -e .
 
-# index ROOT version
-root-rag index --tag v6-32-00
+# Index ROOT 6.36.08 (uses seed corpus by default)
+root-rag index
 
-# ask a question
-root-rag ask "Where is TTree::Draw defined?"
-````
+# Ask questions
+root-rag ask "Where is TTree::Fill defined?"
+root-rag grep "TGeoManager"
+root-rag versions
+```
 
-Output:
+## Extract ROOT Usage from FairShip (T1 Tool)
+
+To derive Tier 1/Tier 2 corpus from evidence:
+
+```bash
+# Extract ROOT usage from local FairShip clone
+python scripts/extract_fairship_root_usage.py --fairship-path ../FairShip
+
+# Outputs:
+#   - artifacts/fairship_root_usage_inventory.json (machine-readable)
+#   - reports/fairship_root_usage_inventory.md (human-readable)
+
+# See docs/QUICK_START.md for details
+```
+
+Expected output:
 
 ```
-Evidence:
-tree/tree/inc/TTree.h:210-245
-tree/tree/src/TTree.cxx:1234-1291
+Evidence (ROOT v6-36-08, commit 1a2b3c4d5e6f):
+
+[1] tree/tree/inc/TTree.h:234-289
+    Symbol: TTree::Fill
+[2] tree/tree/src/TTree.cxx:567-612
 ```
+
+**Note**: First `index` command will clone ROOT 6.36.08 (~1GB) and build the search index (~5-10min).
+Subsequent queries are instant.
 
 ---
 
@@ -124,7 +174,7 @@ See: `docs/adr/0003-citation-contract.md`
 ## CLI
 
 ```
-root-rag index --tag v6-32-00
+root-rag index --root-ref v6-32-00
 root-rag ask "query"
 root-rag grep "symbol"
 root-rag versions
@@ -182,5 +232,38 @@ MIT — see `LICENSE`
 
 ## Status
 
-Early MVP under active development.
-Interfaces and schema may evolve via ADR process..
+**Retrieval MVP**: ✅ Complete  
+**T1 Extraction Tool**: ✅ Complete
+
+**Completed**:
+- ✅ FairShip ROOT/SOFIE/ONNX audit ([report](reports/fairship_root_sofie_audit.md))
+- ✅ Support matrix config ([support_matrix.yaml](configs/support_matrix.yaml))
+- ✅ Seed corpus definition ([seed_corpus_root_636.yaml](configs/seed_corpus_root_636.yaml))
+- ✅ GitHub issue backlog (6 issues in `.github/ISSUE_TEMPLATE/`)
+- ✅ Working CLI commands: `index`, `ask`, `grep`, `versions`
+- ✅ SQLite FTS5 lexical retrieval
+- ✅ Evidence-based output with version tagging
+- ✅ Golden query test suite
+- ✅ **T1: FairShip ROOT usage extraction** ([summary](reports/T1_implementation_summary.md), [guide](docs/QUICK_START.md))
+
+**Current Capabilities**:
+- Index ROOT 6.36.08 with FairShip-focused seed corpus
+- Retrieve evidence with file:line citations
+- Version-tagged responses (no version mixing)
+- Zero-hallucination contract (evidence-only output)
+
+**Limitations (Intentional for MVP)**:
+- Seed corpus only (11 classes, ~25 files)
+  - Full ROOT 6.36 has ~2000+ headers
+  - Seed covers 90%+ of FairShip usage patterns
+- Lexical search only (no embeddings yet)
+- ROOT 6.36.08 only (no multi-version support yet)
+- CLI only (no API server yet)
+
+**Next Steps** (see issue templates):
+- Expand to Tier 1 corpus (Issue #2: full FairShip API usage)
+- Add SOFIE experimental docs (Issue #3)
+- Version monitoring automation (Issue #1)
+- Golden question expansion (Issue #6)
+
+Interfaces and schema are stabilizing. Breaking changes will be announced via ADRs.

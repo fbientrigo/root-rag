@@ -1,0 +1,158 @@
+# root-rag Support Matrix
+# Machine-readable version constraints derived from FairShip/shipdist audit
+# Last updated: 2026-03-26
+# Source: reports/fairship_root_sofie_audit.md
+
+# Primary anchor project
+fairship:
+  repository: "ShipSoft/FairShip"
+  branch: "master"
+  last_audited_commit: "5bd1fc1b4c471164845202389d70a0e9cc677b54"
+  
+  # CVMFS releases validated by FairShip CI
+  cvmfs_releases:
+    - version: "26.02"
+      status: "active"
+      os: ["slc9_x86-64"]
+      tested_by_ci: true
+    - version: "26.03"
+      status: "active"
+      os: ["slc9_x86-64"]
+      tested_by_ci: true
+
+# ROOT version constraints
+root:
+  # Hard pin from shipdist/root.sh
+  version: "6.36.08"
+  tag: "v6-36-08"
+  source_repository: "root-project/root"
+  
+  # Documentation channels
+  documentation:
+    reference_guide: "https://root.cern/doc/v636/"
+    manual: "https://root.cern/manual/"
+    doxygen: "https://root.cern/doc/v636/annotated.html"
+  
+  # Required ROOT features (from shipdist/root.sh prefer_system_check)
+  required_features:
+    - "builtin_pcre"
+    - "mathmore"
+    - "xml"
+    - "ssl"
+    - "opengl"
+    - "http"
+    - "gdml"
+    - "pythia8"
+    - "roofit"
+    - "soversion"
+    - "vdt"
+    - "xrootd"
+  
+  # Build configuration
+  build:
+    cpp_standard: "c++20"
+    cmake_min_version: "3.20.0"
+    build_type: "RELEASE"
+
+# SOFIE/ONNX status
+sofie:
+  # SOFIE is available in ROOT 6.36+ but NOT used by FairShip
+  available_in_root: true
+  used_by_fairship: false
+  
+  namespace: "ROOT::Experimental::SOFIE"
+  status: "experimental"
+  
+  # Source location in ROOT
+  source_path: "tmva/sofie/"
+  headers_path: "tmva/sofie/inc/"
+  
+  # When SOFIE became available
+  available_since: "6.30"
+  
+  # Related capabilities
+  capabilities:
+    - "ONNX model loading"
+    - "C++ code generation for inference"
+    - "Fast inference without Python runtime"
+  
+  # Documentation (hypothetical, to be confirmed)
+  documentation:
+    # These may 404, marked as speculative
+    reference: "https://root.cern/doc/v636/group__SOFIE.html"
+    manual: "https://root.cern/manual/tmva/#sofie"
+
+# Corpus scope tiers (see Issue #2)
+corpus:
+  # Tier 1: Core ROOT APIs heavily used by FairShip
+  tier1:
+    priority: "high"
+    description: "APIs used in >10 FairShip files"
+    status: "to_be_determined"
+    # Populate after static analysis (Issue #2)
+    example_classes:
+      - "TTree"
+      - "TFile"
+      - "TH1F"
+      - "TVector3"
+      - "TGeoManager"
+  
+  # Tier 2: Moderate usage
+  tier2:
+    priority: "medium"
+    description: "APIs used in 3-10 FairShip files"
+    status: "to_be_determined"
+  
+  # Tier 3: SOFIE and rarely-used APIs
+  tier3:
+    priority: "low"
+    description: "Available but not heavily used by FairShip"
+    status: "to_be_determined"
+    includes:
+      - "ROOT::Experimental::SOFIE"
+      - "TMVA inference classes"
+
+# Version policy (see Issue #1)
+version_policy:
+  # How we track FairShip ROOT version changes
+  monitoring:
+    source: "ShipSoft/shipdist/root.sh"
+    field: "tag"
+    frequency: "daily"
+    automation: "GitHub Actions (planned)"
+  
+  # When to re-index
+  reindex_triggers:
+    major_version: true   # e.g., 6.36 → 6.38
+    minor_version: true   # e.g., 6.36.08 → 6.36.10
+    patch_version: false  # e.g., 6.36.08 → 6.36.08-1 (unless API changes)
+  
+  # How long to support older versions
+  retention_policy:
+    # For MVP: Only support current FairShip version
+    current_version_only: true
+    # Future: Multi-version support (v0.2+)
+    multi_version_support: false
+
+# Metadata
+metadata:
+  schema_version: "0.1.0"
+  last_audit_date: "2026-03-26"
+  audit_report: "reports/fairship_root_sofie_audit.md"
+  next_review_date: "2026-06-26"  # Quarterly reviews
+  
+  # Confidence levels
+  confidence:
+    root_version: "high"         # Hard-coded in shipdist
+    cpp_standard: "high"         # Explicit in CMakeLists.txt
+    sofie_available: "high"      # Directory exists in ROOT source
+    sofie_namespace: "medium"    # Inferred from directory structure
+    sofie_used_by_fairship: "high"  # 0 search results
+
+# Status flags
+status:
+  fairship_master: "active"
+  root_636: "supported"
+  sofie_indexing: "planned"  # Issue #3
+  retrieval_mvp: "planned"   # Issue #4
+  version_monitoring: "planned"  # Issue #1

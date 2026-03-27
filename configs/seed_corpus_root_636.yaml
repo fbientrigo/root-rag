@@ -1,0 +1,159 @@
+# ROOT 6.36.08 Seed Corpus Configuration
+# Conservative FairShip-relevant API surface for retrieval MVP
+# Last updated: 2026-03-26
+# Rationale: Minimal auditable corpus for first working retrieval
+
+# ROOT version constraint
+root:
+  version: "6.36.08"
+  tag: "v6-36-08"
+  repository: "root-project/root"
+  commit: null  # Will be resolved during indexing
+
+# Seed corpus scope
+# These classes are frequently used by FairShip based on audit and common patterns
+corpus:
+  tier: "seed"
+  rationale: "Core ROOT APIs heavily used by HEP experiments including FairShip"
+  
+  # Class-based inclusion (primary method)
+  classes:
+    # I/O and data structures
+    - name: "TTree"
+      rationale: "Primary data structure for event storage in FairShip"
+      headers:
+        - "tree/tree/inc/TTree.h"
+      sources:
+        - "tree/tree/src/TTree.cxx"
+    
+    - name: "TFile"
+      rationale: "File I/O for all ROOT-based data persistence"
+      headers:
+        - "io/io/inc/TFile.h"
+      sources:
+        - "io/io/src/TFile.cxx"
+    
+    - name: "TBranch"
+      rationale: "TTree branch management (closely tied to TTree usage)"
+      headers:
+        - "tree/tree/inc/TBranch.h"
+      sources:
+        - "tree/tree/src/TBranch.cxx"
+    
+    # Histogramming
+    - name: "TH1"
+      rationale: "Base class for 1D histograms"
+      headers:
+        - "hist/hist/inc/TH1.h"
+      sources:
+        - "hist/hist/src/TH1.cxx"
+    
+    - name: "TH1F"
+      rationale: "Most common histogram type in analysis"
+      headers:
+        - "hist/hist/inc/TH1F.h"
+    
+    - name: "TH2"
+      rationale: "2D histograms for correlation plots"
+      headers:
+        - "hist/hist/inc/TH2.h"
+    
+    # Physics vectors
+    - name: "TVector3"
+      rationale: "3D vector operations for particle kinematics"
+      headers:
+        - "math/physics/inc/TVector3.h"
+      sources:
+        - "math/physics/src/TVector3.cxx"
+    
+    - name: "TLorentzVector"
+      rationale: "4-vector for relativistic kinematics"
+      headers:
+        - "math/physics/inc/TLorentzVector.h"
+      sources:
+        - "math/physics/src/TLorentzVector.cxx"
+    
+    # Geometry (critical for FairShip detector simulation)
+    - name: "TGeoManager"
+      rationale: "Geometry manager for detector construction"
+      headers:
+        - "geom/geom/inc/TGeoManager.h"
+      sources:
+        - "geom/geom/src/TGeoManager.cxx"
+    
+    - name: "TGeoVolume"
+      rationale: "Geometric volume definitions"
+      headers:
+        - "geom/geom/inc/TGeoVolume.h"
+      sources:
+        - "geom/geom/src/TGeoVolume.cxx"
+    
+    - name: "TGeoNode"
+      rationale: "Geometry node hierarchy"
+      headers:
+        - "geom/geom/inc/TGeoNode.h"
+
+  # Estimated corpus size
+  stats:
+    estimated_classes: 11
+    estimated_headers: 15
+    estimated_source_files: 10
+    estimated_total_lines: "~15,000-20,000"
+    index_size_estimate: "5-10 MB"
+
+# Indexing strategy
+indexing:
+  # What to extract
+  extract:
+    - class_definitions
+    - method_signatures
+    - doxygen_comments
+    - inline_comments
+  
+  # Chunking strategy
+  chunking:
+    method: "symbol_based"
+    description: "Extract contiguous blocks for each class/method"
+    target_chunk_size: "50-500 lines"
+  
+  # Storage
+  storage:
+    format: "sqlite_fts5"
+    location: "data/root_6.36.08_seed.db"
+    schema_version: "0.1.0"
+
+# Out of scope for seed corpus
+excluded:
+  - rationale: "Not in seed corpus, will be added in tier expansions"
+  - classes:
+    - "TMVA::*"
+    - "ROOT::Experimental::SOFIE::*"
+    - "TProof*"
+    - "TROOT"
+    - "TClass"
+    - "Most GUI classes (TCanvas, TPad, etc.)"
+  - note: "These may be added in future corpus tiers"
+
+# Validation
+validation:
+  golden_queries:
+    - "Where is TTree::Fill defined?"
+    - "Where is TFile::Open declared?"
+    - "Where is TH1F defined?"
+    - "Where is TVector3::Mag implemented?"
+    - "Where is TGeoManager::SetTopVolume declared?"
+    - "How to create TLorentzVector?"
+  
+  acceptance:
+    min_success_rate: 0.83  # 5/6 queries
+    max_query_time: "1.0s"
+    required_evidence: true
+    version_tagging: true
+
+# Metadata
+metadata:
+  schema_version: "0.1.0"
+  created: "2026-03-26"
+  purpose: "MVP seed corpus for FairShip-anchored retrieval"
+  source_audit: "reports/fairship_root_sofie_audit.md"
+  expansion_plan: "See Issue #2 for Tier 1/2/3 expansion strategy"
