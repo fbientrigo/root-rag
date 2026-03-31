@@ -1,9 +1,40 @@
 """Pytest fixtures for root-rag tests."""
 import subprocess
+import shutil
+import re
 from pathlib import Path
 from typing import Dict
 
 import pytest
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_LOCAL_TMP_ROOT = _REPO_ROOT / "artifacts" / "pytest_runtime"
+_LOCAL_CACHE_ROOT = _REPO_ROOT / "artifacts" / "pytest_cache"
+
+_LOCAL_TMP_ROOT.mkdir(parents=True, exist_ok=True)
+_LOCAL_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+@pytest.fixture
+def tmp_path(request) -> Path:
+    """Repo-local replacement for pytest's tmp_path fixture."""
+    node_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.nodeid)
+    path = _LOCAL_TMP_ROOT / node_name
+    # Force cleanup with retry for Windows file locking issues
+    if path.exists():
+        for _ in range(3):  # Retry up to 3 times
+            try:
+                shutil.rmtree(path)
+                break
+            except (PermissionError, OSError):
+                import time
+                time.sleep(0.1)
+        else:
+            # If still can't delete, try ignoring errors
+            shutil.rmtree(path, ignore_errors=True)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 @pytest.fixture
@@ -17,7 +48,10 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         - main_sha: SHA of main branch
     """
     repo_path = tmp_path / "test_repo"
-    repo_path.mkdir()
+    # Force cleanup if exists, then create fresh
+    if repo_path.exists():
+        shutil.rmtree(repo_path, ignore_errors=True)
+    repo_path.mkdir(parents=True, exist_ok=True)
     
     # Initialize repo
     subprocess.run(
@@ -127,7 +161,10 @@ def cpp_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         - files: {"tree.h": path, "tree.cxx": path}
     """
     repo_path = tmp_path / "cpp_repo"
-    repo_path.mkdir()
+    # Force cleanup if exists, then create fresh
+    if repo_path.exists():
+        shutil.rmtree(repo_path, ignore_errors=True)
+    repo_path.mkdir(parents=True, exist_ok=True)
     
     # Initialize repo
     subprocess.run(

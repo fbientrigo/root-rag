@@ -1,0 +1,122 @@
+[
+  {
+    "id": "c001",
+    "query": "TVector3 momentum and position access",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c002",
+    "query": "TGeoManager top volume and navigation",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c003",
+    "query": "TMath sqrt and power utilities",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c004",
+    "query": "TFile open ROOT files in FairShip",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c005",
+    "query": "TTree SetBranchAddress usage",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c006",
+    "query": "TLorentzVector momentum transport",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c007",
+    "query": "TClonesArray stack object storage",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c008",
+    "query": "TDatabasePDG particle lookup",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c009",
+    "query": "TRandom3 seeding through gRandom",
+    "query_class": "common_api"
+  },
+  {
+    "id": "c010",
+    "query": "TGeoVolume AddNode geometry assembly",
+    "query_class": "common_api"
+  },
+  {
+    "id": "s001",
+    "query": "ConstructGeometry overrides in detector modules",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s002",
+    "query": "ProcessHits implementation in SHiP detectors",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s003",
+    "query": "FairDetector template base usage",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s004",
+    "query": "ShipFieldMaker global and local field definition",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s005",
+    "query": "TVirtualMCStack push track interface",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s006",
+    "query": "RNTuple read and write validation test",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s007",
+    "query": "EvtGen decayer integration with TPythia8Decayer",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "s008",
+    "query": "SetBranchAddress pattern in data loaders",
+    "query_class": "structural_usage"
+  },
+  {
+    "id": "r001",
+    "query": "TGeoChecker include and usage",
+    "query_class": "rare_api"
+  },
+  {
+    "id": "r002",
+    "query": "ROOT::TSeq loops in UpstreamTagger",
+    "query_class": "rare_api"
+  },
+  {
+    "id": "r003",
+    "query": "TPythia6Calls integration point",
+    "query_class": "rare_api"
+  },
+  {
+    "id": "r004",
+    "query": "TVirtualMCDecayer interface in TEvtGenDecayer",
+    "query_class": "rare_api"
+  },
+  {
+    "id": "r005",
+    "query": "TGeoTrd2 geometry shape declaration",
+    "query_class": "rare_api"
+  },
+  {
+    "id": "r006",
+    "query": "TH1 header usage in generators",
+    "query_class": "rare_api"
+  }
+]

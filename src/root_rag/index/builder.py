@@ -1,6 +1,6 @@
 """Index builder: convert chunks to persisted JSONL and FTS5 formats."""
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
 
@@ -188,7 +188,7 @@ def build_full_index(
         }
     
     # Generate timestamp-based index_id (unique, sortable)
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
     if not created_at.endswith("Z"):
         created_at += "Z"
     

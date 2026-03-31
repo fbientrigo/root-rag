@@ -27,3 +27,8 @@ root-rag = "root_rag.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+cache_dir = "artifacts/pytest_cache"
+testpaths = ["tests"]
+norecursedirs = ["data", "artifacts", ".venv", ".git"]

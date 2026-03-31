@@ -1,6 +1,7 @@
 """SQLite FTS5 lexical search backend for ROOT CODE retrieval."""
 import logging
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -147,7 +148,9 @@ def build_fts_index(db_path: Path, chunks: List[Chunk]) -> Dict:
         create_fts5_db(db_path)
         stats = insert_chunks_into_fts(db_path, chunks)
         
-        created_at = datetime.utcnow().isoformat() + "Z"
+        created_at = datetime.now(timezone.utc).isoformat()
+        if not created_at.endswith("Z"):
+            created_at += "Z"
         logger.info(f"FTS5 index ready: {db_path} ({stats['inserted']} chunks)")
         
         return {

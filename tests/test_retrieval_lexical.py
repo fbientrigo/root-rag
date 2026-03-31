@@ -164,3 +164,30 @@ class TestLexicalSearchReturnsRankedResults:
         assert len(results) == 2
         # First result should have better score (more TTree mentions)
         assert results[0].score <= results[1].score  # BM25 may be "lower is better"
+
+    def test_lexical_search_lexnorm_mode_expands_aliases(self, tmp_path):
+        """lexnorm mode expands query aliases for lexical mismatch."""
+        chunk = Chunk.from_file_slice(
+            file_path="shipdata/ShipStack.cxx",
+            start_line=10,
+            end_line=20,
+            content=(
+                "TClonesArray* particles = new TClonesArray(\"ShipMCTrack\"); "
+                "stack->PushTrack(1, 2, 3, 4);"
+            ),
+            root_ref="v0.1",
+            resolved_commit="abc123" + "0" * 34,
+            language="cpp",
+            doc_origin="source_impl",
+        )
+
+        db_path = tmp_path / "test.sqlite"
+        create_fts5_db(db_path)
+        insert_chunks_into_fts(db_path, [chunk])
+
+        baseline_results = lexical_search(db_path, "object storage", top_k=10, query_mode="baseline")
+        lexnorm_results = lexical_search(db_path, "object storage", top_k=10, query_mode="lexnorm")
+
+        assert len(baseline_results) == 0
+        assert len(lexnorm_results) >= 1
+        assert lexnorm_results[0].chunk_id == chunk.chunk_id
