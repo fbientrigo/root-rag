@@ -1,0 +1,95 @@
+{
+  "fairship_golden_queries": [
+    {
+      "query_id": "fs_01_detector_hit",
+      "query": "DetectorHit class",
+      "natural_language": "How to implement a detector hit class in FairShip?",
+      "category": "fairship_patterns",
+      "expected_evidence": [
+        "DetectorHit class structure",
+        "Data members (position, time, energy)",
+        "ROOT TObject inheritance",
+        "ClassDef macro usage"
+      ],
+      "rationale": "Core FairShip pattern - all detectors follow similar hit structure"
+    },
+    {
+      "query_id": "fs_02_tgeomanager_usage",
+      "query": "TGeoManager MakeBox AddNode",
+      "natural_language": "How does FairShip use TGeoManager for geometry construction?",
+      "category": "fairship_root_integration",
+      "expected_evidence": [
+        "TGeoManager instance creation",
+        "Volume creation (MakeBox, MakeTube)",
+        "Material definitions",
+        "Positioning (AddNode, SetTopVolume)"
+      ],
+      "rationale": "FairShip heavily uses ROOT geometry - need examples of actual usage patterns"
+    },
+    {
+      "query_id": "fs_03_ttree_fill",
+      "query": "TTree Fill save data",
+      "natural_language": "How does FairShip save data to TTree?",
+      "category": "fairship_root_integration",
+      "expected_evidence": [
+        "TTree::Branch creation",
+        "TTree::Fill calls",
+        "TClonesArray usage",
+        "Data persistence patterns"
+      ],
+      "rationale": "I/O pattern - understanding how FairShip stores detector data"
+    },
+    {
+      "query_id": "fs_04_tvector3_physics",
+      "query": "TVector3 momentum physics",
+      "natural_language": "TVector3 physics calculations in FairShip",
+      "category": "fairship_root_integration",
+      "expected_evidence": [
+        "TVector3 momentum calculations",
+        "Vector operations (Mag, Theta, Phi)",
+        "Coordinate transformations",
+        "Physics analysis using TVector3"
+      ],
+      "rationale": "FairShip uses TVector3 extensively (36 files) - need usage examples"
+    },
+    {
+      "query_id": "fs_05_detector_point",
+      "query": "Point",
+      "natural_language": "What is DetectorPoint in FairShip and how is it used?",
+      "category": "fairship_patterns",
+      "expected_evidence": [
+        "DetectorPoint base class",
+        "MC truth information storage",
+        "Relationship to DetectorHit",
+        "Usage in simulation vs reconstruction"
+      ],
+      "rationale": "FairShip-specific pattern - MC truth vs reconstructed hit distinction"
+    },
+    {
+      "query_id": "fs_06_geometry_construction",
+      "query": "ConstructGeometry detector volume",
+      "natural_language": "FairShip detector geometry construction workflow",
+      "category": "fairship_patterns",
+      "expected_evidence": [
+        "ConstructGeometry method",
+        "Material definitions",
+        "Volume hierarchy",
+        "Detector positioning"
+      ],
+      "rationale": "End-to-end geometry workflow - comprehensive example needed"
+    },
+    {
+      "query_id": "fs_07_root_io_pattern",
+      "query": "TFile TTree Branch",
+      "natural_language": "FairShip ROOT I/O patterns for event storage",
+      "category": "fairship_root_integration",
+      "expected_evidence": [
+        "TFile usage",
+        "TTree branch structure",
+        "Event loop patterns",
+        "Data reading/writing code"
+      ],
+      "rationale": "Complete I/O workflow - how FairShip organizes event data"
+    }
+  ]
+}

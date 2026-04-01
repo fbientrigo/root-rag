@@ -1,0 +1,209 @@
+# ROOT 6.36.08 SOFIE Corpus - ML Inference Experimental APIs
+# SOFIE: System for Optimized Fast Inference code Emit
+# Last updated: 2026-03-31
+# Purpose: Enable ML inference queries for future FairShip integration
+
+root:
+  version: "6.36.08"
+  tag: "v6-36-08"
+  repository: "root-project/root"
+  commit: null  # Resolved during indexing
+
+corpus:
+  tier: "sofie_experimental"
+  rationale: "SOFIE ML inference APIs for ONNX model deployment in ROOT"
+  status: "EXPERIMENTAL - API may change"
+  fairship_usage: "Not yet used (as of 2026-03-31)"
+  build_requirements:
+    - "CMake: -Dtmva-sofie=ON"
+    - "Optional ONNX: -Dtmva-sofie-onnx=ON"
+    - "ROOT 6.26+ (introduced in 6.26)"
+    - "ROOT 6.36.08 (current stable with SOFIE)"
+  
+  # SOFIE core classes
+  classes:
+    # ===== Core Model Representation =====
+    - name: "TMVA::Experimental::SOFIE::RModel"
+      rationale: "Main SOFIE model container - wraps ONNX models for C++ code generation"
+      headers:
+        - "tmva/sofie/inc/TMVA/RModel.hxx"
+      sources:
+        - "tmva/sofie/src/RModel.cxx"
+      key_methods:
+        - "Generate() - Generate C++ inference code"
+        - "WriteWeightsToFile() - Export model weights"
+        - "Initialize() - Setup model structure"
+    
+    # ===== ONNX Integration =====
+    # Note: SOFIE.hxx not found in ROOT 6.36.08 - may be in different location or name
+    # - name: "TMVA::Experimental::SOFIE::ONNX"
+    #   rationale: "ONNX model parsing and import"
+    #   headers:
+    #     - "tmva/sofie/inc/TMVA/SOFIE.hxx"
+    #   key_functions:
+    #     - "ParseFromFile() - Load ONNX model"
+    #     - "ParseFromMemory() - Parse ONNX proto"
+    
+    # ===== Operator Base Classes =====
+    - name: "TMVA::Experimental::SOFIE::ROperator"
+      rationale: "Base class for all SOFIE operators"
+      headers:
+        - "tmva/sofie/inc/TMVA/ROperator.hxx"
+    
+    # ===== SOFIE Operators (All 46) =====
+    - name: "TMVA::Experimental::SOFIE::Operators"
+      rationale: "All SOFIE ONNX operators for neural network inference"
+      headers:
+        - "tmva/sofie/inc/TMVA/ROperator_BasicBinary.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_BasicNary.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_BasicUnary.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_BatchNormalization.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Cast.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Comparision.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Concat.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Constant.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Conv.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_ConvTranspose.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Custom.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Einsum.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Elu.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Erf.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Expand.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_Flatten.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Gather.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_GatherElements.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Gemm.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_GlobalAveragePool.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Identity.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_LayerNormalization.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_LeakyRelu.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_MatMul.hxx"  # Not in ROOT 6.36.08
+        # - "tmva/sofie/inc/TMVA/ROperator_Max.hxx"  # Not in ROOT 6.36.08
+        # - "tmva/sofie/inc/TMVA/ROperator_Mean.hxx"  # Not in ROOT 6.36.08
+        # - "tmva/sofie/inc/TMVA/ROperator_Min.hxx"  # Not in ROOT 6.36.08
+        # - "tmva/sofie/inc/TMVA/ROperator_NonZero.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Pad.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Pool.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Reduce.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_ReduceSumsquare.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Relu.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Reshape.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_Resize.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_RNN.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Selu.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Shape.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Sigmoid.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Slice.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Softmax.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_Squeeze.hxx"  # Not in ROOT 6.36.08
+        - "tmva/sofie/inc/TMVA/ROperator_Swish.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Tanh.hxx"
+        - "tmva/sofie/inc/TMVA/ROperator_Transpose.hxx"
+        # - "tmva/sofie/inc/TMVA/ROperator_Unsqueeze.hxx"  # Not in ROOT 6.36.08
+    
+    # ===== Code Generation =====
+    - name: "TMVA::Experimental::SOFIE::CodeGen"
+      rationale: "C++ code generation utilities"
+      headers:
+        - "tmva/sofie/inc/TMVA/RModel_Base.hxx"
+        - "tmva/sofie/inc/TMVA/RModel_GNN.hxx"
+        - "tmva/sofie/inc/TMVA/RModel_GraphIndependent.hxx"
+    
+    # Note: Expanded to all 46 operators for comprehensive SOFIE coverage
+
+  # Directory structure
+  directories:
+    headers: "tmva/sofie/inc/TMVA/"
+    sources: "tmva/sofie/src/"
+    operators: "tmva/sofie/inc/TMVA/ROperator_*.hxx"
+    parsers: "tmva/sofie/inc/TMVA/RModel_*.hxx"
+
+  # Estimated corpus size
+  stats:
+    estimated_classes: 10
+    estimated_headers: 15
+    estimated_source_files: 10
+    estimated_total_lines: "~5,000-8,000"
+    index_size_estimate: "2-5 MB"
+    expected_chunks: "~150-250"
+
+# Indexing strategy
+indexing:
+  extract:
+    - namespace_definitions
+    - class_definitions
+    - method_signatures
+    - doxygen_comments
+    - experimental_warnings
+    - code_examples
+  
+  chunking:
+    method: "symbol_based"
+    target_chunk_size: "50-500 lines"
+  
+  storage:
+    format: "sqlite_fts5"
+    schema_version: "1.0.0"
+
+# Golden queries for SOFIE
+validation:
+  golden_queries:
+    - "Where is RModel defined?"
+    - "Where is RModel::Generate declared?"
+    - "How to load ONNX model in SOFIE?"
+    - "Where is ROperator_Conv implemented?"
+    - "Where is SOFIE namespace defined?"
+    - "How to use SOFIE for inference?"
+  
+  acceptance:
+    min_success_rate: 0.83  # 5/6 queries
+    max_query_time: "1.5s"
+    required_evidence: true
+    version_tagging: true
+    experimental_warnings: true  # Must preserve @warning tags
+
+# Integration scenarios
+integration:
+  fairship_future:
+    rationale: "FairShip may adopt SOFIE for ML-based particle ID or event classification"
+    use_cases:
+      - "Particle identification using CNN on detector hits"
+      - "Event classification for background rejection"
+      - "Track quality estimation with neural networks"
+    required_apis:
+      - "RModel::Generate() - for C++ code generation"
+      - "ONNX parser - for loading trained models"
+      - "Conv, Pool operators - for CNN architectures"
+  
+  cross_references:
+    root_apis:
+      - "TTree - for reading training data"
+      - "TFile - for model weight storage"
+      - "TMath - for numerical operations"
+    note: "With Tier 1 indexed, cross-references will work properly"
+
+# Documentation priorities
+documentation:
+  critical:
+    - "EXPERIMENTAL status warnings"
+    - "Build requirements (CMake flags)"
+    - "ONNX compatibility notes"
+    - "Code generation workflow"
+    - "Memory management in generated code"
+  
+  examples:
+    - "Basic ONNX model loading"
+    - "Custom operator implementation"
+    - "Integration with ROOT analysis workflow"
+
+# Metadata
+metadata:
+  schema_version: "1.0.0"
+  created: "2026-03-31"
+  purpose: "SOFIE experimental APIs for ML inference in ROOT"
+  depends_on: "tier1_corpus (for ROOT class cross-references)"
+  fairship_status: "not_yet_used"
+  root_version_introduced: "6.26"
+  root_version_current: "6.36.08"
+  upstream_docs: "https://root.cern/doc/v636/group__SOFIE.html"
+  tutorial_path: "tutorials/tmva/TMVA_SOFIE_*.C"

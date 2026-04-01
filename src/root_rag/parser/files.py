@@ -6,7 +6,7 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 # File extensions to include
-INCLUDED_EXTENSIONS = {".h", ".hpp", ".hh", ".cxx", ".cpp", ".cc", ".c"}
+INCLUDED_EXTENSIONS = {".h", ".hpp", ".hh", ".hxx", ".cxx", ".cpp", ".cc", ".c"}
 
 # Directories to exclude (case-insensitive on some systems, but match exactly)
 EXCLUDED_DIRS = {
