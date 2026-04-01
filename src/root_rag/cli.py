@@ -415,10 +415,18 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Path, top_k: int):
     Evidence-first retrieval: returns file paths and line ranges with ROOT version.
     Does not synthesize answers without evidence.
     
+    Query syntax: Use keywords, not natural language.
+    - Good: "TTree::Fill", "TGeoManager MakeBox", "TVector3 magnitude"
+    - Avoid: "How do I fill a TTree?", "Where is the definition of?"
+    - Stop words (filtered): where, what, how, is, are, the, definition, usage, etc.
+    - Order doesn't matter: "TTree Fill" = "Fill TTree"
+    
+    For detailed query guide: See docs/QUERY_SYNTAX_GUIDE.md
+    
     Examples:
-        root-rag ask "Where is TTree::Fill defined?"
-        root-rag ask "How to create TH1F histogram?"
-        root-rag ask "TVector3 magnitude method"
+        root-rag ask "TTree::Fill"
+        root-rag ask "TH1F histogram"
+        root-rag ask "TVector3 magnitude"
     
     Exit codes:
         0: Success with evidence found

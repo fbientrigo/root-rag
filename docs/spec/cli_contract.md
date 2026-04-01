@@ -11,6 +11,24 @@ This document defines the supported command-line interface for the ROOT RAG MVP 
 - Human-readable output is required by default.
 - A machine-readable JSON mode may be added, but must be explicit.
 
+## Query Syntax
+ROOT-RAG uses **lexical keyword search** (SQLite FTS5) backed by BM25 ranking. 
+
+**Key principles:**
+- Queries are **keyword-based**, not natural language
+- **Stop words** are filtered (e.g., "and", "in", "where", "what", "definition", "usage", etc.)
+- **Order does not matter** - "TTree Fill" and "Fill TTree" return identical results
+- **Exact word matching** - typos and misspellings return 0 results
+- **Alias expansion** - certain terms automatically expand to related keywords
+
+**Best practices:**
+- ✅ Use precise keywords: `"TTree::Fill"`, `"TGeoManager MakeBox"`
+- ✅ Combine related terms: `"TVector3 magnitude"`, `"ProcessHits DetectorHit"`
+- ❌ Avoid natural language: `"How do I fill a TTree?"` → becomes `["ttree"]` (weak)
+- ❌ Avoid typos: `"searchin"` → 0 results
+
+For detailed guidance, see [QUERY_SYNTAX_GUIDE.md](../QUERY_SYNTAX_GUIDE.md).
+
 ## Global options
 These options may be supported across commands:
 - `--config <path>`: path to config file

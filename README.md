@@ -86,19 +86,21 @@ Includes ROOT's ML inference framework (39 operators) for future FairShip ML int
 
 ```bash
 # Find method signatures
-$ root-rag ask "TTree Fill method signature"
+$ root-rag ask "TTree::Fill"
 → tree/tree/inc/TTree.h:234-289 - Shows: virtual Int_t Fill()
 
 # Find usage examples from FairShip
-$ root-rag ask "TTree Fill Branch FairShip"
+$ root-rag ask "TTree Fill Branch"
 → Returns: ROOT API definition + FairShip real-world usage
 
 # Understand parameters
-$ root-rag ask "TTree Branch AddBranch"
+$ root-rag ask "TTree Branch"
 → tree/tree/inc/TTree.h:150-180 - Shows branching API
 ```
 
 **Pro Tip:** Use keywords, not full sentences. "TTree Fill" works better than "How do I fill a TTree?"
+
+👉 **[See Query Syntax Guide](docs/QUERY_SYNTAX_GUIDE.md)** for complete guide on writing effective queries.
 
 ---
 
@@ -363,6 +365,8 @@ root-rag/
 ## Documentation
 
 - [**GROUND_TRUTH.md**](docs/GROUND_TRUTH.md) - Project principles and non-negotiables
+- [**QUICK_QUERY_REFERENCE.md**](docs/QUICK_QUERY_REFERENCE.md) - TL;DR for writing queries
+- [**QUERY_SYNTAX_GUIDE.md**](docs/QUERY_SYNTAX_GUIDE.md) - Complete guide to query syntax, stop words, and best practices
 - [**architecture.md**](docs/architecture.md) - System architecture and data flow
 - [**QUICK_START.md**](docs/QUICK_START.md) - Detailed setup and usage guide
 - [**ADRs**](docs/adr/) - Architecture Decision Records (ADR 0001-0003)
