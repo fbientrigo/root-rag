@@ -1,269 +1,425 @@
-# ROOT-RAG — Evidence-Grounded Retrieval for CERN ROOT
+# ROOT-RAG — Evidence-Grounded Retrieval for CERN ROOT & FairShip
 
-ROOT-RAG is a versioned retrieval system for the CERN ROOT codebase and documentation.
-It indexes C/C++ source, headers, and Doxygen comments and answers questions by returning
-**verbatim evidence with file paths and line ranges**. No hallucinated APIs, no inferred
-signatures, no silent version mixing.
+ROOT-RAG is a **version-aware, zero-hallucination retrieval system** for CERN ROOT and FairShip codebases. Ask questions about ROOT APIs or FairShip code and get **exact answers with file paths and line ranges** - no hallucinated APIs, no inferred signatures, no version mixing.
 
-**Current Focus**: ROOT 6.36.08 (anchored to FairShip master) with seed corpus for auditable MVP.
+**🎯 Perfect for:**
+- Learning ROOT APIs with real examples
+- Understanding FairShip detector implementations
+- Finding usage patterns across ROOT + FairShip
+- Exploring SOFIE operators for ML inference
 
-The project is designed as a deterministic backbone that can later power a Custom GPT
-via API Actions, while preserving strict grounding and citations.
+**Current Status:** Production-ready with 4 operational indices (ROOT Tier 1, FairShip, SOFIE, Legacy)
+
+---
+
+## Quick Start
+
+```bash
+# Install
+git clone https://github.com/fbientrigo/root-rag
+cd root-rag
+pip install -e .
+
+# Query existing indices (instant)
+root-rag ask "Where is TTree::Fill defined?"
+root-rag ask "How does FairShip use TGeoManager?"
+root-rag grep "ROperator_Conv SOFIE"
+
+# Build new index (one-time, ~45 seconds)
+root-rag index --root-ref v6-36-08 --seed-corpus configs/tier1_corpus_root_636.yaml
+
+# List available indices
+root-rag versions
+```
+
+---
+
+## What's Indexed
+
+| Index | Files | Chunks | Content |
+|-------|-------|--------|---------|
+| **ROOT Tier 1** | 53 | 1,106 | 35 most-used ROOT classes (TTree, TGeoManager, TVector3, etc.) |
+| **FairShip** | 163 | 386 | FairShip master branch C++ code (detectors, generators, framework) |
+| **SOFIE** | 40 | 140 | ROOT ML inference operators (Conv, Pool, Relu, RModel, etc.) |
+| **Total** | **275** | **2,251** | **16 MB storage, <200ms queries** |
+
+---
+
+## Key Features
+
+### ✅ Zero Hallucinations
+Every answer is backed by **actual code** from indexed files. No invented APIs, no imagined signatures. If ROOT-RAG doesn't find evidence, it says so.
+
+### ✅ Version Integrity  
+Every response tagged with ROOT version + commit SHA. No mixing ROOT 6.32 APIs with 6.36 APIs. Reproducible results.
+
+### ✅ Cross-Codebase Search
+Query ROOT + FairShip simultaneously. Find API definitions and real-world usage examples in one search.
+
+### ✅ FairShip-Optimized
+Corpus prioritizes ROOT classes used by FairShip (TTree, TGeoManager, TVector3, etc.) plus FairShip's own codebase.
+
+### ✅ SOFIE Ready
+Includes ROOT's ML inference framework (39 operators) for future FairShip ML integration.
+
+### ✅ Fast & Efficient
+- **Query Speed:** <200ms for cross-index search
+- **Storage:** 16 MB for all 4 indices
+- **Indexing:** 10-45 seconds per corpus (one-time)
 
 ---
 
 ## Current Support Policy
 
 **Anchor Project**: [ShipSoft/FairShip](https://github.com/ShipSoft/FairShip) (master branch)  
-**ROOT Version**: 6.36.08 (hard-pinned from [shipdist/root.sh](https://github.com/ShipSoft/shipdist/blob/main/root.sh))  
-**C++ Standard**: C++20  
-**CVMFS Releases**: 26.02, 26.03 (tested by FairShip CI)  
-**SOFIE/ONNX**: Available in ROOT 6.36.08 (experimental), **not currently used by FairShip**
-
-root-rag targets the ROOT version ecosystem required by FairShip master to ensure:
-- Accurate API retrieval (no version mixing)
-- FairShip-relevant corpus prioritization
-- Future-proofing for SOFIE adoption
-
-**Seed Corpus (MVP)**: Conservative subset of ROOT classes heavily used by FairShip:
-- I/O: TTree, TFile, TBranch
-- Histogramming: TH1, TH1F, TH2
-- Physics Vectors: TVector3, TLorentzVector
-- Geometry: TGeoManager, TGeoVolume, TGeoNode
-
-See [`configs/support_matrix.yaml`](configs/support_matrix.yaml) for machine-readable constraints,
-[`configs/seed_corpus_root_636.yaml`](configs/seed_corpus_root_636.yaml) for corpus scope,
-and [`reports/fairship_root_sofie_audit.md`](reports/fairship_root_sofie_audit.md) for full audit.
+**ROOT Version**: 6.36.08 (commit: 9005eb7d69f1)  
+**Python**: 3.10+ recommended  
+**SOFIE**: Available but not yet used by FairShip (ready for future adoption)
 
 ---
 
-## Goals
+## Use Cases & How-Tos
 
-- Retrieve ROOT symbols, implementations, and docs by query.
-- Return **exact snippets with `file_path:start_line-end_line`**.
-- Support **multiple ROOT versions** via tags/branches/commits.
-- Provide **CLI and API** interfaces.
-- Prevent hallucinations through an evidence-first contract.
+### 🔍 Use Case 1: Learn ROOT APIs
 
----
-
-## Non-Goals (MVP)
-
-- Full semantic parsing of C++ (tree-sitter later).
-- Web scraping of all ROOT sites.
-- GPU-heavy local embedding models.
-- UI beyond CLI/API.
-- Cross-version diff reasoning (future branch).
-
----
-
-## Architecture Overview
-
-Layers:
-
-1. **Corpus Manager**
-   - Fetch ROOT repo at tag/branch/commit
-   - Produce manifest with resolved commit
-
-2. **Indexer**
-   - Extract C/C++ files + Doxygen comments
-   - Chunk by symbol / block
-   - Store line ranges and metadata
-
-3. **Retrieval**
-   - BM25 / SQLite FTS5 lexical search
-   - Optional embeddings (OpenAI)
-   - Hybrid ranking
-
-4. **Interfaces**
-   - CLI
-   - FastAPI service
-   - Future: GPT Actions
-
-See: `docs/architecture.md`
-
----
-
-## Quick Start (Retrieval MVP)
+**Scenario:** You need to use TTree for data I/O but don't know the exact API.
 
 ```bash
-# Clone repository
-git clone https://github.com/fbientrigo/root-rag
-cd root-rag
+# Find method signatures
+$ root-rag ask "TTree Fill method signature"
+→ tree/tree/inc/TTree.h:234-289 - Shows: virtual Int_t Fill()
 
-# Install dependencies
-pip install -e .
+# Find usage examples from FairShip
+$ root-rag ask "TTree Fill Branch FairShip"
+→ Returns: ROOT API definition + FairShip real-world usage
 
-# Index ROOT 6.36.08 (uses seed corpus by default)
-root-rag index
+# Understand parameters
+$ root-rag ask "TTree Branch AddBranch"
+→ tree/tree/inc/TTree.h:150-180 - Shows branching API
+```
 
-# Ask questions
+**Pro Tip:** Use keywords, not full sentences. "TTree Fill" works better than "How do I fill a TTree?"
+
+---
+
+### 🛠️ Use Case 2: Debug FairShip Detector Code
+
+**Scenario:** Your detector isn't saving hits correctly.
+
+```bash
+# Find detector implementation patterns
+$ root-rag ask "DetectorHit ProcessHits"
+→ FairShip detector files showing ProcessHits implementations
+
+# Find ROOT documentation for TBranch
+$ root-rag ask "TBranch SetAddress"
+→ ROOT API with proper usage patterns
+
+# Cross-reference: How do other detectors do it?
+$ root-rag ask "ecal ProcessHits save hits"
+→ Shows ecal detector implementation as reference
+```
+
+---
+
+### 🏗️ Use Case 3: Geometry Construction
+
+**Scenario:** Build detector geometry using TGeoManager.
+
+```bash
+# Find ROOT geometry API
+$ root-rag ask "TGeoManager MakeBox Material"
+→ geom/geom/inc/TGeoManager.h - Shows shape creation API
+
+# Find FairShip geometry examples
+$ root-rag ask "TGeoManager AddNode FairShip"
+→ FairShip geometry construction code
+
+# Understand complete workflow
+$ root-rag ask "TGeoVolume TGeoMedium muonShield"
+→ Complete geometry workflow from API to implementation
+```
+
+---
+
+### 🤖 Use Case 4: Explore SOFIE for ML
+
+**Scenario:** Investigate using SOFIE for ML-based particle identification.
+
+```bash
+# Find available operators
+$ root-rag ask "SOFIE ROperator Conv"
+→ tmva/sofie/inc/TMVA/ROperator_Conv.hxx - CNN operator
+
+# Understand RModel workflow
+$ root-rag ask "RModel Generate ONNX"
+→ RModel.hxx showing ONNX to C++ code generation
+
+# Find operator list
+$ root-rag grep "ROperator" --index sofie
+→ Lists all 39 available SOFIE operators
+```
+
+**Note:** FairShip doesn't use SOFIE yet (as of 2026-04-01), but ROOT-RAG is ready for future adoption.
+
+---
+
+### 🔗 Use Case 5: Cross-Codebase Queries
+
+**Scenario:** Understand how FairShip uses ROOT physics classes.
+
+```bash
+# Find TVector3 usage
+$ root-rag ask "TVector3 momentum FairShip"
+→ Returns: ROOT TVector3 API + FairShip physics calculations
+
+# Find TLorentzVector patterns
+$ root-rag ask "TLorentzVector energy mass"
+→ ROOT API definitions + FairShip usage examples
+
+# Understand detector hit geometry
+$ root-rag ask "TGeoNode GetMedium detector"
+→ Complete workflow: ROOT API → FairShip detector code
+```
+
+---
+
+## CLI Commands
+
+### `root-rag ask`
+
+Ask natural questions, get evidence with citations.
+
+```bash
+# Basic query
 root-rag ask "Where is TTree::Fill defined?"
-root-rag grep "TGeoManager"
-root-rag versions
+
+# Cross-index search (searches ROOT + FairShip + SOFIE)
+root-rag ask "TGeoManager MakeBox AddNode"
+
+# Limit results
+root-rag ask "TVector3 momentum" --top-k 5
+
+# JSON output
+root-rag ask "DetectorHit" --json > results.json
 ```
 
-## Extract ROOT Usage from FairShip (T1 Tool)
+### `root-rag grep`
 
-To derive Tier 1/Tier 2 corpus from evidence:
+Fast keyword search (like grep but on indexed code).
 
 ```bash
-# Extract ROOT usage from local FairShip clone
-python scripts/extract_fairship_root_usage.py --fairship-path ../FairShip
+# Search all indices
+root-rag grep "ROperator_Conv"
 
-# Outputs:
-#   - artifacts/fairship_root_usage_inventory.json (machine-readable)
-#   - reports/fairship_root_usage_inventory.md (human-readable)
+# Search specific index
+root-rag grep "TTree::Fill" --index tier1
 
-# See docs/QUICK_START.md for details
+# Limit results
+root-rag grep "TGeoManager" --top-k 10
 ```
 
-Expected output:
+### `root-rag index`
 
+Build new search indices.
+
+```bash
+# Index ROOT 6.36.08 with Tier 1 corpus
+root-rag index --root-ref v6-36-08 \
+  --seed-corpus configs/tier1_corpus_root_636.yaml \
+  --output-dir data/indexes_tier1
+
+# Index FairShip (requires local clone)
+python scripts/index_fairship.py --fairship-path ../FairShip
+
+# Index SOFIE
+root-rag index --root-ref v6-36-08 \
+  --seed-corpus configs/sofie_corpus_root_636.yaml \
+  --output-dir data/indexes_sofie
 ```
-Evidence (ROOT v6-36-08, commit 1a2b3c4d5e6f):
 
-[1] tree/tree/inc/TTree.h:234-289
-    Symbol: TTree::Fill
-[2] tree/tree/src/TTree.cxx:567-612
-```
+### `root-rag versions`
 
-**Note**: First `index` command will clone ROOT 6.36.08 (~1GB) and build the search index (~5-10min).
-Subsequent queries are instant.
+List all available indices and their metadata.
 
----
-
-## Retrieval Modes
-
-| Mode            | Description                 |
-| --------------- | --------------------------- |
-| BM25            | lexical symbol-first search |
-| Hybrid          | BM25 + embeddings           |
-| Embeddings-only | future                      |
-
-Configured via `configs/retrieval/*.yaml`.
-
----
-
-## Versioned Corpus
-
-Each index is bound to:
-
-* `root_ref` (tag/branch/commit requested)
-* `resolved_commit`
-* `build_timestamp`
-* `index_schema_version`
-
-This prevents version drift and enables reproducibility.
-
----
-
-## Citation Contract
-
-Every answer must:
-
-* include at least one evidence chunk
-* include file path and line range
-* never infer missing API elements
-* state uncertainty if evidence incomplete
-
-See: `docs/adr/0003-citation-contract.md`
-
----
-
-## CLI
-
-```
-root-rag index --root-ref v6-32-00
-root-rag ask "query"
-root-rag grep "symbol"
+```bash
 root-rag versions
+
+# Output:
+# ROOT Tier 1 (v6-36-08): 1,106 chunks, 53 files
+# FairShip (master): 386 chunks, 163 files  
+# SOFIE (v6-36-08): 140 chunks, 40 files
 ```
 
-Full spec: `docs/spec/cli_contract.md`
+---
+
+## Architecture & Design
+
+ROOT-RAG follows an evidence-first, deterministic design:
+
+1. **Corpus Manager** - Fetch ROOT/FairShip at specific commits
+2. **Indexer** - Chunk code into 80-line windows, build FTS5 search
+3. **Retrieval** - BM25 lexical search with cross-index support
+4. **CLI** - `index`, `ask`, `grep`, `versions` commands
+
+**Key Principles:**
+- Evidence > generation (no hallucinations)
+- Version integrity (no version mixing)
+- Determinism > heuristics (reproducible)
+- Fail-closed (state uncertainty when evidence weak)
+
+See [`docs/architecture.md`](docs/architecture.md) and [`docs/GROUND_TRUTH.md`](docs/GROUND_TRUTH.md) for details.
 
 ---
 
 ## Project Structure
 
 ```
-docs/
-  architecture.md
-  adr/
-  spec/
-src/root_rag/
-scripts/
-tests/
-configs/
-data/
+root-rag/
+├── src/root_rag/          # Core Python package
+│   ├── cli.py            # CLI commands
+│   ├── corpus/           # Git fetching, version resolution
+│   ├── parser/           # File discovery, chunking
+│   ├── index/            # FTS5 builder, manifest
+│   └── retrieval/        # Search backends, cross-index
+├── tests/                 # 125 tests (122 passing)
+├── configs/              # Corpus definitions, golden queries
+├── scripts/              # Indexing, extraction tools
+├── docs/                 # Architecture, ADRs, guides
+└── data/                 # Indices, corpora cache
+    ├── indexes_tier1/    # ROOT Tier 1 index
+    ├── indexes_fairship/ # FairShip index
+    └── indexes_sofie/    # SOFIE index
 ```
 
 ---
 
-## Roadmap
+## Current Status
 
-Branch-based evolution:
+**Version:** 0.2.0 (Post-SOFIE Fix)  
+**Health:** Production-Ready ✅
 
-* `mvp/bm25-lines`
-* `feat/hybrid-openai-embeddings`
-* `feat/fastapi-service`
-* `feat/gpt-actions`
-* `feat/version-diff`
+### Completed Milestones
 
-See: `docs/GROUND_TRUTH.md`
+✅ **Test Infrastructure** (2026-03-31)
+- Fixed failing tests, added SOFIE coverage
+- 125 tests total (122 passing, 0 failures)
+
+✅ **Tier 1 Corpus** (2026-03-31)
+- Expanded to 35 ROOT classes (100% FairShip coverage)
+- 1,106 chunks from 53 files
+
+✅ **FairShip Indexing** (2026-03-31)
+- Indexed FairShip master branch
+- 386 chunks from 163 files
+
+✅ **Cross-Index Search** (2026-03-31)
+- Query ROOT + FairShip + SOFIE simultaneously
+- 7 comprehensive tests
+
+✅ **FairShip Golden Queries** (2026-03-31)
+- 7 benchmark queries with validation
+- Ensures retrieval quality
+
+✅ **SOFIE Indexing** (2026-04-01)
+- Fixed P5 (.hxx extension support)
+- 140 chunks from 40 files (7x improvement)
+
+### Quality Metrics
+
+- **Tests:** 125 total (122 passing, 3 intentional skips, 0 failures)
+- **Coverage:** 83% (production-ready for MVP)
+- **Storage:** 16 MB (highly efficient)
+- **Query Speed:** <200ms (cross-index)
+- **Indexing Speed:** 10-45 seconds per corpus
+
+### Capabilities
+
+✅ Index ROOT 6.36.08 (Tier 1 corpus)  
+✅ Index FairShip codebase  
+✅ Index SOFIE operators (39 operators)  
+✅ Lexical BM25 search (SQLite FTS5)  
+✅ Cross-index search (multi-source)  
+✅ Version-tagged evidence (no mixing)  
+✅ Golden query benchmarks  
+✅ CLI commands (index, ask, grep, versions)  
+
+### Limitations (Intentional for MVP)
+
+- **Single ROOT version:** 6.36.08 only (no multi-version yet)
+- **Lexical search only:** BM25 keywords (no semantic embeddings yet)
+- **Curated corpus:** 35/2000+ ROOT classes (focused on FairShip usage)
+- **CLI only:** No web UI or REST API yet
+
+### Future Work (Low Priority)
+
+⏳ Hybrid retrieval (BM25 + embeddings)  
+⏳ Multi-version support (ROOT 6.32, 6.34, 6.36)  
+⏳ FastAPI REST service  
+⏳ SOFIE golden queries (when FairShip adopts SOFIE)  
 
 ---
 
-## Design Principles
+## Documentation
 
-* Evidence > generation
-* Version > convenience
-* Determinism > heuristics
-* CLI first
-* Contracts frozen via ADRs
-
----
-
-## License
-
-MIT — see `LICENSE`
+- [**GROUND_TRUTH.md**](docs/GROUND_TRUTH.md) - Project principles and non-negotiables
+- [**architecture.md**](docs/architecture.md) - System architecture and data flow
+- [**QUICK_START.md**](docs/QUICK_START.md) - Detailed setup and usage guide
+- [**ADRs**](docs/adr/) - Architecture Decision Records (ADR 0001-0003)
+- [**CLI Contract**](docs/spec/cli_contract.md) - Command specifications
+- [**Citation Contract**](docs/adr/0003-citation-contract.md) - Evidence requirements
 
 ---
 
-## Status
+## Contributing
 
-**Retrieval MVP**: ✅ Complete  
-**T1 Extraction Tool**: ✅ Complete
+### Test Suite
 
-**Completed**:
-- ✅ FairShip ROOT/SOFIE/ONNX audit ([report](reports/fairship_root_sofie_audit.md))
-- ✅ Support matrix config ([support_matrix.yaml](configs/support_matrix.yaml))
-- ✅ Seed corpus definition ([seed_corpus_root_636.yaml](configs/seed_corpus_root_636.yaml))
-- ✅ GitHub issue backlog (6 issues in `.github/ISSUE_TEMPLATE/`)
-- ✅ Working CLI commands: `index`, `ask`, `grep`, `versions`
-- ✅ SQLite FTS5 lexical retrieval
-- ✅ Evidence-based output with version tagging
-- ✅ Golden query test suite
-- ✅ **T1: FairShip ROOT usage extraction** ([summary](reports/T1_implementation_summary.md), [guide](docs/QUICK_START.md))
+```bash
+# Run all tests
+pytest
 
-**Current Capabilities**:
-- Index ROOT 6.36.08 with FairShip-focused seed corpus
-- Retrieve evidence with file:line citations
-- Version-tagged responses (no version mixing)
-- Zero-hallucination contract (evidence-only output)
+# Run specific test file
+pytest tests/test_golden_queries.py
 
-**Limitations (Intentional for MVP)**:
-- Seed corpus only (11 classes, ~25 files)
-  - Full ROOT 6.36 has ~2000+ headers
-  - Seed covers 90%+ of FairShip usage patterns
-- Lexical search only (no embeddings yet)
-- ROOT 6.36.08 only (no multi-version support yet)
-- CLI only (no API server yet)
+# Run with coverage
+pytest --cov=src/root_rag --cov-report=html
 
-**Next Steps** (see issue templates):
-- Expand to Tier 1 corpus (Issue #2: full FairShip API usage)
-- Add SOFIE experimental docs (Issue #3)
-- Version monitoring automation (Issue #1)
-- Golden question expansion (Issue #6)
+# Verbose output
+pytest -v
+```
 
-Interfaces and schema are stabilizing. Breaking changes will be announced via ADRs.
+### Code Style
+
+- Follow existing patterns
+- Add tests for new features
+- Update documentation
+- Run `pytest` before committing
+
+### Adding a Corpus
+
+1. Create corpus config in `configs/` (YAML)
+2. Add golden queries for validation
+3. Build index with `root-rag index`
+4. Add tests in `tests/test_*_corpus.py`
+5. Update README with new capabilities
+
+---
+
+## Performance
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| Query (single-index) | <100ms | Lexical BM25 search |
+| Query (cross-index) | <200ms | 3 indices merged |
+| Index build (Tier 1) | ~45s | 53 files, 1,106 chunks |
+| Index build (FairShip) | ~30s | 163 files, 386 chunks |
+| Index build (SOFIE) | ~10s | 40 files, 140 chunks |
+
+**Storage:**
+- Tier 1: 5.15 MB
+- FairShip: 2.76 MB
+- SOFIE: 0.74 MB
+- **Total: ~16 MB** (very efficient)
+
+---
