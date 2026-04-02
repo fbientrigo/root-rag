@@ -52,6 +52,13 @@ QUERY_ALIAS_EXPANSIONS: Dict[str, List[str]] = {
 }
 
 
+EXACT_SYMBOL_BOOST_TOKENS: Set[str] = {
+    "setbranchaddress",
+    "constructgeometry",
+    "processhits",
+}
+
+
 def _tokenize(query: str) -> List[str]:
     return [token.lower() for token in TOKEN_RE.findall(query)]
 
@@ -72,6 +79,7 @@ class RootLexicalQueryTransformer(QueryTransformer):
     alias_expansions: Dict[str, List[str]] = field(
         default_factory=lambda: {token: aliases[:] for token, aliases in QUERY_ALIAS_EXPANSIONS.items()}
     )
+    exact_symbol_boost_tokens: Set[str] = field(default_factory=lambda: set(EXACT_SYMBOL_BOOST_TOKENS))
 
     def transform(self, query: str) -> str:
         base_tokens = _tokenize(query)
@@ -81,7 +89,9 @@ class RootLexicalQueryTransformer(QueryTransformer):
         for token in filtered_tokens:
             aliases = self.alias_expansions.get(token)
             if aliases:
-                # Replace source token with alias terms to avoid strict FTS AND constraints.
+                # Keep critical symbols alongside aliases to preserve exact API matches.
+                if token in self.exact_symbol_boost_tokens:
+                    expanded_tokens.append(token)
                 expanded_tokens.extend(aliases)
             else:
                 expanded_tokens.append(token)
