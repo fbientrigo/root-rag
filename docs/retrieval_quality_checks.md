@@ -34,6 +34,23 @@ Run command:
 - `python scripts/run_retrieval_benchmark.py --backend lexical_bm25_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_retrieval_baseline_refactor.json`
 Always execute this command before reporting a baseline comparison so the metadata/test expectations stay accurate.
 
+Official mode-alignment command (B0 vs B1, plus audits and comparison report):
+- `python scripts/run_benchmark_mode_tracks.py`
+This generates:
+- `artifacts/benchmark_eval_results_B0.json`
+- `artifacts/benchmark_eval_results_B1.json`
+- `artifacts/benchmark_failure_audit_B0.json`
+- `artifacts/benchmark_failure_audit_B0.md`
+- `artifacts/benchmark_failure_audit_B1.json`
+- `artifacts/benchmark_failure_audit_B1.md`
+- `artifacts/benchmark_mode_comparison.md`
+- `artifacts/manual_zero_recall_review_template.md`
+
+CI automation:
+- GitHub Actions workflow: `.github/workflows/benchmark_mode_alignment.yml`
+- Triggered automatically on relevant `push`/`pull_request` changes and manually via `workflow_dispatch`.
+- Uploads the generated B0/B1 benchmark and audit artifacts as workflow artifacts.
+
 Dense side-by-side comparison command:
 - `python scripts/run_retrieval_benchmark.py --backend dense_hash_memory --query-mode baseline --top-k 10 --side-by-side-lexical --output artifacts/benchmark_retrieval_dense_hash_baseline.json`
 This keeps lexical frozen settings unchanged while adding `side_by_side_vs_lexical_baseline` in output.
