@@ -1,0 +1,71 @@
+name: benchmark-mode-alignment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, development]
+    paths:
+      - ".github/workflows/benchmark_mode_alignment.yml"
+      - "scripts/run_benchmark_mode_tracks.py"
+      - "scripts/audit_benchmark_failures.py"
+      - "src/root_rag/retrieval/**"
+      - "src/root_rag/evaluation/**"
+      - "configs/benchmark_queries.json"
+      - "configs/benchmark_qrels.jsonl"
+      - "artifacts/corpus.jsonl"
+  pull_request:
+    paths:
+      - ".github/workflows/benchmark_mode_alignment.yml"
+      - "scripts/run_benchmark_mode_tracks.py"
+      - "scripts/audit_benchmark_failures.py"
+      - "src/root_rag/retrieval/**"
+      - "src/root_rag/evaluation/**"
+      - "configs/benchmark_queries.json"
+      - "configs/benchmark_qrels.jsonl"
+      - "artifacts/corpus.jsonl"
+
+jobs:
+  mode-tracks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Run official B0/B1 tracks
+        run: python scripts/run_benchmark_mode_tracks.py
+
+      - name: Verify expected artifacts
+        run: |
+          test -f artifacts/benchmark_eval_results_B0.json
+          test -f artifacts/benchmark_eval_results_B1.json
+          test -f artifacts/benchmark_failure_audit_B0.json
+          test -f artifacts/benchmark_failure_audit_B0.md
+          test -f artifacts/benchmark_failure_audit_B1.json
+          test -f artifacts/benchmark_failure_audit_B1.md
+          test -f artifacts/benchmark_mode_comparison.md
+          test -f artifacts/manual_zero_recall_review_template.md
+
+      - name: Upload benchmark-mode artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-mode-alignment
+          path: |
+            artifacts/benchmark_eval_results_B0.json
+            artifacts/benchmark_eval_results_B1.json
+            artifacts/benchmark_failure_audit_B0.json
+            artifacts/benchmark_failure_audit_B0.md
+            artifacts/benchmark_failure_audit_B1.json
+            artifacts/benchmark_failure_audit_B1.md
+            artifacts/benchmark_mode_comparison.md
+            artifacts/manual_zero_recall_review_template.md
