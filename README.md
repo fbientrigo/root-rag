@@ -8,11 +8,19 @@ ROOT-RAG is a **version-aware, zero-hallucination retrieval system** for CERN RO
 - Finding usage patterns across ROOT + FairShip
 - Exploring SOFIE operators for ML inference
 
-**Current Status:** Production-ready with 4 operational indices (ROOT Tier 1, FairShip, SOFIE, Legacy)
+**Current Status:** Stable CLI-oriented retrieval prototype with a frozen `baseline` evaluation branch and active work continuing on `development`.
 
 [![Benchmark Mode Alignment](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml/badge.svg)](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml)
 
 ---
+
+## Branch Semantics
+
+- `baseline`: frozen evaluation floor used as the official comparison anchor
+- `development`: active experimentation and integration
+- `main`: stable usable branch
+
+The official frozen baseline contract lives in [`docs/baseline_contract.md`](docs/baseline_contract.md).
 
 ## Quick Start
 
@@ -317,7 +325,7 @@ root-rag/
 ## Current Status
 
 **Version:** 0.2.0 (Post-SOFIE Fix)  
-**Health:** Production-Ready ✅
+**Health:** Stable prototype with explicit baseline/evaluation discipline
 
 ### Completed Milestones
 
@@ -434,23 +442,19 @@ python scripts/run_official_bm25_baseline.py
 ```
 
 Artifacts:
-- `artifacts/baseline/bm25_official_baseline.json`
-- `artifacts/baseline/bm25_official_baseline.per_query.json`
-- `artifacts/baseline/bm25_official_baseline.coverage.json`
-- `artifacts/baseline/bm25_official_baseline.failure_audit.json`
-- `artifacts/baseline/bm25_official_baseline.failure_audit.md`
+- `artifacts/baseline_official/benchmark_eval_results_baseline.json`
+- `artifacts/baseline_official/benchmark_failure_audit_baseline.json`
+- `artifacts/baseline_official/benchmark_failure_audit_baseline.md`
+- `artifacts/baseline_official/baseline_run_manifest.json`
+- `artifacts/baseline_official/baseline_summary.md`
 
-Scenarios:
-```bash
-# FairShip-only valid baseline (default)
-python scripts/run_official_bm25_baseline.py --scenario-name fairship_only_valid
-
-# Build minimal extended corpus (FairShip + external ROOT SOFIE docs)
-python scripts/build_extended_benchmark_corpus.py
-
-# Extended corpus valid baseline (enables b009/b010 qrels)
-python scripts/run_official_bm25_baseline.py --scenario-name extended_corpus_valid
-```
+Contract:
+- Official backend: `lexical_bm25_memory`
+- Official query mode: `baseline`
+- Official corpus profile: `fairship_only_valid`
+- Official top-k: `10`
+- Canonical comparison template: [`docs/baseline_vs_candidate_template.md`](docs/baseline_vs_candidate_template.md)
+- Baseline contract: [`docs/baseline_contract.md`](docs/baseline_contract.md)
 
 The benchmark subsets are in `configs/benchmark_query_subsets.json`:
 `root_basic`, `sofie_absence_control`, `root_sofie_integration`, `repo_specific`,

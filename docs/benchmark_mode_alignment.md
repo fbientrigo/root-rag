@@ -1,6 +1,8 @@
 # Benchmark Mode Alignment
 
-This document defines the official, reproducible benchmark/audit comparisons for baseline query interpretation, lexnorm query interpretation, and the first local semantic-style retrieval baseline.
+This document defines the reproducible benchmark/audit comparisons for baseline query interpretation, lexnorm query interpretation, and the first local semantic-style retrieval baseline.
+
+It is not the canonical frozen baseline definition. The official frozen baseline contract is defined in `docs/baseline_contract.md`, and the canonical baseline command remains `python scripts/run_official_bm25_baseline.py`.
 
 ## Goal
 

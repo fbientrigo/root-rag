@@ -29,14 +29,21 @@ Frozen benchmark run contract:
 - `query_mode=baseline`
 - `top_k=10`
 - backend: `lexical_bm25_memory`
+- corpus profile: `fairship_only_valid`
+- branch role: frozen evaluation floor
+
+Formal source of truth:
+- `docs/baseline_contract.md`
+- `configs/baseline_manifest.json`
 
 Run command:
 - `python scripts/run_official_bm25_baseline.py`
 This is the official one-command baseline run. It emits:
-- `artifacts/baseline/bm25_official_baseline.json` (global + per-category + per-query metrics)
-- `artifacts/baseline/bm25_official_baseline.per_query.json` (per-query extraction for downstream plots)
-- `artifacts/baseline/bm25_official_baseline.failure_audit.json`
-- `artifacts/baseline/bm25_official_baseline.failure_audit.md`
+- `artifacts/baseline_official/benchmark_eval_results_baseline.json`
+- `artifacts/baseline_official/benchmark_failure_audit_baseline.json`
+- `artifacts/baseline_official/benchmark_failure_audit_baseline.md`
+- `artifacts/baseline_official/baseline_run_manifest.json`
+- `artifacts/baseline_official/baseline_summary.md`
 
 Official mode-alignment command (B0 vs B1, plus audits and comparison report):
 - `python scripts/run_benchmark_mode_tracks.py`
@@ -87,17 +94,20 @@ Semantic-hash S0 benchmark command:
 - `python scripts/run_retrieval_benchmark.py --backend semantic_hash_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_eval_results_S0.json`
 - This is a deterministic local semantic-style baseline based on expanded identifier parts, alias features, and character trigrams.
 
-Frozen benchmark inputs:
+Frozen benchmark inputs for the official baseline:
 - `artifacts/corpus.jsonl` (retrieval corpus)
 - `configs/benchmark_queries.json` (materialized query set snapshot)
 - `configs/benchmark_qrels.jsonl` (materialized qrel snapshot)
 - `configs/benchmark_query_subsets.json` (official category subsets)
 
-Official category subsets:
+Official category subsets tracked by the baseline contract:
 - `root_basic`
-- `sofie`
+- `sofie_absence_control`
 - `root_sofie_integration`
 - `repo_specific`
+- `critical_queries`
+- `fairship_only_valid`
+- `extended_corpus_valid`
 
 Current corpus note:
 - `sofie` and `root_sofie_integration` subsets are intentionally empty on the current frozen corpus (`artifacts/corpus.jsonl`), so future SOFIE coverage can be added without changing artifact schema.

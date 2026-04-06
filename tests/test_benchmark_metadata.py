@@ -1,25 +1,19 @@
-"""Ensure baseline benchmark metadata stays frozen."""
+"""Metadata checks for the frozen official baseline definition."""
+
+from __future__ import annotations
 
 import json
 from pathlib import Path
 
 
-def test_baseline_benchmark_metadata():
-    """Metadata must explicitly reflect the frozen baseline contract."""
-    path = Path("artifacts/benchmark_retrieval_baseline_refactor.json")
-    assert path.exists(), f"Run baseline benchmark to produce {path}"
+def test_official_baseline_metadata_contract_is_machine_readable():
+    manifest_path = Path("configs/baseline_manifest.json")
+    assert manifest_path.exists(), f"Missing {manifest_path}"
 
-    report = json.loads(path.read_text(encoding="utf-8"))
-    metadata = report.get("metadata", {})
-    operational = report.get("operational", {})
-    backend_metrics = operational.get("backend_metrics", {})
-
-    assert metadata.get("backend") == "lexical_bm25_memory"
-    assert metadata.get("query_mode") == "baseline"
-    assert metadata.get("top_k") == 10
-    assert metadata.get("bm25", {}).get("k1") == 1.5
-    assert metadata.get("bm25", {}).get("b") == 0.75
-
-    assert operational.get("backend_id") == "lexical_bm25_memory"
-    assert backend_metrics.get("docs") is not None
-    assert operational.get("query_latency_ms", {}).get("count", 0) > 0
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["official_backend"] == "lexical_bm25_memory"
+    assert manifest["official_query_mode"] == "baseline"
+    assert manifest["official_corpus_profile"] == "fairship_only_valid"
+    assert manifest["official_top_k"] == 10
+    assert manifest["output_artifact_directory"] == "artifacts/baseline_official"
+    assert manifest["semantic_retrieval"]["enabled_by_default"] is False

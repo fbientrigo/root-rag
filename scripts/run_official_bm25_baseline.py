@@ -1,26 +1,45 @@
 #!/usr/bin/env python3
-"""Run the official frozen BM25 baseline and emit stable benchmark artifacts."""
+"""Run the frozen official BM25 baseline and emit stable baseline artifacts."""
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import subprocess
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
-from time import perf_counter
 from typing import Dict, List
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 from root_rag.evaluation.metrics import TopKMetrics, aggregate_topk_metrics, compute_topk_metrics
 from root_rag.retrieval.backends import build_retrieval_backend
 from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.transformers import build_query_transformer
 
-REQUIRED_SUBSETS = (
+MANIFEST_PATH = REPO_ROOT / "configs" / "baseline_manifest.json"
+QUERIES_PATH = REPO_ROOT / "configs" / "benchmark_queries.json"
+SUBSETS_PATH = REPO_ROOT / "configs" / "benchmark_query_subsets.json"
+CORPUS_PROFILES_PATH = REPO_ROOT / "configs" / "benchmark_corpus_profiles.json"
+OFFICIAL_COMMAND = "python scripts/run_official_bm25_baseline.py"
+EXPECTED_BACKEND = "lexical_bm25_memory"
+EXPECTED_QUERY_MODE = "baseline"
+EXPECTED_CORPUS_PROFILE = "fairship_only_valid"
+EXPECTED_TOP_K = 10
+EXPECTED_ARTIFACT_FILENAMES = {
+    "evaluation_report": "benchmark_eval_results_baseline.json",
+    "failure_audit_json": "benchmark_failure_audit_baseline.json",
+    "failure_audit_markdown": "benchmark_failure_audit_baseline.md",
+    "run_manifest": "baseline_run_manifest.json",
+    "summary_markdown": "baseline_summary.md",
+}
+EXPECTED_SUBSETS = [
     "root_basic",
     "sofie_absence_control",
     "root_sofie_integration",
@@ -28,8 +47,7 @@ REQUIRED_SUBSETS = (
     "critical_queries",
     "fairship_only_valid",
     "extended_corpus_valid",
-)
-LEGACY_SUBSETS = ("sofie",)
+]
 
 
 @dataclass(frozen=True)
@@ -43,7 +61,11 @@ class QueryEntry:
     criticality: str
 
 
-def _load_corpus(path: Path) -> List[dict]:
+def _load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_jsonl(path: Path) -> List[dict]:
     rows: List[dict] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
@@ -51,29 +73,54 @@ def _load_corpus(path: Path) -> List[dict]:
     return rows
 
 
+def _sha256_file(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _relative(path: Path) -> str:
+    return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+
+
+def _resolve_commit_hash() -> str | None:
+    try:
+        output = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return output or None
+    except Exception:
+        return None
+
+
+def _require_file(path: Path, *, label: str) -> None:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing required {label}: {path}")
+    if not path.is_file():
+        raise FileNotFoundError(f"Required {label} is not a file: {path}")
+
+
 def _load_queries(path: Path) -> List[QueryEntry]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = _load_json(path)
     entries: List[QueryEntry] = []
     for row in raw:
-        category = row.get("category")
-        if category is None:
-            query_class = row.get("query_class", "")
-            if query_class == "common_api":
-                category = "root_basic"
-            elif query_class in {"structural_usage", "rare_api"}:
-                category = "repo_specific"
-            else:
-                category = "repo_specific"
-
         entries.append(
             QueryEntry(
                 query_id=row["id"],
                 query=row["query"],
                 query_class=row["query_class"],
-                category=category,
-                expected_behavior=row.get("expected_behavior", "retrieve_present"),
-                answer_granularity=row.get("answer_granularity", "file"),
-                criticality=row.get("criticality", "medium"),
+                category=row["category"],
+                expected_behavior=row["expected_behavior"],
+                answer_granularity=row["answer_granularity"],
+                criticality=row["criticality"],
             )
         )
     return entries
@@ -81,64 +128,97 @@ def _load_queries(path: Path) -> List[QueryEntry]:
 
 def _load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
     out: Dict[str, Dict[str, int]] = defaultdict(dict)
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
+    for row in _load_jsonl(path):
         out[row["query_id"]][row["chunk_id"]] = int(row["relevance"])
     return dict(out)
 
 
 def _load_subsets(path: Path) -> Dict[str, List[str]]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = _load_json(path)
     normalized: Dict[str, List[str]] = {}
     for key, value in raw.items():
         if not isinstance(value, list):
             raise ValueError(f"Subset '{key}' must be a list")
         normalized[key] = list(value)
 
-    for key in REQUIRED_SUBSETS:
+    for key in EXPECTED_SUBSETS:
         if key not in normalized:
             raise ValueError(f"Missing required subset '{key}' in {path}")
-
-    for key in LEGACY_SUBSETS:
-        if key not in normalized:
-            normalized[key] = []
-
     return normalized
 
 
-def _load_profiles(path: Path) -> Dict[str, dict]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw, dict):
-        raise ValueError("Corpus profiles config must be a JSON object")
-    return raw
+def _load_manifest(path: Path) -> dict:
+    manifest = _load_json(path)
+    required_keys = {
+        "branch_role",
+        "baseline_definition_version",
+        "official_backend",
+        "official_query_mode",
+        "official_corpus_profile",
+        "official_query_subsets",
+        "official_qrels",
+        "official_top_k",
+        "output_artifact_directory",
+        "official_artifacts",
+        "deterministic_controls",
+        "semantic_retrieval",
+    }
+    missing = sorted(required_keys - set(manifest.keys()))
+    if missing:
+        raise ValueError(f"baseline manifest missing keys: {missing}")
+
+    if manifest["official_backend"] != EXPECTED_BACKEND:
+        raise ValueError("official_backend drifted from frozen lexical BM25 baseline")
+    if manifest["official_query_mode"] != EXPECTED_QUERY_MODE:
+        raise ValueError("official_query_mode drifted from frozen baseline mode")
+    if manifest["official_corpus_profile"] != EXPECTED_CORPUS_PROFILE:
+        raise ValueError("official_corpus_profile drifted from frozen fairship_only_valid profile")
+    if int(manifest["official_top_k"]) != EXPECTED_TOP_K:
+        raise ValueError("official_top_k drifted from frozen top_k=10")
+    if manifest["official_query_subsets"] != EXPECTED_SUBSETS:
+        raise ValueError("official_query_subsets drifted from frozen subset ordering")
+    if manifest["official_artifacts"] != EXPECTED_ARTIFACT_FILENAMES:
+        raise ValueError("official_artifact filenames drifted from frozen contract")
+    if EXPECTED_CORPUS_PROFILE not in manifest["official_query_subsets"]:
+        raise ValueError("official_corpus_profile must also exist as the canonical official query subset")
+
+    semantic = manifest["semantic_retrieval"]
+    if semantic.get("enabled_by_default") is not False:
+        raise ValueError("semantic retrieval must remain disabled by default in baseline")
+    if semantic.get("allowed_in_official_baseline") is not False:
+        raise ValueError("semantic retrieval must remain disallowed in official baseline")
+
+    output_dir = Path(manifest["output_artifact_directory"])
+    if output_dir.as_posix() != "artifacts/baseline_official":
+        raise ValueError("output_artifact_directory drifted from artifacts/baseline_official")
+
+    return manifest
 
 
-def _compute_latency_summary_ms(samples_s: List[float]) -> dict:
-    if not samples_s:
-        return {"count": 0, "mean": 0.0, "p50": 0.0, "p95": 0.0, "min": 0.0, "max": 0.0}
+def _validate_profile_contract(*, manifest: dict, profiles: dict) -> dict:
+    if EXPECTED_CORPUS_PROFILE not in profiles:
+        raise ValueError("benchmark_corpus_profiles.json is missing fairship_only_valid")
+    profile = profiles[EXPECTED_CORPUS_PROFILE]
+    profile_qrels = profile.get("qrels")
+    if profile_qrels != manifest["official_qrels"]:
+        raise ValueError(
+            "Official corpus profile qrels do not match manifest official_qrels: "
+            f"{profile_qrels!r} != {manifest['official_qrels']!r}"
+        )
+    if not profile.get("corpus"):
+        raise ValueError("Official corpus profile must declare a corpus artifact path")
+    return profile
 
-    sorted_samples = sorted(samples_s)
-    count = len(sorted_samples)
 
-    def percentile(p: float) -> float:
-        if count == 1:
-            return sorted_samples[0]
-        rank = (count - 1) * p
-        low = int(rank)
-        high = min(low + 1, count - 1)
-        frac = rank - low
-        return sorted_samples[low] * (1.0 - frac) + sorted_samples[high] * frac
-
-    to_ms = lambda value: value * 1000.0
+def _build_query_inventory(*, queries: List[QueryEntry], qrels: Dict[str, Dict[str, int]]) -> dict:
+    query_ids = {query.query_id for query in queries}
+    with_qrels = {query_id for query_id in query_ids if qrels.get(query_id)}
+    without_qrels = sorted(query_ids - with_qrels)
     return {
-        "count": count,
-        "mean": to_ms(sum(sorted_samples) / count),
-        "p50": to_ms(percentile(0.50)),
-        "p95": to_ms(percentile(0.95)),
-        "min": to_ms(sorted_samples[0]),
-        "max": to_ms(sorted_samples[-1]),
+        "total_queries_defined": len(query_ids),
+        "total_queries_scored": len(with_qrels),
+        "total_queries_without_qrels_by_design": len(without_qrels),
+        "queries_without_qrels_by_design": without_qrels,
     }
 
 
@@ -150,35 +230,96 @@ def _metric_at_10(metrics: dict) -> dict:
     }
 
 
-def _resolve_commit_hash() -> str | None:
-    try:
-        output = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-        return output or None
-    except Exception:
-        return None
+def _aggregate_rows(rows: List[dict]) -> dict:
+    metrics = aggregate_topk_metrics(
+        [
+            TopKMetrics(
+                mrr_at_k=row["mrr_at_10"],
+                recall_at_k=row["recall_at_10"],
+                ndcg_at_k=row["ndcg_at_10"],
+                retrieved_positive_count=row["retrieved_positive_count"],
+                qrels_positive_count=row["qrels_positive_count"],
+            )
+            for row in rows
+        ]
+    )
+    return _metric_at_10(metrics)
 
 
-def _run_audit(
+def _build_subset_summary(
     *,
-    script_path: Path,
-    py_path: str,
-    corpus: Path,
-    queries: Path,
-    qrels: Path,
-    output_json: Path,
-    output_md: Path,
-    top_k: int,
-) -> None:
+    subset_name: str,
+    subset_ids: List[str],
+    per_query_by_id: Dict[str, dict],
+) -> dict:
+    defined_rows = [per_query_by_id[query_id] for query_id in subset_ids if query_id in per_query_by_id]
+    scored_rows = [row for row in defined_rows if row["qrels_positive_count"] > 0]
+    non_qrel_rows = [row for row in defined_rows if row["qrels_positive_count"] == 0]
+    zero_recall_rows = [row for row in scored_rows if row["recall_at_10"] == 0.0]
+
+    metrics_by_category: Dict[str, dict] = {}
+    for category in sorted({row["category"] for row in scored_rows}):
+        category_rows = [row for row in scored_rows if row["category"] == category]
+        metrics_by_category[category] = {
+            "total_queries_scored": len(category_rows),
+            "zero_recall_scored_queries": sum(1 for row in category_rows if row["recall_at_10"] == 0.0),
+            **_aggregate_rows(category_rows),
+        }
+
+    return {
+        "subset_name": subset_name,
+        "counts": {
+            "total_queries_defined": len(defined_rows),
+            "total_queries_scored": len(scored_rows),
+            "total_queries_without_qrels_by_design": len(non_qrel_rows),
+            "zero_recall_scored_queries": len(zero_recall_rows),
+        },
+        "defined_query_ids": [row["id"] for row in defined_rows],
+        "scored_query_ids": [row["id"] for row in scored_rows],
+        "queries_without_qrels_by_design": [row["id"] for row in non_qrel_rows],
+        "zero_recall_scored_query_ids": [row["id"] for row in zero_recall_rows],
+        "metrics_global": _aggregate_rows(scored_rows),
+        "metrics_by_category": metrics_by_category,
+        "metrics_by_query": scored_rows,
+    }
+
+
+def _build_diagnostic_subsets(
+    *,
+    subsets: Dict[str, List[str]],
+    per_query_by_id: Dict[str, dict],
+) -> dict:
+    diagnostic = {}
+    for subset_name in EXPECTED_SUBSETS:
+        if subset_name == EXPECTED_CORPUS_PROFILE:
+            continue
+        summary = _build_subset_summary(
+            subset_name=subset_name,
+            subset_ids=subsets[subset_name],
+            per_query_by_id=per_query_by_id,
+        )
+        summary["canonical"] = False
+        summary["diagnostic_only"] = True
+        if subset_name == "extended_corpus_valid":
+            summary["non_canonical_reason"] = (
+                "This subset is diagnostic-only in the official baseline run and must not be used "
+                "as the frozen comparison anchor."
+            )
+        else:
+            summary["non_canonical_reason"] = (
+                "This subset is a diagnostic breakdown only and must not replace the official baseline."
+            )
+        diagnostic[subset_name] = summary
+    return diagnostic
+
+
+def _run_audit(*, corpus: Path, queries: Path, qrels: Path, output_json: Path, output_md: Path) -> None:
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = py_path if not existing else f"{py_path}{os.pathsep}{existing}"
+    env["PYTHONPATH"] = str(SRC_ROOT) if not existing else f"{SRC_ROOT}{os.pathsep}{existing}"
     cmd = [
         sys.executable,
-        str(script_path),
+        str(REPO_ROOT / "scripts" / "audit_benchmark_failures.py"),
         "--corpus",
         str(corpus),
         "--queries",
@@ -190,195 +331,127 @@ def _run_audit(
         "--output-md",
         str(output_md),
         "--top-k",
-        str(top_k),
+        str(EXPECTED_TOP_K),
         "--backend",
-        "lexical_bm25_memory",
+        EXPECTED_BACKEND,
         "--query-mode",
-        "baseline",
+        EXPECTED_QUERY_MODE,
     ]
-    subprocess.run(cmd, check=True, env=env)
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT, env=env)
 
 
-def _resolve_path(value: Path | None, profile: dict, key: str) -> Path:
-    if value is not None:
-        return value
-    return Path(profile[key])
-
-
-def _build_coverage_report(
-    *,
-    queries: List[QueryEntry],
-    subsets: Dict[str, List[str]],
-    qrels: Dict[str, Dict[str, int]],
-    corpus_chunk_ids: set[str],
-    scenario_name: str,
-) -> dict:
-    query_map = {q.query_id: q for q in queries}
-    query_ids = set(query_map.keys())
-    with_qrels = {qid for qid in query_ids if qrels.get(qid)}
-
-    fairship_valid = [qid for qid in subsets.get("fairship_only_valid", []) if qid in query_ids]
-    extended_valid = [qid for qid in subsets.get("extended_corpus_valid", []) if qid in query_ids]
-    requires_extended = sorted([qid for qid in extended_valid if qid not in set(fairship_valid)])
-
-    absence_controls = sorted(
-        qid
-        for qid, q in query_map.items()
-        if q.expected_behavior == "confirm_absence"
-    )
-
-    no_qrels_by_design: List[dict] = []
-    for qid, q in query_map.items():
-        if qid in with_qrels:
-            continue
-        if qid in absence_controls:
-            reason = "absence_control"
-        elif qid in requires_extended:
-            reason = "requires_extended_corpus"
-        else:
-            reason = "no_verified_evidence_in_fairship_only"
-        no_qrels_by_design.append({"query_id": qid, "reason": reason})
-
-    missing_qrel_chunks = []
-    for qid, relevance in qrels.items():
-        for chunk_id in relevance:
-            if chunk_id not in corpus_chunk_ids:
-                missing_qrel_chunks.append({"query_id": qid, "chunk_id": chunk_id})
-
-    subset_summary = {}
-    for subset_name, ids in subsets.items():
-        valid_ids = [qid for qid in ids if qid in query_ids]
-        qrels_count = sum(1 for qid in valid_ids if qid in with_qrels)
-        subset_summary[subset_name] = {
-            "query_count": len(valid_ids),
-            "queries_with_qrels": qrels_count,
-            "queries_without_qrels": len(valid_ids) - qrels_count,
-        }
-
-    category_summary = {}
-    for category in sorted({q.category for q in queries}):
-        ids = [q.query_id for q in queries if q.category == category]
-        qrels_count = sum(1 for qid in ids if qid in with_qrels)
-        category_summary[category] = {
-            "query_count": len(ids),
-            "queries_with_qrels": qrels_count,
-            "queries_without_qrels": len(ids) - qrels_count,
-        }
-
-    return {
-        "scenario_name": scenario_name,
-        "queries_valid_in_fairship_only": fairship_valid,
-        "absence_control_queries": absence_controls,
-        "queries_requiring_extended_corpus": requires_extended,
-        "queries_without_qrels_by_design": sorted(no_qrels_by_design, key=lambda row: row["query_id"]),
-        "subset_summary": subset_summary,
-        "category_summary": category_summary,
-        "missing_qrel_chunks_in_corpus": sorted(
-            missing_qrel_chunks,
-            key=lambda row: (row["query_id"], row["chunk_id"]),
+def _write_summary(*, path: Path, report: dict, run_manifest: dict) -> None:
+    official = report["official_baseline"]
+    official_counts = official["counts"]
+    official_metrics = official["metrics_global"]
+    inventory = report["benchmark_query_inventory"]
+    lines = [
+        "# Official Baseline Summary",
+        "",
+        "## Official Baseline",
+        "",
+        f"Baseline definition version: `{run_manifest['baseline_definition_version']}`",
+        f"Branch role: `{run_manifest['branch_role']}`",
+        f"Official command: `{OFFICIAL_COMMAND}`",
+        f"Backend: `{official['backend']}`",
+        f"Query mode: `{official['query_mode']}`",
+        f"Corpus profile: `{official['corpus_profile']}`",
+        f"Canonical official subset: `{official['query_subset']}`",
+        f"Official metrics source: scored queries in `{official['query_subset']}` using `{official['qrels_path']}`",
+        f"Top-k: `{official['top_k']}`",
+        f"Total benchmark queries defined: `{inventory['total_queries_defined']}`",
+        f"Official baseline queries defined: `{official_counts['total_queries_defined']}`",
+        f"Official baseline queries scored: `{official_counts['total_queries_scored']}`",
+        (
+            "Official baseline queries without qrels by design: "
+            f"`{official_counts['total_queries_without_qrels_by_design']}`"
         ),
-        "summary": {
-            "total_queries": len(queries),
-            "queries_with_qrels": len(with_qrels),
-            "queries_without_qrels": len(queries) - len(with_qrels),
-            "absence_controls": len(absence_controls),
-            "requires_extended_corpus": len(requires_extended),
-            "missing_qrel_chunks": len(missing_qrel_chunks),
-        },
-    }
+        f"Zero-recall scored queries: `{official_counts['zero_recall_scored_queries']}`",
+        "",
+        "## Official Metrics",
+        "",
+        f"- `MRR@10`: {official_metrics['mrr_at_10']:.6f}",
+        f"- `Recall@10`: {official_metrics['recall_at_10']:.6f}",
+        f"- `nDCG@10`: {official_metrics['ndcg_at_10']:.6f}",
+        "",
+        "## Diagnostic Only",
+        "",
+        "- Non-canonical subsets are emitted only as diagnostics and must not be used as the frozen comparison anchor.",
+        "- `extended_corpus_valid` remains diagnostic-only in this official baseline run.",
+        "",
+        "## Official Artifacts",
+        "",
+    ]
+    for _, relative_path in run_manifest["artifacts"].items():
+        lines.append(f"- `{relative_path}`")
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--scenario-name",
-        default="fairship_only_valid",
-        help="Benchmark scenario/corpus profile name.",
-    )
-    parser.add_argument(
-        "--corpus-profiles",
-        type=Path,
-        default=Path("configs/benchmark_corpus_profiles.json"),
-        help="Scenario to corpus/qrels/output profile mapping.",
-    )
-    parser.add_argument("--corpus", type=Path, default=None)
-    parser.add_argument("--queries", type=Path, default=Path("configs/benchmark_queries.json"))
-    parser.add_argument("--qrels", type=Path, default=None)
-    parser.add_argument("--subsets", type=Path, default=Path("configs/benchmark_query_subsets.json"))
-    parser.add_argument("--top-k", type=int, default=10)
-    parser.add_argument(
-        "--experiment-name",
-        default="bm25_official_baseline",
-        help="Stable experiment name for the official baseline artifact.",
-    )
-    parser.add_argument("--output", type=Path, default=None)
-    parser.add_argument("--per-query-output", type=Path, default=None)
-    parser.add_argument("--coverage-output", type=Path, default=None)
-    parser.add_argument("--audit-json", type=Path, default=None)
-    parser.add_argument("--audit-md", type=Path, default=None)
-    parser.add_argument(
-        "--skip-audit",
-        action="store_true",
-        help="Skip audit_benchmark_failures.py execution.",
-    )
-    args = parser.parse_args()
-    if args.top_k != 10:
-        parser.error("Official baseline is frozen at --top-k 10")
+    manifest = _load_manifest(MANIFEST_PATH)
+    profiles = _load_json(CORPUS_PROFILES_PATH)
+    profile = _validate_profile_contract(manifest=manifest, profiles=profiles)
 
-    profiles = _load_profiles(args.corpus_profiles)
-    if args.scenario_name not in profiles:
-        known = ", ".join(sorted(profiles.keys()))
-        parser.error(f"Unknown --scenario-name '{args.scenario_name}'. Known: {known}")
-    profile = profiles[args.scenario_name]
+    corpus_path = REPO_ROOT / profile["corpus"]
+    qrels_path = REPO_ROOT / manifest["official_qrels"]
+    output_dir = REPO_ROOT / manifest["output_artifact_directory"]
+    artifact_paths = {
+        key: output_dir / filename
+        for key, filename in manifest["official_artifacts"].items()
+    }
 
-    corpus_path = _resolve_path(args.corpus, profile, "corpus")
-    qrels_path = _resolve_path(args.qrels, profile, "qrels")
-    output_path = _resolve_path(args.output, profile, "output")
-    per_query_output_path = _resolve_path(args.per_query_output, profile, "per_query_output")
-    coverage_output_path = _resolve_path(args.coverage_output, profile, "coverage_output")
-    audit_json_path = _resolve_path(args.audit_json, profile, "audit_json")
-    audit_md_path = _resolve_path(args.audit_md, profile, "audit_md")
+    for path, label in [
+        (MANIFEST_PATH, "baseline manifest"),
+        (QUERIES_PATH, "benchmark queries"),
+        (SUBSETS_PATH, "benchmark query subsets"),
+        (CORPUS_PROFILES_PATH, "benchmark corpus profiles"),
+        (corpus_path, "official baseline corpus"),
+        (qrels_path, "official qrels"),
+    ]:
+        _require_file(path, label=label)
 
-    external_manifest = profile.get("external_manifest")
-    external_manifest_exists = None
-    if external_manifest:
-        external_manifest_exists = Path(external_manifest).exists()
-
-    corpus_rows = _load_corpus(corpus_path)
-    queries = _load_queries(args.queries)
+    queries = _load_queries(QUERIES_PATH)
     qrels = _load_qrels(qrels_path)
-    subsets = _load_subsets(args.subsets)
+    subsets = _load_subsets(SUBSETS_PATH)
+    if EXPECTED_CORPUS_PROFILE not in subsets:
+        raise ValueError("Official canonical subset is missing from benchmark_query_subsets.json")
+
+    corpus_rows = _load_jsonl(corpus_path)
+    if not corpus_rows:
+        raise ValueError(f"Official baseline corpus is empty: {corpus_path}")
+
+    query_ids = {query.query_id for query in queries}
+    for subset_name in EXPECTED_SUBSETS:
+        unknown = [query_id for query_id in subsets[subset_name] if query_id not in query_ids]
+        if unknown:
+            raise ValueError(f"Subset '{subset_name}' contains unknown query ids: {unknown}")
+
+    official_subset_ids = subsets[EXPECTED_CORPUS_PROFILE]
+    if not official_subset_ids:
+        raise ValueError("Official canonical subset must not be empty")
 
     backend = build_retrieval_backend(
-        "lexical_bm25_memory",
+        EXPECTED_BACKEND,
         corpus_rows=corpus_rows,
         corpus_artifact_path=corpus_path,
         k1=1.5,
         b=0.75,
     )
-    transformer = build_query_transformer("baseline")
+    transformer = build_query_transformer(EXPECTED_QUERY_MODE)
     pipeline = RetrievalPipeline(backend=backend, query_transformer=transformer)
 
     per_query_rows: List[dict] = []
-    metric_rows: List[TopKMetrics] = []
-    latency_samples_s: List[float] = []
-
     for entry in queries:
-        t0 = perf_counter()
-        scored = pipeline.search(entry.query, top_k=args.top_k)
-        latency_samples_s.append(perf_counter() - t0)
-
+        scored = pipeline.search(entry.query, top_k=EXPECTED_TOP_K)
         ranked_chunk_ids = [row.chunk_id for row in scored]
         ranked_scores = [row.score for row in scored]
         relevance = qrels.get(entry.query_id, {})
         metrics = compute_topk_metrics(
             ranked_chunk_ids,
             relevance,
-            top_k=args.top_k,
+            top_k=EXPECTED_TOP_K,
             qrels_positive_count=len(relevance),
         )
-        metric_rows.append(metrics)
-
         per_query_rows.append(
             {
                 "id": entry.query_id,
@@ -393,155 +466,112 @@ def main() -> int:
                 "ndcg_at_10": metrics.ndcg_at_k,
                 "qrels_positive_count": metrics.qrels_positive_count,
                 "retrieved_positive_count": metrics.retrieved_positive_count,
-                "top_k_results": ranked_chunk_ids[: args.top_k],
-                "top_k_scores": ranked_scores[: args.top_k],
+                "top_k_results": ranked_chunk_ids[:EXPECTED_TOP_K],
+                "top_k_scores": ranked_scores[:EXPECTED_TOP_K],
             }
         )
 
     per_query_rows.sort(key=lambda row: row["id"])
-    summary = aggregate_topk_metrics(metric_rows)
-
-    metrics_by_category: Dict[str, dict] = {}
     per_query_by_id = {row["id"]: row for row in per_query_rows}
+    benchmark_inventory = _build_query_inventory(queries=queries, qrels=qrels)
+    official_baseline = _build_subset_summary(
+        subset_name=EXPECTED_CORPUS_PROFILE,
+        subset_ids=official_subset_ids,
+        per_query_by_id=per_query_by_id,
+    )
+    if official_baseline["counts"]["total_queries_scored"] == 0:
+        raise ValueError("Official baseline subset resolved to zero scored queries")
 
-    category_subset_map = {
-        "root_basic": subsets.get("root_basic", []),
-        "sofie": subsets.get("sofie", []),
-        "sofie_absence_control": subsets.get("sofie_absence_control", []),
-        "root_sofie_integration": subsets.get("root_sofie_integration", []),
-        "repo_specific": subsets.get("repo_specific", []),
-    }
-
-    for category, ids in category_subset_map.items():
-        category_rows = [per_query_by_id[qid] for qid in ids if qid in per_query_by_id]
-        if category_rows:
-            category_metrics = aggregate_topk_metrics(
-                [
-                    TopKMetrics(
-                        mrr_at_k=row["mrr_at_10"],
-                        recall_at_k=row["recall_at_10"],
-                        ndcg_at_k=row["ndcg_at_10"],
-                        retrieved_positive_count=row["retrieved_positive_count"],
-                        qrels_positive_count=row["qrels_positive_count"],
-                    )
-                    for row in category_rows
-                ]
-            )
-            metrics_by_category[category] = {
-                "query_count": len(category_rows),
-                **_metric_at_10(category_metrics),
-            }
-        else:
-            metrics_by_category[category] = {
-                "query_count": 0,
-                "mrr_at_10": 0.0,
-                "recall_at_10": 0.0,
-                "ndcg_at_10": 0.0,
-            }
-
-    metrics_by_subset: Dict[str, dict] = {}
-    for subset_name, ids in subsets.items():
-        subset_rows = [per_query_by_id[qid] for qid in ids if qid in per_query_by_id]
-        if subset_rows:
-            subset_metrics = aggregate_topk_metrics(
-                [
-                    TopKMetrics(
-                        mrr_at_k=row["mrr_at_10"],
-                        recall_at_k=row["recall_at_10"],
-                        ndcg_at_k=row["ndcg_at_10"],
-                        retrieved_positive_count=row["retrieved_positive_count"],
-                        qrels_positive_count=row["qrels_positive_count"],
-                    )
-                    for row in subset_rows
-                ]
-            )
-            metrics_by_subset[subset_name] = {
-                "query_count": len(subset_rows),
-                **_metric_at_10(subset_metrics),
-            }
-        else:
-            metrics_by_subset[subset_name] = {
-                "query_count": 0,
-                "mrr_at_10": 0.0,
-                "recall_at_10": 0.0,
-                "ndcg_at_10": 0.0,
-            }
-
-    operational = {
-        "backend_id": backend.backend_id,
-        "backend_metrics": backend.operational_metrics(),
-        "query_latency_ms": _compute_latency_summary_ms(latency_samples_s),
-    }
-    backend_metrics = operational["backend_metrics"]
-
-    chunk_ids = {row["chunk_id"] for row in corpus_rows if "chunk_id" in row}
-    file_paths = {row.get("file_path", "") for row in corpus_rows if row.get("file_path")}
-
-    coverage_report = _build_coverage_report(
-        queries=queries,
-        subsets=subsets,
-        qrels=qrels,
-        corpus_chunk_ids=chunk_ids,
-        scenario_name=args.scenario_name,
+    official_baseline.update(
+        {
+            "canonical": True,
+            "backend": EXPECTED_BACKEND,
+            "query_mode": EXPECTED_QUERY_MODE,
+            "corpus_profile": EXPECTED_CORPUS_PROFILE,
+            "query_subset": EXPECTED_CORPUS_PROFILE,
+            "qrels_path": _relative(qrels_path),
+            "top_k": EXPECTED_TOP_K,
+        }
     )
 
     report = {
-        "experiment_name": args.experiment_name,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "baseline_definition_version": manifest["baseline_definition_version"],
+        "branch_role": manifest["branch_role"],
+        "official_command": OFFICIAL_COMMAND,
         "commit_hash": _resolve_commit_hash(),
-        "backend": "lexical_bm25_memory",
-        "query_mode": "baseline",
-        "scenario_name": args.scenario_name,
-        "corpus_profile": args.scenario_name,
-        "top_k": args.top_k,
-        "corpus_size_bytes": corpus_path.stat().st_size if corpus_path.exists() else None,
-        "chunk_count": len(chunk_ids),
-        "corpus_size": int(backend_metrics.get("docs", float(len(chunk_ids)))),
-        "file_count": len(file_paths),
-        "metrics_global": _metric_at_10(summary),
-        "metrics_by_category": metrics_by_category,
-        "metrics_by_subset": metrics_by_subset,
-        "metrics_by_query": per_query_rows,
-        "operational": operational,
-        "coverage_report": {
-            "path": str(coverage_output_path),
-            "summary": coverage_report["summary"],
-        },
         "inputs": {
-            "corpus": str(corpus_path),
-            "queries": str(args.queries),
-            "qrels": str(qrels_path),
-            "subsets": str(args.subsets),
-            "corpus_profiles": str(args.corpus_profiles),
-            "external_manifest": external_manifest,
-            "external_manifest_exists": external_manifest_exists,
+            "baseline_manifest": _relative(MANIFEST_PATH),
+            "queries": _relative(QUERIES_PATH),
+            "subsets": _relative(SUBSETS_PATH),
+            "qrels": _relative(qrels_path),
+            "corpus": _relative(corpus_path),
+            "corpus_profiles": _relative(CORPUS_PROFILES_PATH),
+            "input_sha256": {
+                "baseline_manifest": _sha256_file(MANIFEST_PATH),
+                "queries": _sha256_file(QUERIES_PATH),
+                "subsets": _sha256_file(SUBSETS_PATH),
+                "qrels": _sha256_file(qrels_path),
+                "corpus": _sha256_file(corpus_path),
+                "corpus_profiles": _sha256_file(CORPUS_PROFILES_PATH),
+            },
         },
+        "benchmark_query_inventory": benchmark_inventory,
+        "official_baseline": official_baseline,
+        "diagnostic_subsets": _build_diagnostic_subsets(
+            subsets=subsets,
+            per_query_by_id=per_query_by_id,
+        ),
     }
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    artifact_paths["evaluation_report"].write_text(json.dumps(report, indent=2), encoding="utf-8")
+    _run_audit(
+        corpus=corpus_path,
+        queries=QUERIES_PATH,
+        qrels=qrels_path,
+        output_json=artifact_paths["failure_audit_json"],
+        output_md=artifact_paths["failure_audit_markdown"],
+    )
 
-    per_query_output_path.parent.mkdir(parents=True, exist_ok=True)
-    per_query_output_path.write_text(json.dumps(per_query_rows, indent=2), encoding="utf-8")
+    run_manifest = {
+        "baseline_definition_version": manifest["baseline_definition_version"],
+        "branch_role": manifest["branch_role"],
+        "official_command": OFFICIAL_COMMAND,
+        "official_backend": EXPECTED_BACKEND,
+        "official_query_mode": EXPECTED_QUERY_MODE,
+        "official_corpus_profile": EXPECTED_CORPUS_PROFILE,
+        "official_query_subset": EXPECTED_CORPUS_PROFILE,
+        "official_qrels": _relative(qrels_path),
+        "official_top_k": EXPECTED_TOP_K,
+        "semantic_retrieval_disabled_by_default": True,
+        "official_baseline_summary": {
+            "metrics_source": f"scored queries in {EXPECTED_CORPUS_PROFILE}",
+            **official_baseline["counts"],
+            **official_baseline["metrics_global"],
+        },
+        "artifacts": {key: _relative(path) for key, path in artifact_paths.items()},
+        "inputs": report["inputs"],
+    }
+    artifact_paths["run_manifest"].write_text(json.dumps(run_manifest, indent=2), encoding="utf-8")
+    _write_summary(path=artifact_paths["summary_markdown"], report=report, run_manifest=run_manifest)
 
-    coverage_output_path.parent.mkdir(parents=True, exist_ok=True)
-    coverage_output_path.write_text(json.dumps(coverage_report, indent=2), encoding="utf-8")
-
-    if not args.skip_audit:
-        audit_json_path.parent.mkdir(parents=True, exist_ok=True)
-        audit_md_path.parent.mkdir(parents=True, exist_ok=True)
-        py_path = str((Path(__file__).resolve().parents[1] / "src"))
-        _run_audit(
-            script_path=Path("scripts/audit_benchmark_failures.py"),
-            py_path=py_path,
-            corpus=corpus_path,
-            queries=args.queries,
-            qrels=qrels_path,
-            output_json=audit_json_path,
-            output_md=audit_md_path,
-            top_k=args.top_k,
-        )
-
+    global_metrics = official_baseline["metrics_global"]
+    print("Official baseline completed.")
+    print(f"Artifacts directory: {_relative(output_dir)}")
+    print(f"Canonical subset: {EXPECTED_CORPUS_PROFILE}")
+    print(
+        "Defined/scored/no-qrel-by-design="
+        f"{official_baseline['counts']['total_queries_defined']}/"
+        f"{official_baseline['counts']['total_queries_scored']}/"
+        f"{official_baseline['counts']['total_queries_without_qrels_by_design']}"
+    )
+    print(f"MRR@10={global_metrics['mrr_at_10']:.6f}")
+    print(f"Recall@10={global_metrics['recall_at_10']:.6f}")
+    print(f"nDCG@10={global_metrics['ndcg_at_10']:.6f}")
+    print(
+        "Zero-recall scored queries="
+        f"{official_baseline['counts']['zero_recall_scored_queries']}"
+    )
     return 0
 
 

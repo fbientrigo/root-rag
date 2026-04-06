@@ -1,0 +1,39 @@
+{
+  "branch_role": "frozen_evaluation_floor",
+  "baseline_definition_version": "1.0.0",
+  "official_backend": "lexical_bm25_memory",
+  "official_query_mode": "baseline",
+  "official_corpus_profile": "fairship_only_valid",
+  "official_query_subsets": [
+    "root_basic",
+    "sofie_absence_control",
+    "root_sofie_integration",
+    "repo_specific",
+    "critical_queries",
+    "fairship_only_valid",
+    "extended_corpus_valid"
+  ],
+  "official_qrels": "configs/benchmark_qrels.jsonl",
+  "official_top_k": 10,
+  "output_artifact_directory": "artifacts/baseline_official",
+  "official_artifacts": {
+    "evaluation_report": "benchmark_eval_results_baseline.json",
+    "failure_audit_json": "benchmark_failure_audit_baseline.json",
+    "failure_audit_markdown": "benchmark_failure_audit_baseline.md",
+    "run_manifest": "baseline_run_manifest.json",
+    "summary_markdown": "baseline_summary.md"
+  },
+  "deterministic_controls": {
+    "random_seed": null,
+    "pythonhashseed": "not required",
+    "notes": [
+      "The official baseline uses deterministic lexical BM25 retrieval over a frozen corpus snapshot.",
+      "No semantic or dense retrieval backend is part of the official baseline path.",
+      "No timestamps or latency measurements are included in the frozen evaluation report."
+    ]
+  },
+  "semantic_retrieval": {
+    "enabled_by_default": false,
+    "allowed_in_official_baseline": false
+  }
+}
