@@ -21,6 +21,11 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=3.0",
 ]
+s1 = [
+    "numpy>=1.26",
+    "faiss-cpu>=1.8.0",
+    "sentence-transformers>=3.0",
+]
 
 [project.scripts]
 root-rag = "root_rag.cli:main"

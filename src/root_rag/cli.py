@@ -3,6 +3,7 @@ import json as json_module
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -11,7 +12,13 @@ from root_rag.core.errors import IndexNotFoundError
 from root_rag.index import build_full_index, check_fts5_available
 from root_rag.index.locator import resolve_index
 from root_rag.index.schemas import IndexManifest
-from root_rag.retrieval import lexical_search
+from root_rag.retrieval import build_retrieval_backend, lexical_search
+from root_rag.retrieval.s1_semantic import (
+    SentenceTransformerLocalEmbedder,
+    _slugify_model_name,
+    build_semantic_index_artifacts,
+    load_corpus_rows,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +26,14 @@ logging.basicConfig(
     format="%(name)s: %(message)s",
 )
 logger = logging.getLogger("root_rag")
+
+
+def _resolve_semantic_manifest_path(index_manifest: IndexManifest, explicit_path: Optional[Path]) -> Optional[Path]:
+    if explicit_path:
+        return explicit_path
+    if index_manifest.semantic_manifest_path:
+        return Path(index_manifest.semantic_manifest_path)
+    return None
 
 
 @click.group()
@@ -272,6 +287,23 @@ def index(
     help="Maximum number of results to return",
 )
 @click.option(
+    "--retrieval-backend",
+    type=click.Choice(["lexical", "semantic", "hybrid"], case_sensitive=False),
+    default="lexical",
+    help="Opt-in retrieval backend. Default keeps lexical behavior unchanged.",
+)
+@click.option(
+    "--semantic-manifest",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional semantic manifest path for S1 semantic or hybrid search.",
+)
+@click.option(
+    "--semantic-model",
+    default="sentence-transformers/all-MiniLM-L6-v2",
+    help="Local embedding model name used for S1 semantic or hybrid search.",
+)
+@click.option(
     "--json",
     "output_json",
     is_flag=True,
@@ -288,12 +320,15 @@ def search(
     index_id: str,
     index_dir: Path,
     top_k: int,
+    retrieval_backend: str,
+    semantic_manifest: Path,
+    semantic_model: str,
     output_json: bool,
     verbose: bool,
 ):
     """Search indexed ROOT corpus for evidence.
     
-    Performs lexical full-text search over an indexed ROOT corpus revision.
+    Performs lexical search by default, with opt-in S1 semantic or hybrid retrieval.
     Results are evidence candidates (file, line range, score) without answer generation.
     
     Examples:
@@ -325,15 +360,27 @@ def search(
         if not db_path or not Path(db_path).exists():
             logger.error(f"FTS5 database not found: {db_path}")
             sys.exit(4)
-        
-        logger.debug(f"Searching in {db_path}")
-        
-        # Perform lexical search
-        results = lexical_search(
-            db_path=str(db_path),
-            query=query,
-            top_k=top_k,
-        )
+
+        logger.debug(f"Searching in {db_path} using backend={retrieval_backend}")
+        backend_name = retrieval_backend.strip().lower()
+        if backend_name == "lexical":
+            results = lexical_search(
+                db_path=str(db_path),
+                query=query,
+                top_k=top_k,
+            )
+        else:
+            semantic_manifest_path = _resolve_semantic_manifest_path(manifest, semantic_manifest)
+            if semantic_manifest_path is None or not semantic_manifest_path.exists():
+                logger.error("S1 semantic manifest not found. Build semantic artifacts first or pass --semantic-manifest.")
+                sys.exit(4)
+            backend = build_retrieval_backend(
+                "semantic_faiss" if backend_name == "semantic" else "hybrid_s1",
+                db_path=Path(db_path),
+                semantic_manifest_path=semantic_manifest_path,
+                semantic_model_name=semantic_model,
+            )
+            results = backend.search(query, top_k=top_k)
         
         # Handle no results
         if not results:
@@ -382,6 +429,110 @@ def search(
         if verbose:
             import traceback
             traceback.print_exc()
+        sys.exit(1)
+
+
+@main.command("build-semantic-index")
+@click.option(
+    "--root-ref",
+    required=False,
+    help="Root reference for index resolution (overrides --index-id)",
+)
+@click.option(
+    "--index-id",
+    required=False,
+    help="Explicit index ID to augment with S1 semantic artifacts",
+)
+@click.option(
+    "--index-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=Path("data/indexes"),
+    help="Directory containing indexes",
+)
+@click.option(
+    "--semantic-output-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Optional explicit output directory for semantic artifacts",
+)
+@click.option(
+    "--model-name",
+    default="sentence-transformers/all-MiniLM-L6-v2",
+    help="Local sentence-transformers model name for S1 embeddings",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=16,
+    help="Batch size for local embedding generation",
+)
+@click.option(
+    "--device",
+    default="cpu",
+    help="Embedding inference device (default: cpu for reproducibility)",
+)
+def build_semantic_index(
+    root_ref: str,
+    index_id: str,
+    index_dir: Path,
+    semantic_output_dir: Path,
+    model_name: str,
+    batch_size: int,
+    device: str,
+):
+    """Build opt-in S1 semantic artifacts from an existing lexical index."""
+    try:
+        manifest = resolve_index(
+            indexes_root=index_dir,
+            root_ref=root_ref,
+            index_id=index_id,
+        )
+        chunks_path = Path(manifest.chunks_path)
+        if not chunks_path.exists():
+            logger.error(f"Chunks file not found: {chunks_path}")
+            sys.exit(4)
+
+        output_dir = semantic_output_dir
+        if output_dir is None:
+            output_dir = Path(index_dir) / manifest.index_id / "semantic" / _slugify_model_name(model_name)
+
+        corpus_rows = load_corpus_rows(chunks_path)
+        embedder = SentenceTransformerLocalEmbedder(
+            model_name=model_name,
+            device=device,
+            batch_size=batch_size,
+        )
+        semantic_manifest = build_semantic_index_artifacts(
+            corpus_rows=corpus_rows,
+            corpus_path=chunks_path,
+            output_dir=output_dir,
+            embedder=embedder,
+            corpus_source_identifier=manifest.corpus_id,
+        )
+
+        manifest.semantic_manifest_path = str(output_dir / "semantic_manifest.json")
+        retrieval_modes = list(manifest.retrieval_modes)
+        for mode in ("semantic", "hybrid"):
+            if mode not in retrieval_modes:
+                retrieval_modes.append(mode)
+        manifest.retrieval_modes = retrieval_modes
+        manifest_path = Path(index_dir) / manifest.index_id / "index_manifest.json"
+        manifest.save(manifest_path)
+
+        click.echo(f"[OK] S1 semantic artifacts created for {manifest.index_id}")
+        click.echo(f"  Model: {semantic_manifest.model_name}")
+        click.echo(f"  Dimension: {semantic_manifest.embedding_dimension}")
+        click.echo(f"  Normalization: {semantic_manifest.normalization}")
+        click.echo(f"  FAISS: {semantic_manifest.faiss_index_type}")
+        click.echo(f"  Manifest: {output_dir / 'semantic_manifest.json'}")
+        sys.exit(0)
+    except IndexNotFoundError as e:
+        logger.error(f"Index not found: {str(e)}")
+        sys.exit(4)
+    except Exception as e:
+        logger.error(f"S1 semantic index build failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

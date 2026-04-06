@@ -10,6 +10,7 @@ from root_rag.retrieval.backends import (
     DenseHashMemoryBackend,
     FTS5LexicalBackend,
     InMemoryBM25LexicalBackend,
+    SemanticHashMemoryBackend,
     build_retrieval_backend,
 )
 from root_rag.retrieval.interfaces import BaseRetrievalBackend
@@ -165,10 +166,23 @@ def test_factory_returns_expected_backend_ids(tmp_path):
         ],
         dense_dim=128,
     )
+    semantic_backend = build_retrieval_backend(
+        "semantic_hash_memory",
+        corpus_rows=[
+            {
+                "chunk_id": "chunk_1",
+                "text": "TGeoVolume AddNode geometry assembly",
+                "file_path": "geom/src/volume.cxx",
+                "line_range": [1, 3],
+            }
+        ],
+        dense_dim=128,
+    )
 
     assert fts_backend.backend_id == "lexical_fts5"
     assert bm25_backend.backend_id == "lexical_bm25_memory"
     assert dense_backend.backend_id == "dense_hash_memory"
+    assert semantic_backend.backend_id == "semantic_hash_memory"
 
 
 def test_dense_backend_returns_evidence_candidates():
@@ -196,6 +210,31 @@ def test_dense_backend_returns_evidence_candidates():
     assert results[0].chunk_id == "chunk_1"
 
 
+def test_semantic_backend_returns_evidence_candidates():
+    backend = SemanticHashMemoryBackend(
+        corpus_rows=[
+            {
+                "chunk_id": "chunk_1",
+                "text": "TGeoVolume AddNode builds detector geometry",
+                "file_path": "geom/src/volume.cxx",
+                "line_range": [1, 3],
+            },
+            {
+                "chunk_id": "chunk_2",
+                "text": "TH1 histogram binning",
+                "file_path": "hist/h1.cxx",
+                "line_range": [5, 8],
+            },
+        ],
+        vector_dim=128,
+    )
+
+    results = backend.search("geometry assembly", top_k=5)
+    assert len(results) >= 1
+    assert isinstance(results[0], EvidenceCandidate)
+    assert results[0].chunk_id == "chunk_1"
+
+
 def test_operational_metrics_values_are_json_scalars(tmp_path):
     db_path = tmp_path / "test.sqlite"
     _write_single_chunk_fts(db_path)
@@ -218,6 +257,17 @@ def test_operational_metrics_values_are_json_scalars(tmp_path):
                     "chunk_id": "chunk_1",
                     "text": "TTree Draw",
                     "file_path": "tree/src/TTree.cxx",
+                    "line_range": [1, 3],
+                }
+            ],
+            vector_dim=64,
+        ),
+        SemanticHashMemoryBackend(
+            corpus_rows=[
+                {
+                    "chunk_id": "chunk_1",
+                    "text": "TGeoVolume AddNode geometry assembly",
+                    "file_path": "geom/src/volume.cxx",
                     "line_range": [1, 3],
                 }
             ],
@@ -251,3 +301,23 @@ def test_dense_operational_metrics_include_dense_specific_keys():
     assert metrics["vector_dim"] == 64
     assert metrics["similarity"] == "cosine_hash"
     assert metrics["avg_nonzero_dims"] is not None
+
+
+def test_semantic_operational_metrics_include_semantic_specific_keys():
+    backend = SemanticHashMemoryBackend(
+        corpus_rows=[
+            {
+                "chunk_id": "chunk_1",
+                "text": "TGeoVolume AddNode geometry assembly",
+                "file_path": "geom/src/volume.cxx",
+                "line_range": [1, 3],
+            }
+        ],
+        vector_dim=64,
+    )
+
+    metrics = backend.operational_metrics()
+    assert metrics["vector_dim"] == 64
+    assert metrics["similarity"] == "cosine_semantic_hash"
+    assert metrics["avg_nonzero_dims"] is not None
+    assert metrics["avg_feature_tokens"] is not None

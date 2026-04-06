@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run official benchmark/audit tracks and generate B0 vs B1 comparison artifacts.
+"""Run official benchmark/audit tracks and generate comparison artifacts.
 
 Tracks:
 - B0: backend=lexical_bm25_memory, query_mode=baseline, top_k=10
 - B1: backend=lexical_bm25_memory, query_mode=lexnorm, top_k=10
+- S0: backend=semantic_hash_memory, query_mode=baseline, top_k=10
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from root_rag.evaluation.metrics import (
     TopKMetrics,
@@ -31,10 +32,10 @@ from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.transformers import build_query_transformer
 
 TOP_K = 10
-BACKEND = "lexical_bm25_memory"
-TRACKS: Dict[str, str] = {
-    "B0": "baseline",
-    "B1": "lexnorm",
+TRACKS: Dict[str, Dict[str, str]] = {
+    "B0": {"backend": "lexical_bm25_memory", "query_mode": "baseline"},
+    "B1": {"backend": "lexical_bm25_memory", "query_mode": "lexnorm"},
+    "S0": {"backend": "semantic_hash_memory", "query_mode": "baseline"},
 }
 METRIC_KEYS = ("mrr_at_k", "recall_at_k", "ndcg_at_k")
 EPS = 1e-12
@@ -114,18 +115,24 @@ def _compute_latency_summary_ms(samples_s: List[float]) -> dict:
 
 def _run_eval_track(
     *,
+    backend_name: str,
     query_mode: str,
     corpus_rows: List[dict],
     corpus_path: Path,
     queries: List[dict],
     qrels_map: Dict[str, Dict[str, int]],
+    semantic_manifest_path: Optional[Path] = None,
+    semantic_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> dict:
     backend = build_retrieval_backend(
-        BACKEND,
+        backend_name,
         corpus_rows=corpus_rows,
         corpus_artifact_path=corpus_path,
+        semantic_manifest_path=semantic_manifest_path,
+        semantic_model_name=semantic_model_name,
         k1=1.5,
         b=0.75,
+        dense_dim=512,
     )
     transformer = build_query_transformer(query_mode)
     pipeline = RetrievalPipeline(
@@ -202,20 +209,21 @@ def _run_eval_track(
         "query_latency_ms": _compute_latency_summary_ms(latency_samples_s),
     }
     backend_metrics = operational["backend_metrics"]
-    bm25_meta = {
-        "k1": backend_metrics.get("k1", 1.5),
-        "b": backend_metrics.get("b", 0.75),
-        "avgdl": backend_metrics.get("avgdl"),
-        "docs": int(backend_metrics["docs"]) if backend_metrics.get("docs") is not None else None,
-    }
+    bm25_meta = None
+    if operational["backend_id"] == "lexical_bm25_memory":
+        bm25_meta = {
+            "k1": backend_metrics.get("k1", 1.5),
+            "b": backend_metrics.get("b", 0.75),
+            "avgdl": backend_metrics.get("avgdl"),
+            "docs": int(backend_metrics["docs"]) if backend_metrics.get("docs") is not None else None,
+        }
 
-    return {
+    output = {
         "metadata": {
             "date": datetime.now(timezone.utc).isoformat(),
             "top_k": TOP_K,
             "query_mode": query_mode,
             "backend": operational["backend_id"],
-            "bm25": bm25_meta,
             "inputs": {
                 "queries": "configs/benchmark_queries.json",
                 "qrels": "configs/benchmark_qrels.jsonl",
@@ -227,36 +235,48 @@ def _run_eval_track(
         "per_class": per_class,
         "per_query": sorted(per_query_rows, key=lambda row: row["id"]),
     }
+    if bm25_meta is not None:
+        output["metadata"]["bm25"] = bm25_meta
+    if operational["backend_id"] in {"dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"}:
+        output["metadata"]["dense"] = {
+            "vector_dim": backend_metrics.get("vector_dim"),
+            "similarity": backend_metrics.get("similarity"),
+            "avg_nonzero_dims": backend_metrics.get("avg_nonzero_dims"),
+        }
+    return output
 
 
 def _recommendation(
     *,
-    b0_summary: dict,
-    b1_summary: dict,
+    before_summary: dict,
+    after_summary: dict,
     helped: List[str],
     hurt: List[str],
 ) -> str:
-    b1_not_worse = all(b1_summary[m] >= b0_summary[m] - EPS for m in METRIC_KEYS)
-    b0_not_worse = all(b0_summary[m] >= b1_summary[m] - EPS for m in METRIC_KEYS)
-    b1_strictly_better = any(b1_summary[m] > b0_summary[m] + EPS for m in METRIC_KEYS)
-    b0_strictly_better = any(b0_summary[m] > b1_summary[m] + EPS for m in METRIC_KEYS)
+    after_not_worse = all(after_summary[m] >= before_summary[m] - EPS for m in METRIC_KEYS)
+    before_not_worse = all(before_summary[m] >= after_summary[m] - EPS for m in METRIC_KEYS)
+    after_strictly_better = any(after_summary[m] > before_summary[m] + EPS for m in METRIC_KEYS)
+    before_strictly_better = any(before_summary[m] > after_summary[m] + EPS for m in METRIC_KEYS)
 
-    if b1_not_worse and b1_strictly_better and not hurt:
-        return "keep lexnorm"
-    if b0_not_worse and b0_strictly_better and not helped:
+    if after_not_worse and after_strictly_better and not hurt:
+        return "keep candidate"
+    if before_not_worse and before_strictly_better and not helped:
         return "keep baseline"
     return "support both"
 
 
 def _build_comparison_markdown(
     *,
-    b0_eval: dict,
-    b1_eval: dict,
+    before_eval: dict,
+    after_eval: dict,
+    before_label: str,
+    after_label: str,
+    title: str,
     output_path: Path,
 ) -> None:
-    b0_by_id = {row["id"]: row for row in b0_eval["per_query"]}
-    b1_by_id = {row["id"]: row for row in b1_eval["per_query"]}
-    query_ids = sorted(b0_by_id.keys())
+    before_by_id = {row["id"]: row for row in before_eval["per_query"]}
+    after_by_id = {row["id"]: row for row in after_eval["per_query"]}
+    query_ids = sorted(before_by_id.keys())
 
     helped: List[dict] = []
     hurt: List[dict] = []
@@ -268,15 +288,15 @@ def _build_comparison_markdown(
     metric_changed_without_interpretation: List[str] = []
 
     for query_id in query_ids:
-        b0_row = b0_by_id[query_id]
-        b1_row = b1_by_id[query_id]
-        before = _metric_triplet(b0_row)
-        after = _metric_triplet(b1_row)
+        before_row = before_by_id[query_id]
+        after_row = after_by_id[query_id]
+        before = _metric_triplet(before_row)
+        after = _metric_triplet(after_row)
         effect = classify_effect(before, after)
         delta = {k: after[k] - before[k] for k in METRIC_KEYS}
 
-        changed_interpretation = b0_row["query_tokens"] != b1_row["query_tokens"]
-        changed_ranking = b0_row["top10"] != b1_row["top10"]
+        changed_interpretation = before_row["query_tokens"] != after_row["query_tokens"]
+        changed_ranking = before_row["top10"] != after_row["top10"]
         changed_metrics = any(abs(delta[m]) > EPS for m in METRIC_KEYS)
 
         if changed_interpretation:
@@ -290,7 +310,7 @@ def _build_comparison_markdown(
 
         row = {
             "id": query_id,
-            "query_class": b0_row["query_class"],
+            "query_class": before_row["query_class"],
             "delta": delta,
         }
         if effect == "helped":
@@ -304,14 +324,14 @@ def _build_comparison_markdown(
     hurt.sort(key=lambda row: row["id"])
     unchanged.sort()
 
-    b0_zero = sorted(row["id"] for row in b0_eval["per_query"] if row["recall_at_k"] == 0.0)
-    b1_zero = sorted(row["id"] for row in b1_eval["per_query"] if row["recall_at_k"] == 0.0)
-    resolved_zero = sorted(set(b0_zero) - set(b1_zero))
-    new_zero = sorted(set(b1_zero) - set(b0_zero))
+    before_zero = sorted(row["id"] for row in before_eval["per_query"] if row["recall_at_k"] == 0.0)
+    after_zero = sorted(row["id"] for row in after_eval["per_query"] if row["recall_at_k"] == 0.0)
+    resolved_zero = sorted(set(before_zero) - set(after_zero))
+    new_zero = sorted(set(after_zero) - set(before_zero))
 
     recommendation = _recommendation(
-        b0_summary=b0_eval["summary"],
-        b1_summary=b1_eval["summary"],
+        before_summary=before_eval["summary"],
+        after_summary=after_eval["summary"],
         helped=[row["id"] for row in helped],
         hurt=[row["id"] for row in hurt],
     )
@@ -330,53 +350,53 @@ def _build_comparison_markdown(
         )
 
     lines = [
-        "# Benchmark Mode Comparison (B0 vs B1)",
+        f"# {title}",
         "",
         f"Generated: {datetime.now(timezone.utc).isoformat()}",
         "",
         "Official tracks:",
-        f"- B0: backend=`{BACKEND}`, query_mode=`baseline`, top_k={TOP_K}",
-        f"- B1: backend=`{BACKEND}`, query_mode=`lexnorm`, top_k={TOP_K}",
+        f"- {before_label}: backend=`{before_eval['metadata']['backend']}`, query_mode=`{before_eval['metadata']['query_mode']}`, top_k={TOP_K}",
+        f"- {after_label}: backend=`{after_eval['metadata']['backend']}`, query_mode=`{after_eval['metadata']['query_mode']}`, top_k={TOP_K}",
         "",
-        "## Global Metric Deltas (B1 - B0)",
+        f"## Global Metric Deltas ({after_label} - {before_label})",
         "",
-        "| Metric | B0 | B1 | Delta |",
+        f"| Metric | {before_label} | {after_label} | Delta |",
         "| --- | ---: | ---: | ---: |",
     ]
 
     for metric in METRIC_KEYS:
-        b0_v = b0_eval["summary"][metric]
-        b1_v = b1_eval["summary"][metric]
-        lines.append(f"| {metric} | {b0_v:.4f} | {b1_v:.4f} | {_fmt_delta(b1_v - b0_v)} |")
+        before_v = before_eval["summary"][metric]
+        after_v = after_eval["summary"][metric]
+        lines.append(f"| {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |")
 
     lines.extend(
         [
             "",
-            "## Per-Class Deltas (B1 - B0)",
+            f"## Per-Class Deltas ({after_label} - {before_label})",
             "",
-            "| Query Class | Metric | B0 | B1 | Delta |",
+            f"| Query Class | Metric | {before_label} | {after_label} | Delta |",
             "| --- | --- | ---: | ---: | ---: |",
         ]
     )
-    for query_class in sorted(b0_eval["per_class"].keys()):
-        b0_metrics = b0_eval["per_class"][query_class]["metrics"]
-        b1_metrics = b1_eval["per_class"][query_class]["metrics"]
+    for query_class in sorted(before_eval["per_class"].keys()):
+        before_metrics = before_eval["per_class"][query_class]["metrics"]
+        after_metrics = after_eval["per_class"][query_class]["metrics"]
         for metric in METRIC_KEYS:
-            b0_v = b0_metrics[metric]
-            b1_v = b1_metrics[metric]
-            lines.append(f"| {query_class} | {metric} | {b0_v:.4f} | {b1_v:.4f} | {_fmt_delta(b1_v - b0_v)} |")
+            before_v = before_metrics[metric]
+            after_v = after_metrics[metric]
+            lines.append(f"| {query_class} | {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |")
 
     lines.extend(
         [
             "",
             "## Zero-Recall Queries",
             "",
-            f"- B0 ({len(b0_zero)}): {', '.join(b0_zero) if b0_zero else '(none)'}",
-            f"- B1 ({len(b1_zero)}): {', '.join(b1_zero) if b1_zero else '(none)'}",
-            f"- Resolved by lexnorm ({len(resolved_zero)}): {', '.join(resolved_zero) if resolved_zero else '(none)'}",
-            f"- New zero-recall under lexnorm ({len(new_zero)}): {', '.join(new_zero) if new_zero else '(none)'}",
+            f"- {before_label} ({len(before_zero)}): {', '.join(before_zero) if before_zero else '(none)'}",
+            f"- {after_label} ({len(after_zero)}): {', '.join(after_zero) if after_zero else '(none)'}",
+            f"- Resolved by {after_label} ({len(resolved_zero)}): {', '.join(resolved_zero) if resolved_zero else '(none)'}",
+            f"- New zero-recall under {after_label} ({len(new_zero)}): {', '.join(new_zero) if new_zero else '(none)'}",
             "",
-            "## Queries Helped by Lexnorm",
+            f"## Queries Helped by {after_label}",
             "",
             f"Count: {len(helped)}",
         ]
@@ -400,7 +420,7 @@ def _build_comparison_markdown(
     lines.extend(
         [
             "",
-            "## Queries Hurt by Lexnorm",
+            f"## Queries Hurt by {after_label}",
             "",
             f"Count: {len(hurt)}",
         ]
@@ -445,9 +465,9 @@ def _build_comparison_markdown(
                 "across fixed backend/top_k."
             ),
             (
-                f"- Global deltas: dMRR={_fmt_delta(b1_eval['summary']['mrr_at_k'] - b0_eval['summary']['mrr_at_k'])}, "
-                f"dRecall={_fmt_delta(b1_eval['summary']['recall_at_k'] - b0_eval['summary']['recall_at_k'])}, "
-                f"dNDCG={_fmt_delta(b1_eval['summary']['ndcg_at_k'] - b0_eval['summary']['ndcg_at_k'])}."
+                f"- Global deltas: dMRR={_fmt_delta(after_eval['summary']['mrr_at_k'] - before_eval['summary']['mrr_at_k'])}, "
+                f"dRecall={_fmt_delta(after_eval['summary']['recall_at_k'] - before_eval['summary']['recall_at_k'])}, "
+                f"dNDCG={_fmt_delta(after_eval['summary']['ndcg_at_k'] - before_eval['summary']['ndcg_at_k'])}."
             ),
         ]
     )
@@ -518,6 +538,17 @@ def main() -> int:
         default=Path("artifacts"),
         help="Artifacts output directory.",
     )
+    parser.add_argument(
+        "--s1-semantic-manifest",
+        type=Path,
+        default=None,
+        help="Optional semantic manifest to enable S1 benchmark track.",
+    )
+    parser.add_argument(
+        "--s1-semantic-model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Local embedding model name used for S1 semantic/hybrid benchmark queries.",
+    )
     args = parser.parse_args()
 
     args.artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -532,19 +563,26 @@ def main() -> int:
     _write_queries_snapshot(query_snapshot_path, queries)
     _write_qrels_snapshot(qrels_snapshot_path, qrels_map)
 
-    for track, query_mode in TRACKS.items():
+    tracks = dict(TRACKS)
+    if args.s1_semantic_manifest is not None:
+        tracks["S1"] = {"backend": "hybrid_s1", "query_mode": "baseline"}
+
+    for track, config in tracks.items():
         eval_path = args.artifacts_dir / f"benchmark_eval_results_{track}.json"
         eval_output = _run_eval_track(
-            query_mode=query_mode,
+            backend_name=config["backend"],
+            query_mode=config["query_mode"],
             corpus_rows=corpus_rows,
             corpus_path=args.corpus,
             queries=queries,
             qrels_map=qrels_map,
+            semantic_manifest_path=args.s1_semantic_manifest if track == "S1" else None,
+            semantic_model_name=args.s1_semantic_model,
         )
         eval_path.write_text(json.dumps(eval_output, indent=2), encoding="utf-8")
         print(f"Wrote evaluation: {eval_path}")
 
-    for track, query_mode in TRACKS.items():
+    for track, config in tracks.items():
         audit_json = args.artifacts_dir / f"benchmark_failure_audit_{track}.json"
         audit_md = args.artifacts_dir / f"benchmark_failure_audit_{track}.md"
         cmd = [
@@ -563,21 +601,54 @@ def main() -> int:
             "--top-k",
             str(TOP_K),
             "--backend",
-            BACKEND,
+            config["backend"],
             "--query-mode",
-            query_mode,
+            config["query_mode"],
         ]
+        if track == "S1" and args.s1_semantic_manifest is not None:
+            cmd.extend(
+                [
+                    "--semantic-manifest",
+                    str(args.s1_semantic_manifest),
+                    "--semantic-model",
+                    args.s1_semantic_model,
+                ]
+            )
         _run_cmd(cmd, py_path=py_path)
 
     b0_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_B0.json").read_text(encoding="utf-8"))
     b1_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_B1.json").read_text(encoding="utf-8"))
+    s0_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_S0.json").read_text(encoding="utf-8"))
 
     comparison_path = args.artifacts_dir / "benchmark_mode_comparison.md"
     _build_comparison_markdown(
-        b0_eval=b0_eval,
-        b1_eval=b1_eval,
+        before_eval=b0_eval,
+        after_eval=b1_eval,
+        before_label="B0",
+        after_label="B1",
+        title="Benchmark Mode Comparison (B0 vs B1)",
         output_path=comparison_path,
     )
+    semantic_comparison_path = args.artifacts_dir / "benchmark_semantic_comparison.md"
+    _build_comparison_markdown(
+        before_eval=b0_eval,
+        after_eval=s0_eval,
+        before_label="B0",
+        after_label="S0",
+        title="Benchmark Semantic Comparison (B0 vs S0)",
+        output_path=semantic_comparison_path,
+    )
+    if args.s1_semantic_manifest is not None:
+        s1_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_S1.json").read_text(encoding="utf-8"))
+        semantic_comparison_s1_path = args.artifacts_dir / "benchmark_semantic_comparison_S1.md"
+        _build_comparison_markdown(
+            before_eval=b0_eval,
+            after_eval=s1_eval,
+            before_label="B0",
+            after_label="S1",
+            title="Benchmark Semantic Comparison (B0 vs S1)",
+            output_path=semantic_comparison_s1_path,
+        )
 
     manual_template_path = args.artifacts_dir / "manual_zero_recall_review_template.md"
     _write_manual_zero_recall_template(
@@ -586,6 +657,9 @@ def main() -> int:
     )
 
     print(f"Wrote comparison: {comparison_path}")
+    print(f"Wrote semantic comparison: {semantic_comparison_path}")
+    if args.s1_semantic_manifest is not None:
+        print(f"Wrote semantic comparison: {args.artifacts_dir / 'benchmark_semantic_comparison_S1.md'}")
     print(f"Wrote manual review template: {manual_template_path}")
     return 0
 

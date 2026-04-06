@@ -39,21 +39,49 @@ Official mode-alignment command (B0 vs B1, plus audits and comparison report):
 This generates:
 - `artifacts/benchmark_eval_results_B0.json`
 - `artifacts/benchmark_eval_results_B1.json`
+- `artifacts/benchmark_eval_results_S0.json`
 - `artifacts/benchmark_failure_audit_B0.json`
 - `artifacts/benchmark_failure_audit_B0.md`
 - `artifacts/benchmark_failure_audit_B1.json`
 - `artifacts/benchmark_failure_audit_B1.md`
+- `artifacts/benchmark_failure_audit_S0.json`
+- `artifacts/benchmark_failure_audit_S0.md`
 - `artifacts/benchmark_mode_comparison.md`
+- `artifacts/benchmark_semantic_comparison.md`
 - `artifacts/manual_zero_recall_review_template.md`
+
+S1 semantic artifact build command:
+- `python scripts/build_semantic_index.py --corpus artifacts/corpus.jsonl --output-dir artifacts/semantic_s1 --model-name sentence-transformers/all-MiniLM-L6-v2`
+- This produces `index.faiss`, `records.jsonl`, `vectors.npy`, and `semantic_manifest.json`.
+
+S1 benchmark command:
+- `python scripts/run_retrieval_benchmark.py --backend hybrid_s1 --query-mode baseline --top-k 10 --semantic-manifest artifacts/semantic_s1/semantic_manifest.json --output artifacts/benchmark_eval_results_S1.json`
+
+Official mode-alignment command with S1 enabled:
+- `python scripts/run_benchmark_mode_tracks.py --s1-semantic-manifest artifacts/semantic_s1/semantic_manifest.json`
+- This adds:
+- `artifacts/benchmark_eval_results_S1.json`
+- `artifacts/benchmark_failure_audit_S1.json`
+- `artifacts/benchmark_failure_audit_S1.md`
+- `artifacts/benchmark_semantic_comparison_S1.md`
 
 CI automation:
 - GitHub Actions workflow: `.github/workflows/benchmark_mode_alignment.yml`
 - Triggered automatically on relevant `push`/`pull_request` changes and manually via `workflow_dispatch`.
 - Uploads the generated B0/B1 benchmark and audit artifacts as workflow artifacts.
 
+Manual GitHub run:
+1. Open Actions and choose `benchmark-mode-alignment`.
+2. Click `Run workflow`.
+3. Download artifact `benchmark-mode-alignment`.
+
 Dense side-by-side comparison command:
 - `python scripts/run_retrieval_benchmark.py --backend dense_hash_memory --query-mode baseline --top-k 10 --side-by-side-lexical --output artifacts/benchmark_retrieval_dense_hash_baseline.json`
 This keeps lexical frozen settings unchanged while adding `side_by_side_vs_lexical_baseline` in output.
+
+Semantic-hash S0 benchmark command:
+- `python scripts/run_retrieval_benchmark.py --backend semantic_hash_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_eval_results_S0.json`
+- This is a deterministic local semantic-style baseline based on expanded identifier parts, alias features, and character trigrams.
 
 Frozen benchmark inputs:
 - `artifacts/corpus.jsonl` (retrieval corpus)
@@ -103,6 +131,23 @@ Dense-specific operational metrics (when backend is `dense_hash_memory`):
 - `vector_dim`
 - `similarity`
 - `avg_nonzero_dims`
+
+## Semantic Status
+
+Verified in `src/root_rag/retrieval/backends.py`:
+- Available backends: `lexical_fts5`, `lexical_bm25_memory`, `dense_hash_memory`, `semantic_hash_memory`, `semantic_faiss`, `hybrid_s1`.
+- `dense_hash_memory` is deterministic hashed-vector retrieval and is not embedding-based semantic retrieval.
+- `semantic_hash_memory` is a deterministic local semantic-style baseline, not a remote embedding provider.
+- `semantic_faiss` is the opt-in S1 local-embedding exact-FAISS backend.
+- `hybrid_s1` is the opt-in S1 lexical-plus-semantic backend with weighted RRF and symbol-safe lexical pinning.
+
+Current status:
+- True remote embedding retrieval is not available and is intentionally out of scope for S1-v1.
+
+Accepted next step (already approved):
+1. `S0` is now implemented as `semantic_hash_memory` and compared against frozen lexical `B0`.
+2. The next semantic milestone is a provider-backed embedding backend beyond `S0`.
+3. Keep B0/B1 benchmark contract unchanged.
 
 ## Future Backend Comparison Rule
 

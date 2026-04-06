@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from root_rag.evaluation.metrics import (
     TopKMetrics,
@@ -280,11 +280,15 @@ def run_benchmark(
     top_k: int,
     query_mode: str,
     dense_dim: int,
+    semantic_manifest_path: Optional[Path],
+    semantic_model_name: str,
 ) -> dict:
     backend = build_retrieval_backend(
         backend_name,
         corpus_rows=corpus,
         corpus_artifact_path=corpus_path,
+        semantic_manifest_path=semantic_manifest_path,
+        semantic_model_name=semantic_model_name,
         k1=1.5,
         b=0.75,
         dense_dim=dense_dim,
@@ -480,14 +484,14 @@ def main() -> int:
     parser.add_argument(
         "--backend",
         default="lexical_bm25_memory",
-        choices=["lexical_bm25_memory", "dense_hash_memory"],
+        choices=["lexical_bm25_memory", "dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"],
         help="Retrieval backend implementation.",
     )
     parser.add_argument(
         "--dense-dim",
         type=int,
         default=256,
-        help="Vector dimension for dense_hash_memory backend.",
+        help="Vector dimension for dense_hash_memory or semantic_hash_memory backend.",
     )
     parser.add_argument(
         "--top-k",
@@ -524,7 +528,20 @@ def main() -> int:
         default=None,
         help="Optional output path for reconstructed benchmark queries JSON.",
     )
+    parser.add_argument(
+        "--semantic-manifest",
+        type=Path,
+        default=None,
+        help="Required for semantic_faiss or hybrid_s1 benchmark runs.",
+    )
+    parser.add_argument(
+        "--semantic-model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Local embedding model name for semantic_faiss or hybrid_s1 runs.",
+    )
     args = parser.parse_args()
+    if args.backend in {"semantic_faiss", "hybrid_s1"} and args.semantic_manifest is None:
+        parser.error("--semantic-manifest is required for semantic_faiss or hybrid_s1")
 
     legacy_benchmark = load_json(args.legacy_benchmark)
     corpus = load_corpus(args.corpus)
@@ -562,6 +579,8 @@ def main() -> int:
         top_k=args.top_k,
         query_mode=args.query_mode,
         dense_dim=args.dense_dim,
+        semantic_manifest_path=args.semantic_manifest,
+        semantic_model_name=args.semantic_model,
     )
 
     backend_metrics = run["operational"]["backend_metrics"]
@@ -581,7 +600,7 @@ def main() -> int:
         }
 
     dense_meta = None
-    if run["operational"]["backend_id"] == "dense_hash_memory":
+    if run["operational"]["backend_id"] in {"dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"}:
         dense_meta = {
             "vector_dim": backend_metrics.get("vector_dim"),
             "similarity": backend_metrics.get("similarity"),

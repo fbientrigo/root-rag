@@ -553,8 +553,29 @@ def main() -> None:
         "--backend",
         type=str,
         default="lexical_bm25_memory",
-        choices=["lexical_bm25_memory", "dense_hash_memory", "bm25", "dense_hash"],
+        choices=[
+            "lexical_bm25_memory",
+            "dense_hash_memory",
+            "semantic_hash_memory",
+            "bm25",
+            "dense_hash",
+            "semantic_hash",
+            "semantic_faiss",
+            "hybrid_s1",
+        ],
         help="Retrieval backend.",
+    )
+    parser.add_argument(
+        "--semantic-manifest",
+        type=Path,
+        default=None,
+        help="Required for semantic_faiss or hybrid_s1 audit runs.",
+    )
+    parser.add_argument(
+        "--semantic-model",
+        type=str,
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Local embedding model for semantic_faiss or hybrid_s1 audit runs.",
     )
     parser.add_argument(
         "--query-mode",
@@ -564,6 +585,8 @@ def main() -> None:
         help="Query transformer mode.",
     )
     args = parser.parse_args()
+    if args.backend in {"semantic_faiss", "hybrid_s1"} and args.semantic_manifest is None:
+        parser.error("--semantic-manifest is required for semantic_faiss or hybrid_s1")
 
     print("Loading corpus...")
     corpus, corpus_rows = load_corpus(args.corpus)
@@ -582,6 +605,8 @@ def main() -> None:
         args.backend,
         corpus_rows=corpus_rows,
         corpus_artifact_path=args.corpus,
+        semantic_manifest_path=args.semantic_manifest,
+        semantic_model_name=args.semantic_model,
     )
     query_transformer = build_query_transformer(args.query_mode)
     pipeline = RetrievalPipeline(backend=backend, query_transformer=query_transformer)
