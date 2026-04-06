@@ -1,0 +1,22 @@
+{
+  "fairship_only_valid": {
+    "corpus": "artifacts/corpus.jsonl",
+    "qrels": "configs/benchmark_qrels.jsonl",
+    "output": "artifacts/baseline/bm25_official_baseline.json",
+    "per_query_output": "artifacts/baseline/bm25_official_baseline.per_query.json",
+    "coverage_output": "artifacts/baseline/bm25_official_baseline.coverage.json",
+    "audit_json": "artifacts/baseline/bm25_official_baseline.failure_audit.json",
+    "audit_md": "artifacts/baseline/bm25_official_baseline.failure_audit.md",
+    "external_manifest": null
+  },
+  "extended_corpus_valid": {
+    "corpus": "artifacts/corpus_extended_root_sofie.jsonl",
+    "qrels": "configs/benchmark_qrels_extended.jsonl",
+    "output": "artifacts/baseline/bm25_official_baseline.extended_corpus_valid.json",
+    "per_query_output": "artifacts/baseline/bm25_official_baseline.extended_corpus_valid.per_query.json",
+    "coverage_output": "artifacts/baseline/bm25_official_baseline.extended_corpus_valid.coverage.json",
+    "audit_json": "artifacts/baseline/bm25_official_baseline.extended_corpus_valid.failure_audit.json",
+    "audit_md": "artifacts/baseline/bm25_official_baseline.extended_corpus_valid.failure_audit.md",
+    "external_manifest": "configs/root_sofie_minimal_external_manifest.json"
+  }
+}

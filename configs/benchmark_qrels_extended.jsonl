@@ -54,4 +54,8 @@
 {"query_id": "b005", "chunk_id": "Detector_Detector.h_006", "relevance": 1}
 {"query_id": "b006", "chunk_id": "shipgen_tPythia6Generator.h_001", "relevance": 2}
 {"query_id": "b006", "chunk_id": "shipgen_tPythia6Generator.cxx_001", "relevance": 1}
+{"query_id": "b009", "chunk_id": "ext_sofie_parse_onnx_generate_001", "relevance": 2}
+{"query_id": "b009", "chunk_id": "ext_sofie_parse_onnx_generate_002", "relevance": 1}
+{"query_id": "b010", "chunk_id": "ext_sofie_session_runtime_001", "relevance": 2}
+{"query_id": "b010", "chunk_id": "ext_sofie_session_runtime_002", "relevance": 1}
 

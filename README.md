@@ -427,6 +427,39 @@ pytest -v
 python scripts/run_benchmark_mode_tracks.py
 ```
 
+### Official BM25 Baseline (Frozen)
+
+```bash
+python scripts/run_official_bm25_baseline.py
+```
+
+Artifacts:
+- `artifacts/baseline/bm25_official_baseline.json`
+- `artifacts/baseline/bm25_official_baseline.per_query.json`
+- `artifacts/baseline/bm25_official_baseline.coverage.json`
+- `artifacts/baseline/bm25_official_baseline.failure_audit.json`
+- `artifacts/baseline/bm25_official_baseline.failure_audit.md`
+
+Scenarios:
+```bash
+# FairShip-only valid baseline (default)
+python scripts/run_official_bm25_baseline.py --scenario-name fairship_only_valid
+
+# Build minimal extended corpus (FairShip + external ROOT SOFIE docs)
+python scripts/build_extended_benchmark_corpus.py
+
+# Extended corpus valid baseline (enables b009/b010 qrels)
+python scripts/run_official_bm25_baseline.py --scenario-name extended_corpus_valid
+```
+
+The benchmark subsets are in `configs/benchmark_query_subsets.json`:
+`root_basic`, `sofie_absence_control`, `root_sofie_integration`, `repo_specific`,
+`critical_queries`, `fairship_only_valid`, `extended_corpus_valid` (plus legacy `sofie`).
+
+Coverage intent:
+- `b007`, `b008` are SOFIE absence controls for FairShip-only.
+- `b009`, `b010` require the extended corpus profile by design.
+
 Manual GitHub Actions run:
 1. Open the repository Actions tab.
 2. Select workflow `benchmark-mode-alignment`.

@@ -2,121 +2,307 @@
   {
     "id": "c001",
     "query": "TVector3 momentum and position access",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "c002",
     "query": "TGeoManager top volume and navigation",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "c003",
     "query": "TMath sqrt and power utilities",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "c004",
     "query": "TFile open ROOT files in FairShip",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "file",
+    "criticality": "medium"
   },
   {
     "id": "c005",
     "query": "TTree SetBranchAddress usage",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "high"
   },
   {
     "id": "c006",
     "query": "TLorentzVector momentum transport",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "c007",
     "query": "TClonesArray stack object storage",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "c008",
     "query": "TDatabasePDG particle lookup",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "c009",
     "query": "TRandom3 seeding through gRandom",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "c010",
     "query": "TGeoVolume AddNode geometry assembly",
-    "query_class": "common_api"
+    "query_class": "common_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "s001",
     "query": "ConstructGeometry overrides in detector modules",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "file",
+    "criticality": "medium"
   },
   {
     "id": "s002",
     "query": "ProcessHits implementation in SHiP detectors",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "file",
+    "criticality": "medium"
   },
   {
     "id": "s003",
     "query": "FairDetector template base usage",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "s004",
     "query": "ShipFieldMaker global and local field definition",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "medium"
   },
   {
     "id": "s005",
     "query": "TVirtualMCStack push track interface",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "s006",
     "query": "RNTuple read and write validation test",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "high"
   },
   {
     "id": "s007",
     "query": "EvtGen decayer integration with TPythia8Decayer",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "s008",
     "query": "SetBranchAddress pattern in data loaders",
-    "query_class": "structural_usage"
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "medium"
   },
   {
     "id": "r001",
     "query": "TGeoChecker include and usage",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "r002",
     "query": "ROOT::TSeq loops in UpstreamTagger",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "r003",
     "query": "TPythia6Calls integration point",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "r004",
     "query": "TVirtualMCDecayer interface in TEvtGenDecayer",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
   },
   {
     "id": "r005",
     "query": "TGeoTrd2 geometry shape declaration",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "low"
   },
   {
     "id": "r006",
     "query": "TH1 header usage in generators",
-    "query_class": "rare_api"
+    "query_class": "rare_api",
+    "category": "root_basic",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "file",
+    "criticality": "low"
+  },
+  {
+    "id": "b001",
+    "query": "How do I run the canonical FairShip simulation, reconstruction, and analysis workflow, and which ROOT files are produced at each step?",
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "high"
+  },
+  {
+    "id": "b002",
+    "query": "How does ShipAna use ROOT friend trees to combine simulation output with reconstruction data?",
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "high"
+  },
+  {
+    "id": "b003",
+    "query": "How do I convert a FairShip TTree output into a ROOT RNTuple, and what limitations still apply?",
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "workflow",
+    "criticality": "high"
+  },
+  {
+    "id": "b004",
+    "query": "Which FairShip data classes are explicitly tested for ROOT RNTuple read/write round-trip I/O?",
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "high"
+  },
+  {
+    "id": "b005",
+    "query": "Why did FairShip migrate from TClonesArray to std::vector, and which detector subsystems were affected?",
+    "query_class": "structural_usage",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "file",
+    "criticality": "medium"
+  },
+  {
+    "id": "b006",
+    "query": "How does FairShip keep compatibility with TPythia6 when using newer ROOT versions?",
+    "query_class": "rare_api",
+    "category": "repo_specific",
+    "expected_behavior": "retrieve_present",
+    "answer_granularity": "code_symbol",
+    "criticality": "medium"
+  },
+  {
+    "id": "b007",
+    "query": "Is there any existing SOFIE, ONNX, or TMVA inference integration in the FairShip codebase today?",
+    "query_class": "structural_usage",
+    "category": "sofie_absence_control",
+    "expected_behavior": "confirm_absence",
+    "answer_granularity": "file",
+    "criticality": "high"
+  },
+  {
+    "id": "b008",
+    "query": "Which FairShip files mention SOFIE, ONNX, or generated ML inference code?",
+    "query_class": "structural_usage",
+    "category": "sofie_absence_control",
+    "expected_behavior": "confirm_absence",
+    "answer_granularity": "file",
+    "criticality": "high"
+  },
+  {
+    "id": "b009",
+    "query": "What is the minimal ROOT SOFIE workflow to parse an ONNX model and generate C++ inference code?",
+    "query_class": "structural_usage",
+    "category": "root_sofie_integration",
+    "expected_behavior": "cross_source_integration",
+    "answer_granularity": "workflow",
+    "criticality": "high"
+  },
+  {
+    "id": "b010",
+    "query": "How do ROOT SOFIE generated headers and Session-based inference work, and what runtime dependencies do they require?",
+    "query_class": "structural_usage",
+    "category": "root_sofie_integration",
+    "expected_behavior": "cross_source_integration",
+    "answer_granularity": "workflow",
+    "criticality": "high"
   }
 ]

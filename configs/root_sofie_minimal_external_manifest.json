@@ -1,0 +1,43 @@
+{
+  "name": "root_sofie_minimal_external_docs",
+  "version": "2026-04-06",
+  "description": "Minimal external ROOT SOFIE corpus required for cross-source benchmark coverage (queries b009-b010).",
+  "sources": [
+    {
+      "id": "root_tmva_sofie_group",
+      "title": "ROOT TMVA SOFIE reference group",
+      "url": "https://root.cern/doc/v636/group__SOFIE.html",
+      "coverage": [
+        "SOFIE API surface",
+        "code generation workflow"
+      ]
+    },
+    {
+      "id": "root_tmva_sofie_parsetutorial",
+      "title": "TMVA SOFIE ONNX parsing tutorial",
+      "url": "https://root.cern/doc/v636/TMVA__SOFIE__RDataFrame_8C.html",
+      "coverage": [
+        "ONNX parsing entry points",
+        "generated code integration patterns"
+      ]
+    },
+    {
+      "id": "root_tmva_sofie_session",
+      "title": "TMVA SOFIE Session usage and runtime",
+      "url": "https://root.cern/doc/v636/namespaceTMVA_1_1Experimental_1_1SOFIE.html",
+      "coverage": [
+        "Session-based inference",
+        "runtime dependencies"
+      ]
+    }
+  ],
+  "local_corpus": {
+    "path": "configs/root_sofie_minimal_corpus.jsonl",
+    "required_chunk_ids": [
+      "ext_sofie_parse_onnx_generate_001",
+      "ext_sofie_parse_onnx_generate_002",
+      "ext_sofie_session_runtime_001",
+      "ext_sofie_session_runtime_002"
+    ]
+  }
+}

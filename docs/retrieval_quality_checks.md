@@ -31,8 +31,12 @@ Frozen benchmark run contract:
 - backend: `lexical_bm25_memory`
 
 Run command:
-- `python scripts/run_retrieval_benchmark.py --backend lexical_bm25_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_retrieval_baseline_refactor.json`
-Always execute this command before reporting a baseline comparison so the metadata/test expectations stay accurate.
+- `python scripts/run_official_bm25_baseline.py`
+This is the official one-command baseline run. It emits:
+- `artifacts/baseline/bm25_official_baseline.json` (global + per-category + per-query metrics)
+- `artifacts/baseline/bm25_official_baseline.per_query.json` (per-query extraction for downstream plots)
+- `artifacts/baseline/bm25_official_baseline.failure_audit.json`
+- `artifacts/baseline/bm25_official_baseline.failure_audit.md`
 
 Official mode-alignment command (B0 vs B1, plus audits and comparison report):
 - `python scripts/run_benchmark_mode_tracks.py`
@@ -85,9 +89,18 @@ Semantic-hash S0 benchmark command:
 
 Frozen benchmark inputs:
 - `artifacts/corpus.jsonl` (retrieval corpus)
-- `artifacts/benchmark_eval_results.json` (legacy benchmark artifact used to reconstruct fixed query/qrel set)
 - `configs/benchmark_queries.json` (materialized query set snapshot)
 - `configs/benchmark_qrels.jsonl` (materialized qrel snapshot)
+- `configs/benchmark_query_subsets.json` (official category subsets)
+
+Official category subsets:
+- `root_basic`
+- `sofie`
+- `root_sofie_integration`
+- `repo_specific`
+
+Current corpus note:
+- `sofie` and `root_sofie_integration` subsets are intentionally empty on the current frozen corpus (`artifacts/corpus.jsonl`), so future SOFIE coverage can be added without changing artifact schema.
 
 Benchmark output now includes both:
 - retrieval quality metrics (`summary`, `per_class`, `per_query`)
