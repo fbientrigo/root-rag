@@ -58,10 +58,11 @@ class LocalEmbedder(Protocol):
 class SentenceTransformerLocalEmbedder:
     """Local sentence-transformers embedder for S1 artifacts and query search."""
 
-    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    model_name: str = "intfloat/e5-base-v2"
     device: str = "cpu"
     batch_size: int = 16
     local_files_only: bool = False
+    trust_remote_code: Optional[bool] = None
     _model: Optional[object] = None
     _dim: Optional[int] = None
 
@@ -75,10 +76,16 @@ class SentenceTransformerLocalEmbedder:
                 "S1 semantic retrieval requires optional dependency 'sentence-transformers'. "
                 "Install the project extra for S1 support."
             ) from exc
+        trust_remote_code = (
+            self.trust_remote_code
+            if self.trust_remote_code is not None
+            else self.model_name.lower().startswith("jinaai/")
+        )
         self._model = SentenceTransformer(
             self.model_name,
             device=self.device,
             local_files_only=self.local_files_only,
+            trust_remote_code=trust_remote_code,
         )
         self._dim = int(self._model.get_sentence_embedding_dimension())
         return self._model

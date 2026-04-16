@@ -528,7 +528,7 @@ class SemanticFaissBackend(BaseRetrievalBackend):
     """S1 local-embedding semantic backend over persisted FAISS exact artifacts."""
 
     semantic_manifest_path: Path
-    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    model_name: str = "intfloat/e5-base-v2"
     device: str = "cpu"
     batch_size: int = 16
     local_files_only: bool = True
@@ -580,8 +580,8 @@ class HybridS1Backend(BaseRetrievalBackend):
 
     lexical_backend: BaseRetrievalBackend
     semantic_backend: BaseRetrievalBackend
-    lexical_weight: float = 0.45
-    semantic_weight: float = 0.55
+    lexical_weight: float = 0.35
+    semantic_weight: float = 0.65
     lexical_weight_symbol: float = 0.85
     semantic_weight_symbol: float = 0.15
     lexical_pin_count: int = 3
@@ -647,10 +647,11 @@ def build_retrieval_backend(
     corpus_rows: Optional[List[dict]] = None,
     corpus_artifact_path: Optional[Path] = None,
     semantic_manifest_path: Optional[Path] = None,
-    semantic_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+    semantic_model_name: str = "intfloat/e5-base-v2",
     semantic_device: str = "cpu",
     semantic_batch_size: int = 16,
     semantic_local_files_only: bool = True,
+    semantic_embedder: Optional[LocalEmbedder] = None,
     k1: float = 1.5,
     b: float = 0.75,
     dense_dim: int = 256,
@@ -663,7 +664,7 @@ def build_retrieval_backend(
             raise ValueError("db_path is required for lexical_fts5 backend")
         return FTS5LexicalBackend(Path(db_path))
 
-    if normalized in {"lexical_bm25_memory", "bm25_memory", "bm25"}:
+    if normalized in {"lexical_bm25_memory", "bm25_memory", "bm25", "bm25_only"}:
         if corpus_rows is None:
             raise ValueError("corpus_rows are required for lexical_bm25_memory backend")
         return InMemoryBM25LexicalBackend(
@@ -691,7 +692,7 @@ def build_retrieval_backend(
             corpus_artifact_path=corpus_artifact_path,
         )
 
-    if normalized in {"semantic_faiss", "semantic_s1", "s1_semantic"}:
+    if normalized in {"semantic_faiss", "semantic_s1", "s1_semantic", "semantic_only"}:
         if semantic_manifest_path is None:
             raise ValueError("semantic_manifest_path is required for semantic_faiss backend")
         return SemanticFaissBackend(
@@ -700,6 +701,7 @@ def build_retrieval_backend(
             device=semantic_device,
             batch_size=semantic_batch_size,
             local_files_only=semantic_local_files_only,
+            embedder=semantic_embedder,
         )
 
     if normalized in {"hybrid_s1", "s1", "hybrid"}:
@@ -722,6 +724,7 @@ def build_retrieval_backend(
             device=semantic_device,
             batch_size=semantic_batch_size,
             local_files_only=semantic_local_files_only,
+            embedder=semantic_embedder,
         )
         return HybridS1Backend(
             lexical_backend=lexical_backend,
