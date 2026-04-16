@@ -536,7 +536,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--semantic-model",
-        default="sentence-transformers/all-MiniLM-L6-v2",
+        default="intfloat/e5-base-v2",
         help="Local embedding model name for semantic_faiss or hybrid_s1 runs.",
     )
     args = parser.parse_args()

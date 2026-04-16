@@ -546,7 +546,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--s1-semantic-model",
-        default="sentence-transformers/all-MiniLM-L6-v2",
+        default="intfloat/e5-base-v2",
         help="Local embedding model name used for S1 semantic/hybrid benchmark queries.",
     )
     args = parser.parse_args()
