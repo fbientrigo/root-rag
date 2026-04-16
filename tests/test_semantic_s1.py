@@ -52,6 +52,30 @@ def test_build_embedding_text_is_deterministic_and_metadata_rich():
     assert "content:" in text_a
 
 
+def test_build_embedding_text_adds_local_relation_hints():
+    row = {
+        "chunk_id": "chunk_2",
+        "file_path": "passive/ShipCave.cxx",
+        "start_line": 38,
+        "end_line": 45,
+        "symbol_path": None,
+        "doc_origin": "source_impl",
+        "language": "cpp",
+        "headers_used": ["TGeoBBox.h", "TGeoManager.h"],
+        "content": (
+            "TGeoVolume* top = gGeoManager->GetTopVolume();\n"
+            "ShipGeo::InitMedium(\"Concrete\");\n"
+            "TGeoMedium* concrete = gGeoManager->GetMedium(\"Concrete\");"
+        ),
+    }
+
+    text = build_embedding_text(row)
+
+    assert "relations:" in text
+    assert "fetches top geometry volume before attachment" in text
+    assert "loads ROOT medium for geometry build" in text
+
+
 def test_symbol_like_query_heuristic_prefers_exact_code_shapes():
     assert is_symbol_like_query("TTree::Draw")
     assert is_symbol_like_query("ShipStack::PushTrack()")

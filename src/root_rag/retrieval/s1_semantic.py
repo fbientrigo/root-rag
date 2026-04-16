@@ -18,6 +18,96 @@ from root_rag.retrieval.models import EvidenceCandidate
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 CAMEL_RE = re.compile(r"[A-Z][a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|\d|$)")
 SYMBOL_HINT_RE = re.compile(r"(::|->|/|\\|[#<>{}\[\]();]|[A-Za-z_][A-Za-z0-9_]*\()")
+CALL_HINT_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_:]*)\s*\(")
+TITLE_HINT_RE = re.compile(
+    r"\b(?:class|struct|namespace|enum)\s+([A-Za-z_][A-Za-z0-9_]*)|"
+    r"\b([A-Za-z_][A-Za-z0-9_:~]*)\s*\(",
+)
+COMMENT_PREFIX_RE = re.compile(r"^\s*(?://+|/\*+|\*+/?|\*/+|//!+|///<+)\s?")
+IDENTIFIER_STOPWORDS = {
+    "and",
+    "bool",
+    "break",
+    "case",
+    "char",
+    "class",
+    "const",
+    "continue",
+    "default",
+    "delete",
+    "double",
+    "else",
+    "enum",
+    "false",
+    "float",
+    "for",
+    "if",
+    "include",
+    "inline",
+    "int",
+    "long",
+    "namespace",
+    "new",
+    "nullptr",
+    "override",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "short",
+    "signed",
+    "sizeof",
+    "static",
+    "struct",
+    "switch",
+    "template",
+    "this",
+    "throw",
+    "true",
+    "typename",
+    "union",
+    "unsigned",
+    "using",
+    "virtual",
+    "void",
+    "while",
+}
+CALL_HINT_STOPWORDS = IDENTIFIER_STOPWORDS | {
+    "catch",
+    "do",
+    "else",
+    "if",
+    "return",
+    "sizeof",
+    "switch",
+    "while",
+}
+GENERIC_TITLE_TOKENS = {
+    "if",
+    "for",
+    "while",
+    "switch",
+    "return",
+    "else",
+    "do",
+    "log",
+}
+GENERIC_CALL_HINTS = {
+    "LOG",
+}
+
+RELATION_HINT_RULES = (
+    ({"AddHit", "ProcessHits"}, "updates detector hits during stepping"),
+    ({"AddNode"}, "attaches child volume to geometry"),
+    ({"GetTopVolume"}, "fetches top geometry volume before attachment"),
+    ({"InitMedium", "GetMedium"}, "loads ROOT medium for geometry build"),
+    ({"RegisterYourself"}, "registers shape for later composite construction"),
+    ({"SetBranchAddress"}, "binds ROOT tree branches for reading"),
+    ({"SetEvtGenParticleFile"}, "stores particle file for later decayer setup"),
+    ({"AddEvtGenParticle"}, "adds external decay particle to EvtGen table"),
+    ({"DecayWithPythia8", "TPythia8Decayer", "Init"}, "initializes fallback Pythia8 decayer"),
+    ({"GetEntriesFast", "Open"}, "opens input and scans stored entries"),
+)
 
 
 def _import_numpy():
@@ -117,6 +207,138 @@ def _safe_text(value: object) -> str:
     return str(value).strip()
 
 
+def _normalize_repo_path(file_path: str) -> str:
+    return _safe_text(file_path).replace("\\", "/")
+
+
+def _split_identifier_parts(token: str) -> List[str]:
+    normalized = token.replace("::", "_")
+    parts = TOKEN_RE.findall(normalized)
+    split_parts: List[str] = []
+    for part in parts:
+        split_parts.extend(piece.lower() for piece in CAMEL_RE.findall(part) if piece)
+        if "_" in part:
+            split_parts.extend(piece.lower() for piece in part.split("_") if piece)
+    return [part for part in split_parts if part]
+
+
+def _dedupe_keep_order(values: Sequence[str], *, limit: int) -> List[str]:
+    seen = set()
+    ordered: List[str] = []
+    for value in values:
+        cleaned = _safe_text(value)
+        if not cleaned:
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(cleaned)
+        if len(ordered) >= limit:
+            break
+    return ordered
+
+
+def _path_tokens(repo_path: str) -> List[str]:
+    path = _normalize_repo_path(repo_path)
+    parts = [part for part in re.split(r"[/.\\_-]+", path) if part]
+    exploded: List[str] = []
+    for part in parts:
+        exploded.append(part.lower())
+        exploded.extend(_split_identifier_parts(part))
+    return _dedupe_keep_order(exploded, limit=24)
+
+
+def _extract_identifiers(text: str, headers_used: Sequence[str], repo_path: str) -> List[str]:
+    raw_tokens = TOKEN_RE.findall(f"{repo_path}\n{' '.join(headers_used)}\n{text}")
+    preferred: List[str] = []
+    for token in raw_tokens:
+        if token.isdigit():
+            continue
+        lowered = token.lower()
+        if lowered in IDENTIFIER_STOPWORDS:
+            continue
+        if any(ch.isupper() for ch in token) or "_" in token or len(token) >= 6:
+            preferred.append(token)
+    return _dedupe_keep_order(preferred, limit=20)
+
+
+def _extract_call_hints(text: str) -> List[str]:
+    hints = []
+    for match in CALL_HINT_RE.finditer(text):
+        token = match.group(1)
+        lowered = token.lower()
+        if lowered in CALL_HINT_STOPWORDS:
+            continue
+        if token in GENERIC_CALL_HINTS:
+            continue
+        hints.append(token)
+    return _dedupe_keep_order(hints, limit=16)
+
+
+def _extract_comment_text(text: str) -> List[str]:
+    comments: List[str] = []
+    for line in text.splitlines():
+        if not COMMENT_PREFIX_RE.match(line):
+            continue
+        cleaned = COMMENT_PREFIX_RE.sub("", line).strip()
+        if len(cleaned) < 4:
+            continue
+        if cleaned.startswith("SPDX-"):
+            continue
+        if sum(1 for ch in cleaned if ch.isalnum()) < 4:
+            continue
+        comments.append(cleaned)
+    return _dedupe_keep_order(comments, limit=6)
+
+
+def _extract_relation_hints(call_hints: Sequence[str], identifiers: Sequence[str], title: str) -> List[str]:
+    tokens = {hint for hint in call_hints}
+    tokens.update(identifiers)
+    if title:
+        tokens.add(title)
+
+    hints: List[str] = []
+    for required_tokens, phrase in RELATION_HINT_RULES:
+        if required_tokens.issubset(tokens):
+            hints.append(phrase)
+
+    return _dedupe_keep_order(hints, limit=6)
+
+
+def _is_generic_title(value: str) -> bool:
+    cleaned = _safe_text(value)
+    if not cleaned:
+        return True
+    return cleaned.lower() in GENERIC_TITLE_TOKENS
+
+
+def _derive_title(normalized: dict, identifiers: Sequence[str], call_hints: Sequence[str]) -> str:
+    symbol_path = _safe_text(normalized.get("symbol_path"))
+    if symbol_path:
+        return symbol_path
+
+    text = normalized["text"]
+    match = TITLE_HINT_RE.search(text)
+    if match:
+        for group in match.groups():
+            if group and not _is_generic_title(group):
+                return group
+
+    if call_hints:
+        for hint in call_hints:
+            if not _is_generic_title(hint):
+                return hint
+    if identifiers:
+        for identifier in identifiers:
+            if not _is_generic_title(identifier):
+                return identifier
+
+    repo_path = normalized["repo_path"]
+    filename = Path(repo_path).stem if repo_path else ""
+    return filename or normalized["chunk_id"]
+
+
 def normalize_row_for_evidence(row: dict) -> dict:
     """Normalize chunk/corpus row variants used across index and benchmark paths."""
     start_line = row.get("start_line")
@@ -132,6 +354,7 @@ def normalize_row_for_evidence(row: dict) -> dict:
 
     return {
         "chunk_id": row["chunk_id"],
+        "repo_path": _normalize_repo_path(row.get("file_path", "")),
         "file_path": row.get("file_path", ""),
         "start_line": int(start_line),
         "end_line": int(end_line),
@@ -145,26 +368,72 @@ def normalize_row_for_evidence(row: dict) -> dict:
     }
 
 
-def build_embedding_text(row: dict) -> str:
-    """Build deterministic semantic text from available chunk metadata."""
+def build_semantic_record(row: dict) -> dict:
+    """Build deterministic semantic sidecar record from a canonical chunk row."""
     normalized = normalize_row_for_evidence(row)
-    sections = [
-        f"path: {normalized['file_path']}",
-        f"language: {normalized['language']}",
-        f"lines: {normalized['start_line']}-{normalized['end_line']}",
-    ]
+    repo_path = normalized["repo_path"]
+    filename = Path(repo_path).name if repo_path else ""
+    headers_used = _dedupe_keep_order(
+        sorted(str(item) for item in normalized.get("headers_used", [])),
+        limit=16,
+    )
+    identifiers = _extract_identifiers(normalized["text"], headers_used, repo_path)
+    call_hints = _extract_call_hints(normalized["text"])
+    comments = _extract_comment_text(normalized["text"])
+    path_tokens = _path_tokens(repo_path)
+    title = _derive_title(normalized, identifiers, call_hints)
+    relation_hints = _extract_relation_hints(call_hints, identifiers, title)
+
+    sections = [f"path: {repo_path}", f"filename: {filename}", f"title: {title}"]
     if normalized["symbol_path"]:
         sections.append(f"symbol: {normalized['symbol_path']}")
-    if normalized["doc_origin"]:
-        sections.append(f"origin: {normalized['doc_origin']}")
-    headers_used = normalized.get("headers_used", [])
+    if path_tokens:
+        sections.append(f"path_tokens: {', '.join(path_tokens)}")
+    if identifiers:
+        sections.append(f"identifiers: {', '.join(identifiers)}")
+    if call_hints:
+        sections.append(f"calls: {', '.join(call_hints)}")
+    if comments:
+        sections.append(f"comments: {' | '.join(comments)}")
+    if relation_hints:
+        sections.append(f"relations: {' | '.join(relation_hints)}")
+    sections.append(f"language: {normalized['language']}")
+    sections.append(f"lines: {normalized['start_line']}-{normalized['end_line']}")
     if headers_used:
-        sections.append(f"headers: {', '.join(sorted(str(item) for item in headers_used))}")
+        sections.append(f"headers: {', '.join(sorted(str(item) for item in headers_used[:8]))}")
     body = normalized["text"].strip()
     if body:
         sections.append("content:")
         sections.append(body)
-    return "\n".join(section for section in sections if section.strip())
+
+    return {
+        "chunk_id": normalized["chunk_id"],
+        "repo_path": repo_path,
+        "file_path": normalized["file_path"],
+        "start_line": normalized["start_line"],
+        "end_line": normalized["end_line"],
+        "line_range": [normalized["start_line"], normalized["end_line"]],
+        "symbol_path": normalized["symbol_path"],
+        "doc_origin": normalized["doc_origin"],
+        "language": normalized["language"],
+        "root_ref": normalized["root_ref"],
+        "resolved_commit": normalized["resolved_commit"],
+        "source_text": normalized["text"],
+        "text": normalized["text"],
+        "title": title,
+        "filename_tokens": _path_tokens(filename),
+        "path_tokens": path_tokens,
+        "identifiers": identifiers,
+        "call_hints": call_hints,
+        "comment_text": comments,
+        "headers_used": headers_used,
+        "semantic_text": "\n".join(section for section in sections if section.strip()),
+    }
+
+
+def build_embedding_text(row: dict) -> str:
+    """Build deterministic semantic text from available chunk metadata."""
+    return build_semantic_record(row)["semantic_text"]
 
 
 def _infer_language_from_path(file_path: str) -> str:
@@ -284,8 +553,8 @@ def build_semantic_index_artifacts(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    ordered_rows = sorted((normalize_row_for_evidence(row) for row in corpus_rows), key=lambda row: row["chunk_id"])
-    texts = [build_embedding_text(row) for row in ordered_rows]
+    ordered_rows = sorted((build_semantic_record(row) for row in corpus_rows), key=lambda row: row["chunk_id"])
+    texts = [row["semantic_text"] for row in ordered_rows]
     vectors = embedder.embed(texts)
     vectors = normalize_vectors(np.asarray(vectors, dtype=np.float32))
     if len(ordered_rows) != int(vectors.shape[0]):
@@ -297,16 +566,14 @@ def build_semantic_index_artifacts(
 
     vectors_path = output_dir / "vectors.npy"
     index_path = output_dir / "index.faiss"
-    records_path = output_dir / "records.jsonl"
+    records_path = output_dir / "semantic_manifest.jsonl"
     manifest_path = output_dir / "semantic_manifest.json"
 
     np.save(vectors_path, vectors)
     faiss.write_index(faiss_index, str(index_path))
     with records_path.open("w", encoding="utf-8") as handle:
-        for row, text in zip(ordered_rows, texts):
-            materialized = dict(row)
-            materialized["embedding_text"] = text
-            handle.write(json.dumps(materialized, sort_keys=True) + "\n")
+        for row in ordered_rows:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
 
     manifest = SemanticIndexManifest(
         schema_version="1.0.0",
