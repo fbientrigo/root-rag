@@ -1,0 +1,11 @@
+{
+  "dry_run": true,
+  "command": [
+    "root-rag",
+    "ask",
+    "ShipReco candidate DOCA IP",
+    "--top-k",
+    "10",
+    "--json"
+  ]
+}

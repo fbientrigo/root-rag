@@ -1,0 +1,17 @@
+{
+  "query_id": "q5_sbt_ubt_edeposit_doca_ip250_ip10",
+  "query": "SBT UBT Edeposit DOCA IP250 IP10",
+  "command": [
+    "root-rag",
+    "ask",
+    "SBT UBT Edeposit DOCA IP250 IP10",
+    "--top-k",
+    "10"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 4,
+  "stdout": "",
+  "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n",
+  "hits": null,
+  "notes": "Raw CLI text output; not structured JSON."
+}

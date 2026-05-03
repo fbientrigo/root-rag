@@ -1,0 +1,21 @@
+{
+  "query_id": "q07_ubt",
+  "query": "UBT",
+  "command": [
+    "root-rag",
+    "ask",
+    "UBT",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data",
+    "--index-id",
+    "indexes_fairship"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 4,
+  "stdout": "",
+  "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n",
+  "hits": [],
+  "notes": "Raw CLI text output; not structured JSON."
+}

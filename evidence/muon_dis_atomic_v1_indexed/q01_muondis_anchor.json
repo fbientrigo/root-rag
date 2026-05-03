@@ -1,0 +1,21 @@
+{
+  "query_id": "q01_muondis_anchor",
+  "query": "muonDIS",
+  "command": [
+    "root-rag",
+    "ask",
+    "muonDIS",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data\\indexes_fairship",
+    "--index-id",
+    "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 0,
+  "stdout": "Evidence (ROOT master, commit 98de16a5b264):\n\n[1] muonDIS/makeMuonDIS.py:351-355\n[2] macro/run_simScript.py:841-902\n[3] muonDIS/makeMuonDIS.py:71-150\n[4] muonDIS/makeMuonDIS.py:281-355\n[5] muonDIS/make_nTuple_SBT.py:421-424\n[6] muonDIS/make_nTuple_Tr.py:421-427\n[7] muonDIS/makeMuonDIS.py:141-220\n[8] muonShieldOptimization/muDIS_mergeFiles.py:1-69\n[9] macro/run_simScript.py:281-360\n[10] muonDIS/add_muonresponse.py:1-80\n",
+  "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'muonDIS': 10 results (top_k=10)\n",
+  "hits": null,
+  "notes": "Raw CLI text output; not structured JSON."
+}

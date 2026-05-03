@@ -1,0 +1,107 @@
+{
+  "pack_path": "query_packs\\muon_dis_workflow.yaml",
+  "pack_id": "muon_dis_workflow_v0",
+  "timestamp": "2026-04-28T04:01:29.288852+00:00",
+  "top_k": 10,
+  "evidence_format": "text-wrapper",
+  "dry_run": false,
+  "fail_fast": false,
+  "queries": [
+    {
+      "id": "q1_make_nTuple_front_side_cavern",
+      "command": [
+        "root-rag",
+        "ask",
+        "make_nTuple front side cavern",
+        "--top-k",
+        "10"
+      ],
+      "query": "make_nTuple front side cavern",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q1_make_nTuple_front_side_cavern.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    },
+    {
+      "id": "q2_makeMuonDIS_pythia6_sigmaDIS",
+      "command": [
+        "root-rag",
+        "ask",
+        "makeMuonDIS pythia6 sigmaDIS",
+        "--top-k",
+        "10"
+      ],
+      "query": "makeMuonDIS pythia6 sigmaDIS",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q2_makeMuonDIS_pythia6_sigmaDIS.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    },
+    {
+      "id": "q3_run_simScript_muonDIS_rho_material_budget",
+      "command": [
+        "root-rag",
+        "ask",
+        "run_simScript muonDIS rho material budget",
+        "--top-k",
+        "10"
+      ],
+      "query": "run_simScript muonDIS rho material budget",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q3_run_simScript_muonDIS_rho_material_budget.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    },
+    {
+      "id": "q4_shipreco_candidate_doca_ip",
+      "command": [
+        "root-rag",
+        "ask",
+        "ShipReco candidate DOCA IP",
+        "--top-k",
+        "10"
+      ],
+      "query": "ShipReco candidate DOCA IP",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q4_shipreco_candidate_doca_ip.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    },
+    {
+      "id": "q5_sbt_ubt_edeposit_doca_ip250_ip10",
+      "command": [
+        "root-rag",
+        "ask",
+        "SBT UBT Edeposit DOCA IP250 IP10",
+        "--top-k",
+        "10"
+      ],
+      "query": "SBT UBT Edeposit DOCA IP250 IP10",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q5_sbt_ubt_edeposit_doca_ip250_ip10.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    },
+    {
+      "id": "q6_inactivate_muon_processes_muioni",
+      "command": [
+        "root-rag",
+        "ask",
+        "InactivateMuonProcesses muIoni",
+        "--top-k",
+        "10"
+      ],
+      "query": "InactivateMuonProcesses muIoni",
+      "output_file": "evidence\\muon_dis_smoke_fixed\\q6_inactivate_muon_processes_muioni.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n"
+    }
+  ]
+}

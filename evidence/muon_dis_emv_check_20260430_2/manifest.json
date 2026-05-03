@@ -1,0 +1,196 @@
+{
+  "pack_path": "query_packs\\muon_dis_workflow.yaml",
+  "pack_id": "muon_dis_workflow_v1",
+  "timestamp": "2026-04-30T19:27:09.375798+00:00",
+  "top_k": 10,
+  "index_dir": "data",
+  "index_id": "indexes_fairship",
+  "root_ref": null,
+  "evidence_format": "text-wrapper",
+  "dry_run": false,
+  "fail_fast": false,
+  "output_dir_reused": false,
+  "warnings": [],
+  "queries": [
+    {
+      "id": "q01_muondis_anchor",
+      "command": [
+        "root-rag",
+        "ask",
+        "muonDIS",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "muonDIS",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q01_muondis_anchor.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q02_make_muon_dis",
+      "command": [
+        "root-rag",
+        "ask",
+        "makeMuonDIS",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "makeMuonDIS",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q02_make_muon_dis.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q03_run_simscript",
+      "command": [
+        "root-rag",
+        "ask",
+        "run_simScript",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "run_simScript",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q03_run_simscript.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q04_shipreco",
+      "command": [
+        "root-rag",
+        "ask",
+        "ShipReco",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "ShipReco",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q04_shipreco.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q05_doca",
+      "command": [
+        "root-rag",
+        "ask",
+        "DOCA",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "DOCA",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q05_doca.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q06_sbt",
+      "command": [
+        "root-rag",
+        "ask",
+        "SBT",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "SBT",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q06_sbt.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q07_ubt",
+      "command": [
+        "root-rag",
+        "ask",
+        "UBT",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "UBT",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q07_ubt.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q08_muioni",
+      "command": [
+        "root-rag",
+        "ask",
+        "muIoni",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "muIoni",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q08_muioni.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    },
+    {
+      "id": "q09_inactivate_muon_processes",
+      "command": [
+        "root-rag",
+        "ask",
+        "InactivateMuonProcesses",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data",
+        "--index-id",
+        "indexes_fairship"
+      ],
+      "query": "InactivateMuonProcesses",
+      "output_file": "evidence\\muon_dis_emv_check_20260430_2\\q09_inactivate_muon_processes.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 4,
+      "status": "ERROR",
+      "stderr": "Error: No index found for v6-36-08\nRun: root-rag index --root-ref v6-36-08\n"
+    }
+  ]
+}

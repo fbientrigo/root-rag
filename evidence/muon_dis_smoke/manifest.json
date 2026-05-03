@@ -1,0 +1,100 @@
+{
+  "pack_path": "query_packs\\muon_dis_workflow.yaml",
+  "pack_id": "muon_dis_workflow_v0",
+  "timestamp": "2026-04-28T03:37:04.402767+00:00",
+  "top_k": 10,
+  "dry_run": false,
+  "fail_fast": false,
+  "queries": [
+    {
+      "id": "q1_make_nTuple_front_side_cavern",
+      "command": [
+        "root-rag",
+        "ask",
+        "make_nTuple front side cavern",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "make_nTuple front side cavern",
+      "output_file": "evidence\\muon_dis_smoke\\q1_make_nTuple_front_side_cavern.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    },
+    {
+      "id": "q2_makeMuonDIS_pythia6_sigmaDIS",
+      "command": [
+        "root-rag",
+        "ask",
+        "makeMuonDIS pythia6 sigmaDIS",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "makeMuonDIS pythia6 sigmaDIS",
+      "output_file": "evidence\\muon_dis_smoke\\q2_makeMuonDIS_pythia6_sigmaDIS.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    },
+    {
+      "id": "q3_run_simScript_muonDIS_rho_material_budget",
+      "command": [
+        "root-rag",
+        "ask",
+        "run_simScript muonDIS rho material budget",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "run_simScript muonDIS rho material budget",
+      "output_file": "evidence\\muon_dis_smoke\\q3_run_simScript_muonDIS_rho_material_budget.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    },
+    {
+      "id": "q4_shipreco_candidate_doca_ip",
+      "command": [
+        "root-rag",
+        "ask",
+        "ShipReco candidate DOCA IP",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "ShipReco candidate DOCA IP",
+      "output_file": "evidence\\muon_dis_smoke\\q4_shipreco_candidate_doca_ip.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    },
+    {
+      "id": "q5_sbt_ubt_edeposit_doca_ip250_ip10",
+      "command": [
+        "root-rag",
+        "ask",
+        "SBT UBT Edeposit DOCA IP250 IP10",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "SBT UBT Edeposit DOCA IP250 IP10",
+      "output_file": "evidence\\muon_dis_smoke\\q5_sbt_ubt_edeposit_doca_ip250_ip10.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    },
+    {
+      "id": "q6_inactivate_muon_processes_muioni",
+      "command": [
+        "root-rag",
+        "ask",
+        "InactivateMuonProcesses muIoni",
+        "--top-k",
+        "10",
+        "--json"
+      ],
+      "query": "InactivateMuonProcesses muIoni",
+      "output_file": "evidence\\muon_dis_smoke\\q6_inactivate_muon_processes_muioni.json",
+      "return_code": 2,
+      "stderr": "Usage: root-rag ask [OPTIONS] QUERY\nTry 'root-rag ask --help' for help.\n\nError: No such option: --json\n"
+    }
+  ]
+}

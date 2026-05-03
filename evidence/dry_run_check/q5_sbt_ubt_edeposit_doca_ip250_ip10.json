@@ -1,0 +1,11 @@
+{
+  "dry_run": true,
+  "command": [
+    "root-rag",
+    "ask",
+    "SBT UBT Edeposit DOCA IP250 IP10",
+    "--top-k",
+    "10",
+    "--json"
+  ]
+}
