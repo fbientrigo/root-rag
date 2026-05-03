@@ -393,6 +393,7 @@ def search(
                 {
                     "chunk_id": r.chunk_id,
                     "file_path": r.file_path,
+                    "source_type": r.source_type,
                     "start_line": r.start_line,
                     "end_line": r.end_line,
                     "symbol_path": r.symbol_path,
@@ -409,7 +410,7 @@ def search(
             # Human-readable output
             for i, result in enumerate(results, 1):
                 click.echo(
-                    f"[{i}] {result.file_path}:{result.start_line}-{result.end_line} "
+                    f"[{i}] [{result.source_type}] {result.file_path}:{result.start_line}-{result.end_line} "
                     f"score={result.score:.4f}"
                 )
                 if result.symbol_path:
