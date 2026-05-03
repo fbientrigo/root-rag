@@ -1,0 +1,11 @@
+{
+  "last_verdict": "ACCEPT WITH NOTES",
+  "last_run_summary": "EMV harness operational; manual qrel review remains pending.",
+  "next_prompt_path": "agents/codex_emv/heartbeat/next_prompt.md",
+  "open_items": [
+    "Manual qrel review pending",
+    "Guarded qrel promotion workflow pending",
+    "Wiki claim promotion blocked until reviewed evidence exists"
+  ],
+  "last_updated": "2026-04-30"
+}
