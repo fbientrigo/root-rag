@@ -42,7 +42,8 @@ SEMANTIC_ALIAS_MAP: Dict[str, tuple[str, ...]] = {
 def _sanitize_fts_query(query: str) -> str:
     """Sanitize query string for FTS5 MATCH operator."""
     query = re.sub(r"\b(where|what|how|is|are|was|were|the|a|an)\b", " ", query, flags=re.IGNORECASE)
-    query = re.sub(r"[?!.,;]", " ", query)
+    # FTS5 MATCH treats "/" as syntax unless quoted; normalize path separators into token delimiters.
+    query = re.sub(r"[?!.,;/\\]", " ", query)
 
     words = query.split()
     quoted_words = []
