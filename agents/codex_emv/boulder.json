@@ -1,0 +1,59 @@
+{
+  "harness_id": "codex_emv_root_rag_v1",
+  "goal": "Force autonomous Codex work to prove root-rag workflow tracing changes with evidence artifacts, manifest inspection, report inspection, evaluator inspection, and explicit acceptance gates.",
+  "scope": {
+    "primary": [
+      "Muon DIS query-pack vertical slice",
+      "FairShip index selection for root-rag ask",
+      "Evidence artifact inspection before progress claims",
+      "Failure triage with explicit hypotheses"
+    ],
+    "out_of_scope": [
+      "GraphRAG",
+      "Doxygen ingestion",
+      "tree-sitter extraction",
+      "embeddings",
+      "CodeQL",
+      "Joern",
+      "heavy infrastructure"
+    ]
+  },
+  "required_inputs": [
+    "AGENTS.md",
+    "docs/planning/boulder_muondis_workflow_tracing.json",
+    "query_packs/muon_dis_workflow.yaml",
+    "scripts/run_query_pack.py",
+    "scripts/generate_weekly_report.py",
+    "scripts/evaluate_muon_dis_retrieval.py",
+    "docs/wiki/CLAIM_FORMAT.md",
+    "docs/spec/workflow_graph_schema.md",
+    "benchmarks/muon_dis/README.md"
+  ],
+  "acceptance_gates": [
+    "targeted_tests_pass",
+    "real_smoke_command_ran",
+    "manifest_inspected",
+    "report_inspected",
+    "evaluator_inspected_when_relevant",
+    "no_stale_evidence_reused_silently",
+    "no_all_error_report_presented_as_success",
+    "wiki_linter_passed_if_wiki_touched",
+    "workflow_graph_validator_passed_if_graph_touched"
+  ],
+  "failure_protocol": {
+    "hypotheses_required": 3,
+    "priors_sum": 100,
+    "required_fields": [
+      "Evidence",
+      "Falsification",
+      "Result",
+      "Updated probability"
+    ],
+    "repeat_failure_rule": "If the same hypothesis fails twice, demote it and switch."
+  },
+  "default_artifacts": {
+    "evidence_dir_pattern": "evidence/<run-id>",
+    "report_pattern": "reports/<run-id>_muon_dis_workflow.md",
+    "eval_pattern": "reports/<run-id>_muon_dis_eval.json"
+  }
+}

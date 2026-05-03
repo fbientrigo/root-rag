@@ -38,3 +38,18 @@ def test_build_query_transformer_factory_modes():
 def test_build_query_transformer_rejects_unknown_mode():
     with pytest.raises(ValueError):
         build_query_transformer("unknown")
+
+
+def test_root_lexical_transformer_keeps_exact_symbol_for_structural_aliases():
+    transformer = RootLexicalQueryTransformer()
+    transformed = transformer.transform("SetBranchAddress pattern in data loaders")
+    tokens = transformed.split()
+
+    # Critical symbol is preserved while alias expansion is applied.
+    assert "setbranchaddress" in tokens
+    assert "getentry" in tokens
+    assert "ttree" in tokens
+
+    # Existing low-signal removals still apply.
+    assert "in" not in tokens
+    assert "pattern" not in tokens

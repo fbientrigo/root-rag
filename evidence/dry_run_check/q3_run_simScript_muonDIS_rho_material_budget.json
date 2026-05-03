@@ -1,0 +1,11 @@
+{
+  "dry_run": true,
+  "command": [
+    "root-rag",
+    "ask",
+    "run_simScript muonDIS rho material budget",
+    "--top-k",
+    "10",
+    "--json"
+  ]
+}

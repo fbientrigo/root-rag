@@ -1,0 +1,74 @@
+pack_id: muon_dis_workflow_v1
+created: 2026-04-28
+golden_queries:
+  - query_id: q01_muondis_anchor
+    query_text: "muonDIS"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q02_make_muon_dis
+    query_text: "makeMuonDIS"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q03_run_simscript
+    query_text: "run_simScript"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q04_shipreco
+    query_text: "ShipReco"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q05_doca
+    query_text: "DOCA"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q06_sbt
+    query_text: "SBT"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q07_ubt
+    query_text: "UBT"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q08_muioni
+    query_text: "muIoni"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."
+
+  - query_id: q09_inactivate_muon_processes
+    query_text: "InactivateMuonProcesses"
+    pack: muon_dis_workflow_v1
+    qrels: []
+    pending_label: true
+    added: 2026-04-28
+    notes: "Initial scaffold. Qrels pending manual evidence review; no line ranges confirmed yet."

@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import List, Tuple
 
 from root_rag.index.schemas import Chunk
-from root_rag.parser.files import INCLUDED_EXTENSIONS
-
 logger = logging.getLogger(__name__)
 
 # Pattern to detect Doxygen markers
@@ -15,7 +13,7 @@ DOXYGEN_PATTERN = re.compile(r"/\*\*|//!|///<")
 
 def _get_language_from_path(file_path: Path) -> str:
     """Map file extension to language identifier."""
-    ext = file_path.suffix.lower()
+    ext = file_path.suffix
     ext_to_lang = {
         ".h": "cpp",
         ".hpp": "cpp",
@@ -24,8 +22,12 @@ def _get_language_from_path(file_path: Path) -> str:
         ".cc": "cpp",
         ".cpp": "cpp",
         ".cxx": "cpp",
+        ".C": "cpp",
+        ".py": "python",
+        ".md": "markdown",
+        ".txt": "text",
     }
-    return ext_to_lang.get(ext, "text")
+    return ext_to_lang.get(ext, ext_to_lang.get(ext.lower(), "text"))
 
 
 def _get_doc_origin_from_path(file_path: Path) -> str:
@@ -41,6 +43,12 @@ def _get_doc_origin_from_path(file_path: Path) -> str:
     if file_path.suffix in {".c", ".cc", ".cpp", ".cxx"}:
         return "source_impl"
     
+    if file_path.suffix == ".py":
+        return "source_impl"
+
+    if file_path.suffix == ".md" or file_path.name.lower().startswith("readme"):
+        return "reference_doc"
+
     # Default for unknown
     return "source_impl"
 
@@ -172,6 +180,7 @@ def chunk_corpus(
     window_lines: int = 80,
     overlap_lines: int = 10,
     seed_corpus_config: Path = None,
+    discovery_profile: str = None,
 ) -> List[Chunk]:
     """Chunk an entire corpus (all files or seed corpus subset).
     
@@ -190,7 +199,7 @@ def chunk_corpus(
     repo_root = Path(repo_root)
     
     # Discover all text files
-    file_paths = discover_text_files(repo_root)
+    file_paths = discover_text_files(repo_root, discovery_profile=discovery_profile)
     
     # Apply seed corpus filter if provided
     if seed_corpus_config:

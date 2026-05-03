@@ -184,6 +184,10 @@ class IndexManifest(BaseModel):
     # === Artifact paths ===
     chunks_path: str = Field(..., description="Path to chunks.jsonl file")
     fts_db_path: str = Field(..., description="Path to FTS5 SQLite database")
+    semantic_manifest_path: Optional[str] = Field(
+        default=None,
+        description="Optional path to S1 semantic manifest when semantic artifacts are built",
+    )
 
     # === Versions and configuration ===
     schema_version: str = Field(default="1.0.0", description="Index manifest schema version")
@@ -249,6 +253,7 @@ class IndexManifest(BaseModel):
                 "corpus_url": "https://github.com/root-project/root.git",
                 "chunks_path": "data/processed/chunks/v6-32-00__0123456789ab/chunks.jsonl",
                 "fts_db_path": "data/indexes/v6-32-00__0123456789ab__20260227T235900Z/fts.sqlite",
+                "semantic_manifest_path": None,
                 "schema_version": "1.0.0",
                 "index_schema_version": "1.0.0",
                 "chunk_count": 42,

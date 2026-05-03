@@ -1,0 +1,70 @@
+{
+  "query_id": "q04_shipreco",
+  "query": "ShipReco",
+  "command": [
+    "root-rag",
+    "ask",
+    "ShipReco",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data\\indexes_fairship",
+    "--index-id",
+    "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 0,
+  "stdout": "Evidence (ROOT master, commit 98de16a5b264):\n\n[1] macro/ShipReco.py:141-179\n[2] README.md:141-220\n[3] CHANGELOG.md:561-610\n[4] muonShieldOptimization/run_reco.py:1-80\n[5] macro/ShipReco.py:1-80\n[6] macro/ShipReco.py:71-150\n[7] README.md:71-150\n[8] CHANGELOG.md:421-500\n",
+  "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'ShipReco': 8 results (top_k=10)\n",
+  "hits": [
+    {
+      "rank": 1,
+      "file": "macro/ShipReco.py",
+      "start_line": 141,
+      "end_line": 179
+    },
+    {
+      "rank": 2,
+      "file": "README.md",
+      "start_line": 141,
+      "end_line": 220
+    },
+    {
+      "rank": 3,
+      "file": "CHANGELOG.md",
+      "start_line": 561,
+      "end_line": 610
+    },
+    {
+      "rank": 4,
+      "file": "muonShieldOptimization/run_reco.py",
+      "start_line": 1,
+      "end_line": 80
+    },
+    {
+      "rank": 5,
+      "file": "macro/ShipReco.py",
+      "start_line": 1,
+      "end_line": 80
+    },
+    {
+      "rank": 6,
+      "file": "macro/ShipReco.py",
+      "start_line": 71,
+      "end_line": 150
+    },
+    {
+      "rank": 7,
+      "file": "README.md",
+      "start_line": 71,
+      "end_line": 150
+    },
+    {
+      "rank": 8,
+      "file": "CHANGELOG.md",
+      "start_line": 421,
+      "end_line": 500
+    }
+  ],
+  "notes": "Raw CLI text output; not structured JSON."
+}

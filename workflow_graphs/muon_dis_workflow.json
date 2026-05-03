@@ -1,0 +1,106 @@
+{
+  "graph_id": "muon_dis_workflow_v0_stage_scaffold",
+  "created": "2026-04-28",
+  "scope": "FairShip Muon DIS stage-level scaffold",
+  "nodes": [
+    {
+      "id": "post_shield_muons",
+      "label": "Post-shield muons",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "split_front_side_cavern",
+      "label": "Split front side cavern",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "generate_muon_dis",
+      "label": "Generate muon DIS",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "place_dis_vertex",
+      "label": "Place DIS vertex",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "reconstruct_events",
+      "label": "Reconstruct events",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "selection_and_veto",
+      "label": "Selection and veto",
+      "kind": "stage",
+      "status": "PROVISIONAL",
+      "sources": []
+    },
+    {
+      "id": "unresolved_weight_propagation",
+      "label": "Unresolved weight propagation",
+      "kind": "stage",
+      "status": "UNRESOLVED",
+      "sources": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "post_shield_muons",
+      "target": "split_front_side_cavern",
+      "relation": "precedes",
+      "status": "PROVISIONAL",
+      "sources": [],
+      "notes": "Stage ordering scaffold; source anchors pending."
+    },
+    {
+      "source": "split_front_side_cavern",
+      "target": "generate_muon_dis",
+      "relation": "precedes",
+      "status": "PROVISIONAL",
+      "sources": [],
+      "notes": "Stage ordering scaffold; source anchors pending."
+    },
+    {
+      "source": "generate_muon_dis",
+      "target": "place_dis_vertex",
+      "relation": "precedes",
+      "status": "PROVISIONAL",
+      "sources": [],
+      "notes": "Stage ordering scaffold; source anchors pending."
+    },
+    {
+      "source": "place_dis_vertex",
+      "target": "reconstruct_events",
+      "relation": "precedes",
+      "status": "PROVISIONAL",
+      "sources": [],
+      "notes": "Stage ordering scaffold; source anchors pending."
+    },
+    {
+      "source": "reconstruct_events",
+      "target": "selection_and_veto",
+      "relation": "precedes",
+      "status": "PROVISIONAL",
+      "sources": [],
+      "notes": "Stage ordering scaffold; source anchors pending."
+    },
+    {
+      "source": "selection_and_veto",
+      "target": "unresolved_weight_propagation",
+      "relation": "unknown",
+      "status": "UNRESOLVED",
+      "sources": [],
+      "notes": "Weight propagation relation unresolved."
+    }
+  ]
+}

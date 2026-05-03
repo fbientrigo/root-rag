@@ -1,0 +1,21 @@
+{
+  "query_id": "q06_sbt",
+  "query": "SBT",
+  "command": [
+    "root-rag",
+    "ask",
+    "SBT",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data\\indexes_fairship",
+    "--index-id",
+    "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 0,
+  "stdout": "Evidence (ROOT master, commit 98de16a5b264):\n\n[1] muonDIS/make_nTuple_SBT.py:1-80\n[2] python/shipVeto.py:1-80\n[3] muonDIS/make_nTuple_Tr.py:211-290\n[4] muonDIS/make_nTuple_SBT.py:421-424\n[5] python/shipVeto.py:141-171\n[6] muonDIS/make_nTuple_SBT.py:211-290\n[7] muonDIS/make_nTuple_SBT.py:71-150\n[8] macro/ShipAna.py:631-710\n[9] muonDIS/make_nTuple_SBT.py:281-360\n[10] veto/veto.cxx:1-80\n",
+  "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'SBT': 10 results (top_k=10)\n",
+  "hits": null,
+  "notes": "Raw CLI text output; not structured JSON."
+}

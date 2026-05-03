@@ -1,0 +1,17 @@
+{
+  "query_id": "q1_make_nTuple_front_side_cavern",
+  "query": "make_nTuple front side cavern",
+  "command": [
+    "root-rag",
+    "ask",
+    "make_nTuple front side cavern",
+    "--top-k",
+    "10"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 4,
+  "stdout": "",
+  "stderr": "root_rag.index.locator: Resolved index by root_ref v6-36-08: v6-36-08__9005eb7d69f1__20260326T063908878403Z\nError: Index database not found for v6-36-08\n",
+  "hits": null,
+  "notes": "Raw CLI text output; not structured JSON."
+}

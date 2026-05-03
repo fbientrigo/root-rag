@@ -163,6 +163,7 @@ def main():
         window_lines=args.window_lines,
         overlap_lines=args.overlap_lines,
         seed_corpus_config=None,  # No filtering - index everything
+        discovery_profile="fairship_workflow",
     )
     
     if result["status"] != "success":
@@ -205,7 +206,7 @@ def main():
         retrieval_modes=["lexical"],
         fts_db_path=str(fts_db.relative_to(index_dir)),
         chunks_path=str(chunks_file.relative_to(index_dir.parent.parent)),
-        corpus_config="FairShip codebase (all C++ files)",
+        corpus_config="FairShip codebase (C++ + workflow docs/macros/python)",
         description=f"FairShip codebase index for ref={manifest.root_ref}",
     )
     

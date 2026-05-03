@@ -1,0 +1,88 @@
+{
+  "goal": "Deliver evidence-grounded workflow tracing for FairShip with Muon DIS as first target workflow, using existing root-rag BM25/FTS5 retrieval architecture and deterministic local evaluation loops.",
+  "scope": {
+    "mvp": [
+      "Define Muon DIS workflow tracing query packs for code navigation, dataflow checkpoints, and validation questions.",
+      "Add evidence capture artifacts for each tracing claim (query, retrieved snippets, file paths, line spans, run metadata).",
+      "Create weekly report template and generator inputs from retrieval/evidence artifacts.",
+      "Create Muon DIS golden query set with expected evidence anchors.",
+      "Add benchmark evaluation job for precision@k/recall@k-style evidence hit metrics against golden queries.",
+      "Add deterministic tests for query packs, evidence serialization, and benchmark reproducibility."
+    ],
+    "deferred": [
+      "Doxygen ingestion",
+      "tree-sitter structural parsing",
+      "GraphRAG graph construction",
+      "CodeQL integration",
+      "Joern integration",
+      "embedding/vector retrieval",
+      "large-scale distributed orchestration"
+    ]
+  },
+  "inputs": [
+    "Current root-rag BM25/FTS5 index and retrieval pipeline",
+    "FairShip repository snapshot used for indexing",
+    "Muon DIS domain questions from researchers",
+    "Existing root-rag benchmark harness and test framework",
+    "Local configuration for reproducible runs (seed, snapshot ref, index version)"
+  ],
+  "outputs": [
+    "Versioned Muon DIS query-pack files",
+    "Versioned evidence-capture JSONL/JSON artifacts per run",
+    "Weekly workflow tracing report artifacts (machine-readable + human-readable)",
+    "Golden query dataset with evidence anchors",
+    "Benchmark result reports with regression comparison",
+    "Test cases proving deterministic behavior"
+  ],
+  "constraints": [
+    "PhD-scale, local-first implementation only.",
+    "Deterministic outputs and testable pipelines prioritized over breadth.",
+    "Every claim about FairShip code must cite root-rag evidence artifacts.",
+    "Do not modify existing retrieval logic unless minimally required for evidence plumbing.",
+    "Do not introduce large infrastructure or external heavy services.",
+    "Keep compatibility with current BM25/FTS5 architecture as primary path."
+  ],
+  "decisions": {
+    "target_workflow": "FairShip Muon DIS workflow tracing is first and only MVP tracing target.",
+    "evidence_policy": "No narrative conclusion without attached retrieval evidence (path + span + query context).",
+    "retrieval_policy": "Stay lexical-first (BM25/FTS5); defer semantic/graph/static-analysis augmentations.",
+    "evaluation_policy": "Use golden-query-grounded benchmark gate for weekly progress tracking.",
+    "change_policy": "Additive artifacts and tooling preferred; core retriever changes allowed only when required for deterministic evidence export."
+  },
+  "checklist": {
+    "mvp": [
+      "Specify Muon DIS query pack schema and initial question inventory.",
+      "Implement query-pack runner bindings to current retriever.",
+      "Implement evidence capture schema and writer.",
+      "Create golden queries with curated expected evidence anchors.",
+      "Implement benchmark evaluator and baseline report.",
+      "Add deterministic test fixtures and CI/local test command.",
+      "Generate first weekly Muon DIS tracing report from captured artifacts."
+    ],
+    "deferred": [
+      "Evaluate Doxygen ingestion design after MVP benchmark stabilizes.",
+      "Evaluate tree-sitter extraction for structure-aware trace hints.",
+      "Evaluate GraphRAG/CodeQL/Joern extensions only after lexical baseline plateaus.",
+      "Evaluate embedding retrieval only with explicit regression-proof plan."
+    ]
+  },
+  "success_criteria": [
+    "JSON plan is valid and committed in docs/planning.",
+    "Plan clearly separates MVP tasks from deferred tasks.",
+    "Muon DIS workflow tracing is explicitly named as first target.",
+    "Doxygen, tree-sitter, GraphRAG, CodeQL, and Joern are explicitly deferred.",
+    "MVP defines query packs, evidence capture, weekly reports, golden queries, and benchmark evaluation.",
+    "Plan enforces evidence-grounded claims and deterministic tests."
+  ],
+  "handoff": {
+    "owner_profile": "root-rag contributor focusing on retrieval QA and reproducibility",
+    "first_execution_steps": [
+      "Draft Muon DIS query pack v0 and run against current index snapshot.",
+      "Implement evidence artifact emission and validate schema with tests.",
+      "Author golden query file and run initial benchmark baseline.",
+      "Publish week-1 tracing report with linked evidence artifacts."
+    ],
+    "review_cadence": "Weekly benchmark + report review; tighten golden set and query packs incrementally.",
+    "done_definition_mvp": "Muon DIS tracing loop runs locally end-to-end with deterministic artifacts, passing tests, and weekly evidence-grounded report output."
+  }
+}

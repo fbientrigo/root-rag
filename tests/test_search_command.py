@@ -4,6 +4,8 @@ import pytest
 from click.testing import CliRunner
 
 from root_rag.cli import main
+from root_rag.index.fts import create_fts5_db, insert_chunks_into_fts
+from root_rag.index.schemas import Chunk, IndexManifest
 
 
 class TestSearchCommandSuccess:
@@ -47,6 +49,7 @@ class TestSearchCommandSuccess:
         
         assert result.exit_code == 0, f"Search failed: {result.output}"
         assert "[1]" in result.output or "score=" in result.output
+        assert "[cpp]" in result.output
 
     def test_search_command_with_top_k(self, tmp_path, git_repo_fixture):
         """Search with custom top-k parameter."""
@@ -123,11 +126,68 @@ class TestSearchCommandSuccess:
             assert isinstance(data, list)
             if len(data) > 0:
                 assert "file_path" in data[0]
+                assert "source_type" in data[0]
                 assert "start_line" in data[0]
                 assert "end_line" in data[0]
                 assert "score" in data[0]
         except json.JSONDecodeError:
             pytest.fail("JSON output is not valid JSON")
+
+    def test_search_command_with_relative_fts_path_in_manifest(self, tmp_path):
+        """Search works when manifest stores fts_db_path relative to index directory."""
+        runner = CliRunner()
+
+        index_dir = tmp_path / "indexes"
+        index_id = "fairship__master__98de16a5b264__20260331T185059271533+0000Z"
+        artifact_dir = index_dir / index_id
+        artifact_dir.mkdir(parents=True)
+
+        db_path = artifact_dir / "fts.sqlite"
+        create_fts5_db(db_path)
+        insert_chunks_into_fts(
+            db_path,
+            [
+                Chunk.from_file_slice(
+                    file_path="shipgen/MuDISGenerator.cxx",
+                    start_line=1,
+                    end_line=3,
+                    content="class MuDISGenerator {};",
+                    root_ref="master",
+                    resolved_commit="98de16a5b264d51c36e1a3638466d1dbb7667678",
+                    language="cpp",
+                    doc_origin="source_impl",
+                )
+            ],
+        )
+
+        manifest = IndexManifest(
+            index_id=index_id,
+            corpus_id="fairship__master__98de16a5b264",
+            root_ref="master",
+            resolved_commit="98de16a5b264d51c36e1a3638466d1dbb7667678",
+            corpus_url="https://github.com/ShipSoft/FairShip.git",
+            chunks_path="processed/chunks/master__98de16a5b264/chunks.jsonl",
+            fts_db_path="fts.sqlite",
+            chunk_count=1,
+            file_count=1,
+            created_at="2026-03-31T18:50:59.702693+00:00",
+        )
+        manifest.save(artifact_dir / "index_manifest.json")
+
+        result = runner.invoke(
+            main,
+            [
+                "search",
+                "MuDISGenerator",
+                "--index-id",
+                index_id,
+                "--index-dir",
+                str(index_dir),
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "MuDISGenerator.cxx" in result.output
 
 
 class TestSearchCommandErrors:

@@ -10,3 +10,6 @@ venv/
 # artifacts
 artifacts/
 data/
+
+# local iterative planning workspace
+plans_runtime/

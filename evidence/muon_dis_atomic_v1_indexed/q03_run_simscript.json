@@ -1,0 +1,21 @@
+{
+  "query_id": "q03_run_simscript",
+  "query": "run_simScript",
+  "command": [
+    "root-rag",
+    "ask",
+    "run_simScript",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data\\indexes_fairship",
+    "--index-id",
+    "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 0,
+  "stdout": "Evidence (ROOT master, commit 98de16a5b264):\n\n[1] muonShieldOptimization/run_prod.py:1-80\n[2] CHANGELOG.md:421-500\n[3] CHANGELOG.md:351-430\n[4] CHANGELOG.md:141-220\n[5] macro/getInteractionAndRadiationLength.py:1-19\n[6] muonShieldOptimization/ana_ShipMuon.py:421-500\n[7] README.md:141-220\n[8] CHANGELOG.md:71-150\n[9] macro/run_simScript.py:841-902\n[10] field/README.md:1-80\n",
+  "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'run_simScript': 10 results (top_k=10)\n",
+  "hits": null,
+  "notes": "Raw CLI text output; not structured JSON."
+}

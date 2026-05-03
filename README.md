@@ -10,6 +10,8 @@ ROOT-RAG is a **version-aware, zero-hallucination retrieval system** for CERN RO
 
 **Current Status:** Production-ready with 4 operational indices (ROOT Tier 1, FairShip, SOFIE, Legacy)
 
+[![Benchmark Mode Alignment](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml/badge.svg)](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml)
+
 ---
 
 ## Quick Start
@@ -30,6 +32,22 @@ root-rag index --root-ref v6-36-08 --seed-corpus configs/tier1_corpus_root_636.y
 
 # List available indices
 root-rag versions
+```
+
+## Opt-in S1 Semantic Retrieval
+
+`S1-v1` is additive and off by default. Lexical retrieval remains the default backbone.
+
+```bash
+# Install optional local semantic dependencies
+pip install -e .[s1]
+
+# Build semantic artifacts from an existing lexical index
+root-rag build-semantic-index --root-ref v6-36-08
+
+# Opt in at query time
+root-rag search "detector geometry assembly" --root-ref v6-36-08 --retrieval-backend hybrid
+root-rag search "TTree::Draw" --root-ref v6-36-08 --retrieval-backend hybrid
 ```
 
 ---
@@ -349,7 +367,7 @@ root-rag/
 ### Limitations (Intentional for MVP)
 
 - **Single ROOT version:** 6.36.08 only (no multi-version yet)
-- **Lexical search only:** BM25 keywords (no semantic embeddings yet)
+- **No provider-backed embeddings yet:** lexical BM25 plus local `S0` semantic-hash baseline only
 - **Curated corpus:** 35/2000+ ROOT classes (focused on FairShip usage)
 - **CLI only:** No web UI or REST API yet
 
@@ -369,6 +387,8 @@ root-rag/
 - [**QUERY_SYNTAX_GUIDE.md**](docs/QUERY_SYNTAX_GUIDE.md) - Complete guide to query syntax, stop words, and best practices
 - [**architecture.md**](docs/architecture.md) - System architecture and data flow
 - [**QUICK_START.md**](docs/QUICK_START.md) - Detailed setup and usage guide
+- [**retrieval_quality_checks.md**](docs/retrieval_quality_checks.md) - Official B0/B1 benchmark and audit quality gates
+- [**benchmark_mode_alignment.md**](docs/benchmark_mode_alignment.md) - End-to-end reproducible mode comparison workflow
 - [**ADRs**](docs/adr/) - Architecture Decision Records (ADR 0001-0003)
 - [**CLI Contract**](docs/spec/cli_contract.md) - Command specifications
 - [**Citation Contract**](docs/adr/0003-citation-contract.md) - Evidence requirements
@@ -399,6 +419,19 @@ pytest -v
 - Add tests for new features
 - Update documentation
 - Run `pytest` before committing
+
+### Benchmark Mode Alignment (B0/B1)
+
+```bash
+# Local deterministic mode alignment run
+python scripts/run_benchmark_mode_tracks.py
+```
+
+Manual GitHub Actions run:
+1. Open the repository Actions tab.
+2. Select workflow `benchmark-mode-alignment`.
+3. Click `Run workflow` (`workflow_dispatch`).
+4. Download uploaded artifact `benchmark-mode-alignment` from the run summary.
 
 ### Adding a Corpus
 

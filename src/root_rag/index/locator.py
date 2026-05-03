@@ -9,6 +9,26 @@ from root_rag.index.schemas import IndexManifest
 logger = logging.getLogger(__name__)
 
 
+def _resolve_manifest_paths(manifest: IndexManifest, manifest_file: Path) -> IndexManifest:
+    """Resolve relative manifest artifact paths against the manifest directory."""
+    manifest_dir = manifest_file.parent
+
+    chunks_path = Path(manifest.chunks_path)
+    if not chunks_path.is_absolute():
+        manifest.chunks_path = str((manifest_dir / chunks_path).resolve())
+
+    fts_db_path = Path(manifest.fts_db_path)
+    if not fts_db_path.is_absolute():
+        manifest.fts_db_path = str((manifest_dir / fts_db_path).resolve())
+
+    if manifest.semantic_manifest_path:
+        semantic_manifest_path = Path(manifest.semantic_manifest_path)
+        if not semantic_manifest_path.is_absolute():
+            manifest.semantic_manifest_path = str((manifest_dir / semantic_manifest_path).resolve())
+
+    return manifest
+
+
 def resolve_index(
     indexes_root: Path,
     root_ref: Optional[str] = None,
@@ -38,7 +58,7 @@ def resolve_index(
             raise IndexNotFoundError(f"Index not found: {index_id}")
         
         logger.info(f"Resolved index by ID: {index_id}")
-        return IndexManifest.load(manifest_file)
+        return _resolve_manifest_paths(IndexManifest.load(manifest_file), manifest_file)
     
     # Otherwise resolve by root_ref (pick latest timestamp)
     if not root_ref:
@@ -61,6 +81,7 @@ def resolve_index(
         
         try:
             manifest = IndexManifest.load(manifest_file)
+            manifest = _resolve_manifest_paths(manifest, manifest_file)
             if manifest.root_ref == root_ref:
                 matching_indices.append((manifest.created_at, manifest))
         except Exception as e:

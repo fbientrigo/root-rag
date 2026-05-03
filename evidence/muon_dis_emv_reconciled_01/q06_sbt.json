@@ -1,0 +1,82 @@
+{
+  "query_id": "q06_sbt",
+  "query": "SBT",
+  "command": [
+    "root-rag",
+    "ask",
+    "SBT",
+    "--top-k",
+    "10",
+    "--index-dir",
+    "data\\indexes_fairship",
+    "--index-id",
+    "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+  ],
+  "evidence_format": "text-wrapper",
+  "return_code": 0,
+  "stdout": "Evidence (ROOT master, commit 98de16a5b264):\n\n[1] muonDIS/make_nTuple_SBT.py:1-80\n[2] python/shipVeto.py:1-80\n[3] muonDIS/make_nTuple_Tr.py:211-290\n[4] muonDIS/make_nTuple_SBT.py:421-424\n[5] python/shipVeto.py:141-171\n[6] muonDIS/make_nTuple_SBT.py:211-290\n[7] muonDIS/make_nTuple_SBT.py:71-150\n[8] macro/ShipAna.py:631-710\n[9] muonDIS/make_nTuple_SBT.py:281-360\n[10] veto/veto.cxx:1-80\n",
+  "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'SBT': 10 results (top_k=10)\n",
+  "hits": [
+    {
+      "rank": 1,
+      "file": "muonDIS/make_nTuple_SBT.py",
+      "start_line": 1,
+      "end_line": 80
+    },
+    {
+      "rank": 2,
+      "file": "python/shipVeto.py",
+      "start_line": 1,
+      "end_line": 80
+    },
+    {
+      "rank": 3,
+      "file": "muonDIS/make_nTuple_Tr.py",
+      "start_line": 211,
+      "end_line": 290
+    },
+    {
+      "rank": 4,
+      "file": "muonDIS/make_nTuple_SBT.py",
+      "start_line": 421,
+      "end_line": 424
+    },
+    {
+      "rank": 5,
+      "file": "python/shipVeto.py",
+      "start_line": 141,
+      "end_line": 171
+    },
+    {
+      "rank": 6,
+      "file": "muonDIS/make_nTuple_SBT.py",
+      "start_line": 211,
+      "end_line": 290
+    },
+    {
+      "rank": 7,
+      "file": "muonDIS/make_nTuple_SBT.py",
+      "start_line": 71,
+      "end_line": 150
+    },
+    {
+      "rank": 8,
+      "file": "macro/ShipAna.py",
+      "start_line": 631,
+      "end_line": 710
+    },
+    {
+      "rank": 9,
+      "file": "muonDIS/make_nTuple_SBT.py",
+      "start_line": 281,
+      "end_line": 360
+    },
+    {
+      "rank": 10,
+      "file": "veto/veto.cxx",
+      "start_line": 1,
+      "end_line": 80
+    }
+  ],
+  "notes": "Raw CLI text output; not structured JSON."
+}

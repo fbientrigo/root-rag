@@ -1,0 +1,11 @@
+{
+  "dry_run": true,
+  "command": [
+    "root-rag",
+    "ask",
+    "make_nTuple front side cavern",
+    "--top-k",
+    "10",
+    "--json"
+  ]
+}

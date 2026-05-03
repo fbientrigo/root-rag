@@ -1,0 +1,194 @@
+{
+  "pack_path": "query_packs\\muon_dis_workflow.yaml",
+  "pack_id": "muon_dis_workflow_v1",
+  "timestamp": "2026-04-30T18:11:32.276090+00:00",
+  "top_k": 10,
+  "index_dir": "data\\indexes_fairship",
+  "index_id": "fairship__master__98de16a5b264__20260428T060008679936+0000Z",
+  "root_ref": null,
+  "evidence_format": "text-wrapper",
+  "dry_run": false,
+  "fail_fast": false,
+  "queries": [
+    {
+      "id": "q01_muondis_anchor",
+      "command": [
+        "root-rag",
+        "ask",
+        "muonDIS",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "muonDIS",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q01_muondis_anchor.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'muonDIS': 10 results (top_k=10)\n"
+    },
+    {
+      "id": "q02_make_muon_dis",
+      "command": [
+        "root-rag",
+        "ask",
+        "makeMuonDIS",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "makeMuonDIS",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q02_make_muon_dis.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'makeMuonDIS': 9 results (top_k=10)\n"
+    },
+    {
+      "id": "q03_run_simscript",
+      "command": [
+        "root-rag",
+        "ask",
+        "run_simScript",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "run_simScript",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q03_run_simscript.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'run_simScript': 10 results (top_k=10)\n"
+    },
+    {
+      "id": "q04_shipreco",
+      "command": [
+        "root-rag",
+        "ask",
+        "ShipReco",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "ShipReco",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q04_shipreco.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'ShipReco': 8 results (top_k=10)\n"
+    },
+    {
+      "id": "q05_doca",
+      "command": [
+        "root-rag",
+        "ask",
+        "DOCA",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "DOCA",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q05_doca.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'DOCA': 10 results (top_k=10)\n"
+    },
+    {
+      "id": "q06_sbt",
+      "command": [
+        "root-rag",
+        "ask",
+        "SBT",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "SBT",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q06_sbt.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'SBT': 10 results (top_k=10)\n"
+    },
+    {
+      "id": "q07_ubt",
+      "command": [
+        "root-rag",
+        "ask",
+        "UBT",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "UBT",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q07_ubt.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'UBT': 10 results (top_k=10)\n"
+    },
+    {
+      "id": "q08_muioni",
+      "command": [
+        "root-rag",
+        "ask",
+        "muIoni",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "muIoni",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q08_muioni.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 0,
+      "status": "HIT_OR_TEXT_EVIDENCE",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'muIoni': 2 results (top_k=10)\n"
+    },
+    {
+      "id": "q09_inactivate_muon_processes",
+      "command": [
+        "root-rag",
+        "ask",
+        "InactivateMuonProcesses",
+        "--top-k",
+        "10",
+        "--index-dir",
+        "data\\indexes_fairship",
+        "--index-id",
+        "fairship__master__98de16a5b264__20260428T060008679936+0000Z"
+      ],
+      "query": "InactivateMuonProcesses",
+      "output_file": "evidence\\muon_dis_emv_codex_20260430_1\\q09_inactivate_muon_processes.json",
+      "evidence_format": "text-wrapper",
+      "return_code": 5,
+      "status": "ZERO_HIT",
+      "stderr": "root_rag.index.locator: Resolved index by ID: fairship__master__98de16a5b264__20260428T060008679936+0000Z\nroot_rag.retrieval.backends: Lexical search for 'InactivateMuonProcesses': 0 results (top_k=10)\n"
+    }
+  ]
+}

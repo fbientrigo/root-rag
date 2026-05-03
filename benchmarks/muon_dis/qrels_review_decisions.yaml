@@ -1,0 +1,558 @@
+# q09_inactivate_muon_processes (InactivateMuonProcesses): NOT_FOUND_IN_INDEX, no candidate file/range pairs.
+review_id: muon_dis_qrel_review_2026_04_30_guarded_scaffold
+source_candidates_file: benchmarks/muon_dis/qrels_candidates.yaml
+reviewed_by: ''
+reviewed_at: ''
+decisions:
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 351
+  end_line: 355
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: macro/run_simScript.py
+  start_line: 841
+  end_line: 902
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 281
+  end_line: 355
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 421
+  end_line: 424
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/make_nTuple_Tr.py
+  start_line: 421
+  end_line: 427
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonShieldOptimization/muDIS_mergeFiles.py
+  start_line: 1
+  end_line: 69
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: macro/run_simScript.py
+  start_line: 281
+  end_line: 360
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q01_muondis_anchor
+  file_path: muonDIS/add_muonresponse.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 351
+  end_line: 355
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 281
+  end_line: 355
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 211
+  end_line: 290
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonShieldOptimization/ana_ShipMuon.py
+  start_line: 1471
+  end_line: 1516
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonShieldOptimization/makeMuonDIS.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q02_make_muon_dis
+  file_path: muonShieldOptimization/makeMuonDIS.py
+  start_line: 71
+  end_line: 136
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: muonShieldOptimization/run_prod.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: CHANGELOG.md
+  start_line: 421
+  end_line: 500
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: CHANGELOG.md
+  start_line: 351
+  end_line: 430
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: CHANGELOG.md
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: macro/getInteractionAndRadiationLength.py
+  start_line: 1
+  end_line: 19
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: muonShieldOptimization/ana_ShipMuon.py
+  start_line: 421
+  end_line: 500
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: README.md
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: CHANGELOG.md
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: macro/run_simScript.py
+  start_line: 841
+  end_line: 902
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q03_run_simscript
+  file_path: field/README.md
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: macro/ShipReco.py
+  start_line: 141
+  end_line: 179
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: README.md
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: CHANGELOG.md
+  start_line: 561
+  end_line: 610
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: muonShieldOptimization/run_reco.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: macro/ShipReco.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: macro/ShipReco.py
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: README.md
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q04_shipreco
+  file_path: CHANGELOG.md
+  start_line: 421
+  end_line: 500
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: python/experimental/analysis_toolkit.py
+  start_line: 211
+  end_line: 290
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: macro/eventDisplay.py
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: macro/ShipAna.py
+  start_line: 631
+  end_line: 710
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: macro/ShipAna.py
+  start_line: 351
+  end_line: 430
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: shipdata/ShipParticle.cxx
+  start_line: 141
+  end_line: 153
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: examples/analysis_example.py
+  start_line: 71
+  end_line: 140
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: python/shipVertex.py
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: macro/ShipAna.py
+  start_line: 421
+  end_line: 500
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: python/shipVertex.py
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q05_doca
+  file_path: python/experimental/analysis_toolkit.py
+  start_line: 141
+  end_line: 220
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: python/shipVeto.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_Tr.py
+  start_line: 211
+  end_line: 290
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 421
+  end_line: 424
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: python/shipVeto.py
+  start_line: 141
+  end_line: 171
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 211
+  end_line: 290
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 71
+  end_line: 150
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: macro/ShipAna.py
+  start_line: 631
+  end_line: 710
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 281
+  end_line: 360
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q06_sbt
+  file_path: veto/veto.cxx
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: muonDIS/add_muonresponse.py
+  start_line: 141
+  end_line: 204
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 211
+  end_line: 290
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 281
+  end_line: 355
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: muonDIS/make_nTuple_Tr.py
+  start_line: 281
+  end_line: 360
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 281
+  end_line: 360
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: UpstreamTagger/UpstreamTagger.h
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: python/geometry_config.py
+  start_line: 351
+  end_line: 427
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: macro/ShipAna.py
+  start_line: 631
+  end_line: 710
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: CHANGELOG.md
+  start_line: 281
+  end_line: 360
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q07_ubt
+  file_path: UpstreamTagger/UpstreamTaggerHit.h
+  start_line: 1
+  end_line: 63
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q08_muioni
+  file_path: muonShieldOptimization/ana_ShipMuon.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
+- query_id: q08_muioni
+  file_path: muonShieldOptimization/run_prod.py
+  start_line: 1
+  end_line: 80
+  decision: NEEDS_CONTEXT
+  relevance: 1
+  reason: Manual review required before promotion.
+  reviewer_notes: Pending evidence inspection.
