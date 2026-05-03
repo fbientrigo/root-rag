@@ -17,6 +17,7 @@ def build_index(
     window_lines: int = 80,
     overlap_lines: int = 10,
     seed_corpus_config: Path = None,
+    discovery_profile: str = None,
 ) -> Dict[str, any]:
     """Build index from manifest: chunk corpus and write JSONL.
     
@@ -26,6 +27,7 @@ def build_index(
         window_lines: Lines per window (default 80)
         overlap_lines: Lines of overlap (default 10)
         seed_corpus_config: Optional path to seed corpus config for filtering
+        discovery_profile: Optional discovery profile name
     
     Returns:
         Metadata dict: {
@@ -57,6 +59,7 @@ def build_index(
         window_lines=window_lines,
         overlap_lines=overlap_lines,
         seed_corpus_config=seed_corpus_config,
+        discovery_profile=discovery_profile,
     )
     
     if not chunks:
@@ -109,6 +112,7 @@ def build_full_index(
     window_lines: int = 80,
     overlap_lines: int = 10,
     seed_corpus_config: Path = None,
+    discovery_profile: str = None,
 ) -> Dict[str, any]:
     """Build full index: chunk corpus → JSONL + FTS5 + IndexManifest.
     
@@ -124,6 +128,7 @@ def build_full_index(
         window_lines: Lines per window (default 80)
         overlap_lines: Lines of overlap (default 10)
         seed_corpus_config: Optional path to seed corpus config for filtering
+        discovery_profile: Optional discovery profile name
     
     Returns:
         Dict with keys:
@@ -153,6 +158,7 @@ def build_full_index(
         window_lines=window_lines,
         overlap_lines=overlap_lines,
         seed_corpus_config=seed_corpus_config,
+        discovery_profile=discovery_profile,
     )
     
     if not chunks:
