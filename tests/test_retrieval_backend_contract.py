@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+import sqlite3
 from typing import Dict, List, Optional
 
 from root_rag.index.fts import create_fts5_db, insert_chunks_into_fts
@@ -11,6 +12,7 @@ from root_rag.retrieval.backends import (
     FTS5LexicalBackend,
     InMemoryBM25LexicalBackend,
     SemanticHashMemoryBackend,
+    _sanitize_fts_query,
     build_retrieval_backend,
 )
 from root_rag.retrieval.interfaces import BaseRetrievalBackend
@@ -119,6 +121,83 @@ def test_fts_backend_returns_empty_for_non_positive_top_k(tmp_path):
     assert len(backend.search("TTree Draw", top_k=10)) >= 1
     assert backend.search("TTree Draw", top_k=0) == []
     assert backend.search("TTree Draw", top_k=-1) == []
+
+
+def test_sanitize_path_like_query_removes_path_separators():
+    sanitized = _sanitize_fts_query("macro/run_simScript.py")
+    assert "/" not in sanitized
+    assert "\\" not in sanitized
+    assert "macro" in sanitized
+    assert "run_simScript" in sanitized
+
+
+def test_sanitized_path_query_is_valid_fts_match(tmp_path):
+    db_path = tmp_path / "test.sqlite"
+    _write_single_chunk_fts(db_path)
+    sanitized = _sanitize_fts_query("macro/run_simScript.py")
+
+    with sqlite3.connect(str(db_path)) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) FROM chunks_fts WHERE chunks_fts MATCH ?", (sanitized,))
+        count = cursor.fetchone()[0]
+
+    assert isinstance(count, int)
+
+
+def test_fts_backend_path_like_query_does_not_crash_and_returns_match(tmp_path):
+    db_path = tmp_path / "test.sqlite"
+    create_fts5_db(db_path)
+    chunks = [
+        Chunk.from_file_slice(
+            file_path="macro/run_simScript.py",
+            start_line=1,
+            end_line=3,
+            content="run sim script",
+            root_ref="v0.1",
+            resolved_commit="abc123" + "0" * 34,
+            language="py",
+            doc_origin="source_impl",
+        ),
+        Chunk.from_file_slice(
+            file_path="python/shipVeto.py",
+            start_line=1,
+            end_line=3,
+            content="ship veto script",
+            root_ref="v0.1",
+            resolved_commit="abc123" + "0" * 34,
+            language="py",
+            doc_origin="source_impl",
+        ),
+    ]
+    insert_chunks_into_fts(db_path, chunks)
+    backend = FTS5LexicalBackend(db_path=db_path)
+
+    results = backend.search("macro/run_simScript.py", top_k=10)
+
+    assert results
+    assert any(row.file_path == "macro/run_simScript.py" for row in results)
+
+
+def test_fts_backend_symbol_query_behavior_preserved(tmp_path):
+    db_path = tmp_path / "test.sqlite"
+    create_fts5_db(db_path)
+    chunk = Chunk.from_file_slice(
+        file_path="muonDIS/makeMuonDIS.py",
+        start_line=1,
+        end_line=3,
+        content="class MuDISGenerator: pass",
+        root_ref="v0.1",
+        resolved_commit="abc123" + "0" * 34,
+        language="py",
+        doc_origin="source_impl",
+    )
+    insert_chunks_into_fts(db_path, [chunk])
+    backend = FTS5LexicalBackend(db_path=db_path)
+
+    results = backend.search("MuDISGenerator", top_k=10)
+
+    assert results
+    assert any(row.file_path == "muonDIS/makeMuonDIS.py" for row in results)
 
 
 def test_bm25_backend_returns_empty_for_non_positive_top_k():

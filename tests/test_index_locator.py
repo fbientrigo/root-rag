@@ -44,6 +44,41 @@ class TestResolveIndexById:
         assert resolved.index_id == "v0.1__abc123de__20260228T000000Z"
         assert resolved.root_ref == "v0.1"
 
+    def test_resolve_index_by_id_resolves_relative_artifact_paths(self, tmp_path):
+        """Relative fts/chunks paths in manifest are resolved from manifest directory."""
+        from root_rag.index.schemas import IndexManifest
+
+        indexes_root = tmp_path / "indexes"
+        indexes_root.mkdir()
+
+        index_id = "fairship__master__98de16a5b264__20260331T185059271533+0000Z"
+        index_dir = indexes_root / index_id
+        index_dir.mkdir()
+        (index_dir / "fts.sqlite").write_text("")
+
+        manifest = IndexManifest(
+            index_id=index_id,
+            corpus_id="fairship__master__98de16a5b264",
+            root_ref="master",
+            resolved_commit="98de16a5b264d51c36e1a3638466d1dbb7667678",
+            corpus_url="https://github.com/ShipSoft/FairShip.git",
+            chunks_path="processed/chunks/master__98de16a5b264/chunks.jsonl",
+            fts_db_path="fts.sqlite",
+            chunk_count=386,
+            file_count=163,
+            created_at="2026-03-31T18:50:59.702693+00:00",
+        )
+        manifest.save(index_dir / "index_manifest.json")
+
+        resolved = resolve_index(
+            indexes_root=indexes_root,
+            root_ref=None,
+            index_id=index_id,
+        )
+
+        assert resolved.fts_db_path == str((index_dir / "fts.sqlite").resolve())
+        assert resolved.chunks_path == str((index_dir / "processed/chunks/master__98de16a5b264/chunks.jsonl").resolve())
+
     def test_resolve_index_by_id_not_found(self, tmp_path):
         """Index ID not found raises IndexNotFoundError."""
         indexes_root = tmp_path / "indexes"
