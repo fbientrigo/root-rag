@@ -1,0 +1,89 @@
+pack_id: muon_dis_workflow_v1
+rq: FairShip Muon DIS workflow tracing
+created: 2026-04-28
+tags:
+  - fairship
+  - muon-dis
+  - workflow-tracing
+  - bm25
+queries:
+  - id: q01_muondis_anchor
+    natural_language: "muonDIS"
+    bm25_tokens:
+      - muonDIS
+    expected_stage: global Muon DIS anchor
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q02_make_muon_dis
+    natural_language: "makeMuonDIS"
+    bm25_tokens:
+      - makeMuonDIS
+    expected_stage: DIS generation
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q03_run_simscript
+    natural_language: "run_simScript"
+    bm25_tokens:
+      - run_simScript
+    expected_stage: simulation steering
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q04_shipreco
+    natural_language: "ShipReco"
+    bm25_tokens:
+      - ShipReco
+    expected_stage: reconstruction
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q05_doca
+    natural_language: "DOCA"
+    bm25_tokens:
+      - DOCA
+    expected_stage: selection/vertex quality
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q06_sbt
+    natural_language: "SBT"
+    bm25_tokens:
+      - SBT
+    expected_stage: veto/selection
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q07_ubt
+    natural_language: "UBT"
+    bm25_tokens:
+      - UBT
+    expected_stage: veto/selection
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q08_muioni
+    natural_language: "muIoni"
+    bm25_tokens:
+      - muIoni
+    expected_stage: GEANT4 muon ionization process control
+    expected_files: []
+    tier: mvp
+    golden: true
+
+  - id: q09_inactivate_muon_processes
+    natural_language: "InactivateMuonProcesses"
+    bm25_tokens:
+      - InactivateMuonProcesses
+    expected_stage: GEANT4 process control
+    expected_files: []
+    tier: mvp
+    golden: true
