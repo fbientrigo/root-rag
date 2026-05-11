@@ -17,7 +17,9 @@ Allowed statuses:
 
 Rules:
 - `CONFIRMED`: must include at least one `SOURCE`.
-- `PROVISIONAL`: must include at least one `SOURCE` or `TODO`.
+- `CONFIRMED` workflow-relevance claims must include qrel/review evidence reference.
+- `CONFIRMED` claims must have no unresolved contradiction against available evidence.
+- `PROVISIONAL`: must include at least one `SOURCE` or `TODO`, and must not use confirmed language.
 - `UNRESOLVED`: must include `Next action:`.
 - `SUPERSEDED`: must include `Superseded by:`.
 
@@ -28,3 +30,4 @@ Source format:
 Notes:
 - Do not infer FairShip internals from memory.
 - If evidence is missing, keep claim `UNRESOLVED` and include `NOT FOUND IN INDEX` in text.
+- Do not promote current wiki claims to `CONFIRMED` until qrels are manually approved/confirmed.

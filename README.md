@@ -271,6 +271,21 @@ root-rag versions
 # SOFIE (v6-36-08): 140 chunks, 40 files
 ```
 
+### Other Commands
+
+The following commands are also available for advanced use cases or debugging.
+
+```bash
+# Use the powerful 'search' command for lexical, semantic, or hybrid retrieval
+root-rag search "my query" --retrieval-backend hybrid
+
+# Pre-fetch a ROOT version into the local cache without indexing
+root-rag fetch --root-ref v6-32-00
+
+# Show the indexed content for a specific file and line range
+root-rag show "tree/tree/inc/TTree.h:234-289"
+```
+
 ---
 
 ## Architecture & Design
@@ -386,7 +401,7 @@ root-rag/
 - [**QUICK_QUERY_REFERENCE.md**](docs/QUICK_QUERY_REFERENCE.md) - TL;DR for writing queries
 - [**QUERY_SYNTAX_GUIDE.md**](docs/QUERY_SYNTAX_GUIDE.md) - Complete guide to query syntax, stop words, and best practices
 - [**architecture.md**](docs/architecture.md) - System architecture and data flow
-- [**QUICK_START.md**](docs/QUICK_START.md) - Detailed setup and usage guide
+- [**extract_usage_script.md**](docs/extract_usage_script.md) - Detailed setup and usage guide
 - [**retrieval_quality_checks.md**](docs/retrieval_quality_checks.md) - Official B0/B1 benchmark and audit quality gates
 - [**benchmark_mode_alignment.md**](docs/benchmark_mode_alignment.md) - End-to-end reproducible mode comparison workflow
 - [**ADRs**](docs/adr/) - Architecture Decision Records (ADR 0001-0003)
@@ -458,5 +473,8 @@ Manual GitHub Actions run:
 - FairShip: 2.76 MB
 - SOFIE: 0.74 MB
 - **Total: ~16 MB** (very efficient)
+
+---
+ent)
 
 ---

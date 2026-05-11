@@ -16,6 +16,11 @@ A task is not `ACCEPT` unless every applicable hard gate is satisfied.
 - [ ] Final response includes exact commands run.
 - [ ] Heartbeat next-prompt policy is satisfied for verdict (`ACCEPT WITH NOTES`/`BLOCKED` require next prompt file).
 - [ ] Heartbeat can be updated via short safe command mode (`--preset` or `--from-json`).
+- [ ] Wiki `CONFIRMED` claim gate enforced:
+  - `SOURCE` file:line evidence required,
+  - qrel/review evidence required for workflow relevance claims,
+  - no unresolved contradiction.
+- [ ] PROVISIONAL claims are not written using confirmed language.
 
 ## Muon DIS Gate
 
