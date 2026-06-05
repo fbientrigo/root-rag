@@ -1,0 +1,112 @@
+[
+  {
+    "claim_id": "muondis_output_branches",
+    "claim": "makeMuonDIS.py defines output branches InMuon, DISParticles, SoftParticles, muon_vetoPoints, and muon_UpstreamTaggerPoints in tree DIS.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "muonDIS/makeMuonDIS.py",
+    "line_range": "141-166",
+    "command": "root-rag show \"muonDIS/makeMuonDIS.py:141-220\"",
+    "notes": "Branches use TClonesArray with TVectorD or specific point classes."
+  },
+  {
+    "claim_id": "mudis_generator_init",
+    "claim": "MuDISGenerator initializes branch readers for InMuon, DISParticles, and SoftParticles from input tree DIS.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "shipgen/MuDISGenerator.cxx",
+    "line_range": "35-56",
+    "command": "root-rag show \"shipgen/MuDISGenerator.cxx:1-80\"",
+    "notes": "Verified branch naming consistency with makeMuonDIS.py."
+  },
+  {
+    "claim_id": "simscript_mudis_integration",
+    "claim": "run_simScript.py --MuDIS instantiates MuDISGenerator, sets z-window positions, and adds it to the primary generator.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "macro/run_simScript.py",
+    "line_range": "541-555",
+    "command": "root-rag show \"macro/run_simScript.py:491-570\"",
+    "notes": "Default z-window is defined between Chamber1 and TrackStation1."
+  },
+  {
+    "claim_id": "cross_section_persistence",
+    "claim": "run_simScript.py saves the DIS cross-section in the output cbmsim tree from InMuon[0][10].",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "macro/run_simScript.py",
+    "line_range": "859-860",
+    "command": "root-rag show \"macro/run_simScript.py:841-902\"",
+    "notes": "Cross section is stored in mbarns."
+  },
+  {
+    "claim_id": "veto_efficiencies",
+    "claim": "SBT efficiency is 0.99 and UBT efficiency is 0.9.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "python/shipVeto.py",
+    "line_range": "14-15",
+    "command": "root-rag show \"python/shipVeto.py:1-80\"",
+    "notes": "Values correspond to Technical Proposal (TP) defaults."
+  },
+  {
+    "claim_id": "sbt_energy_threshold",
+    "claim": "SBT implements a 45 MeV energy deposition threshold during digitization.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "python/detectors/SBTDetector.py",
+    "line_range": "52-53",
+    "command": "root-rag show \"python/detectors/SBTDetector.py:52-53\"",
+    "notes": "Cumulative Eloss per segment < 0.045 GeV marks hit as invalid."
+  },
+  {
+    "claim_id": "ubt_momentum_threshold",
+    "claim": "UBT decision logic employs a 0.1 GeV/c momentum threshold for contributing hits.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "python/shipVeto.py",
+    "line_range": "77",
+    "command": "root-rag show \"python/shipVeto.py:77\"",
+    "notes": "Verified in UBT_decision method."
+  },
+  {
+    "claim_id": "ubt_geometry_dimensions",
+    "claim": "UBT default dimensions are 4.4m x 6.4m x 16cm.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "UpstreamTagger/UpstreamTagger.h",
+    "line_range": "39",
+    "command": "root-rag show \"UpstreamTagger/UpstreamTagger.h:39-39\"",
+    "notes": "Defined in detector header file."
+  },
+  {
+    "claim_id": "ip_cut_default",
+    "claim": "The default Impact Parameter (IP) cut for pre-selection is 250 cm.",
+    "status": "CONFIRMED",
+    "evidence_type": "code",
+    "file": "python/experimental/analysis_toolkit.py",
+    "line_range": "196",
+    "command": "root-rag show \"python/experimental/analysis_toolkit.py:180-210\"",
+    "notes": "Defined as a default argument in preselection_cut method."
+  },
+  {
+    "claim_id": "classification_labels",
+    "claim": "Events are explicitly classified as 'front', 'side', or 'cavern' in the simulation tree.",
+    "status": "UNVERIFIED",
+    "evidence_type": "code",
+    "file": "N/A",
+    "line_range": "N/A",
+    "command": "root-rag grep \"front side cavern\"",
+    "notes": "No explicit branch or method for this classification found in indexed code."
+  },
+  {
+    "claim_id": "inactivate_muon_processes_routine",
+    "claim": "A routine named InactivateMuonProcesses exists to control Geant4 physics.",
+    "status": "NOT FOUND IN INDEX",
+    "evidence_type": "code",
+    "file": "N/A",
+    "line_range": "N/A",
+    "command": "root-rag grep \"InactivateMuonProcesses\"",
+    "notes": "Process control exists but not under this specific name."
+  }
+]

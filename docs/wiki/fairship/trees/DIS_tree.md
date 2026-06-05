@@ -6,33 +6,33 @@ Tags: #FairShip #MuDIS #tree
 CONFIRMED_BY_CODE
 
 ## Summary
-DIS tree contains MuDIS input and observable candidate branches.
+The `DIS` tree is the primary data structure for the Muon DIS pipeline. It contains input muon state, generated interaction products, and original detector hits.
 
 ## What this note adds
-Canonical tree concept linking scripts, generator, and oracle.
+Canonical tree concept linking scripts, generator, and reconstruction.
 
 ## Claims
-<!-- CLAIM: PROVISIONAL -->
-`DIS` tree includes `InMuon`, `DISParticles`, `SoftParticles`.
-<!-- SOURCE: muonDIS/makeMuonDIS.py:152-160 -->
+<!-- CLAIM: CONFIRMED code-local -->
+The `DIS` tree contains `InMuon`, `DISParticles`, `SoftParticles`, `muon_vetoPoints`, and `muon_UpstreamTaggerPoints`.
+<!-- SOURCE: muonDIS/makeMuonDIS.py:152-165 -->
 
 ## Evidence anchors
-- `muonDIS/makeMuonDIS.py:152-165` - branch declarations.
-- `shipgen/MuDISGenerator.cxx:34-53` - branch consumption.
+- `muonDIS/makeMuonDIS.py:152-165`: Branch declarations.
+- `shipgen/MuDISGenerator.cxx:34-53`: Branch binding and consumption.
+- `muonDIS/add_muonresponse.py:141-204`: Merging original hits into the simulation tree.
 
 ## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| `[[fairship/scripts/makeMuonDIS]]` | produces | `[[fairship/trees/DIS_tree]]` | `CONFIRMED_BY_CODE` | `muonDIS/makeMuonDIS.py:147-150` | runtime integrity |
-| `[[fairship/trees/DIS_tree]]` | feeds | `[[fairship/generators/MuDISGenerator]]` | `CONFIRMED_BY_CODE` | `shipgen/MuDISGenerator.cxx:34-53` | full chain validation |
+| from | relation | to | status | evidence |
+|---|---|---|---|---|
+| [[fairship/scripts/makeMuonDIS]] | produces | [[fairship/trees/DIS_tree]] | CONFIRMED_BY_CODE | `muonDIS/makeMuonDIS.py:152` |
+| [[fairship/trees/DIS_tree]] | schema defined in | [[fairship/trees/DIS_tree_schema]] | CONFIRMED_BY_CODE | N/A |
+| [[fairship/trees/DIS_tree]] | feeds | [[fairship/generators/MuDISGenerator]] | CONFIRMED_BY_CODE | `shipgen/MuDISGenerator.cxx:34` |
 
 ## Operational use
-Use for schema inspection and oracle candidate mapping.
+The `DIS` tree is the "contract" between the pre-selection and simulation stages of the Muon DIS workflow.
 
 ## What this does NOT prove
-- Final truth semantics.
+- Final truth semantics (requires oracle validation).
 
 ## Open questions
-- Which runtime schema snapshot is accepted?
-
-
+- None regarding the tree structure.

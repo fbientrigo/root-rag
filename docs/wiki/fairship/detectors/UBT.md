@@ -1,36 +1,37 @@
 # UBT
 
-Tags: #FairShip #detector #oracle
+Tags: #FairShip #detector #oracle #UBT
 
 ## Status
-PROVISIONAL
+CONFIRMED_BY_CODE
 
 ## Summary
-UBT hit channel is candidate oracle input.
+The Upstream Tagger (UBT) is used for vetoing upstream backgrounds. It employs a 0.1 GeV/c momentum threshold for hits contributing to the veto decision.
 
 ## What this note adds
-Separates detector hit from truth label semantics.
+Canonical detector anchor with verified momentum threshold logic.
 
 ## Claims
-<!-- CLAIM: PROVISIONAL -->
-Claim bounded to code-visible branch/detector channel.
-<!-- SOURCE: reports/fairship_muon_dis_oracle_observable_schema.md:5-13 -->
+<!-- CLAIM: CONFIRMED code-local -->
+UBT logic employs a 0.1 GeV/c momentum threshold for contributing hits.
+<!-- SOURCE: python/shipVeto.py:77 -->
 
 ## Evidence anchors
-- $(docs/wiki/fairship/detectors/UBT.md UBT #FairShip #detector #oracle PROVISIONAL UBT hit channel is candidate oracle input. Separates detector hit from truth label semantics. reports/fairship_muon_dis_oracle_observable_schema.md:5-13[6]) - evidence anchor.
+- `python/shipVeto.py:77`: `if mom.Mag() > 0.1: nHits += 1`
+- `UpstreamTagger/UpstreamTagger.h:39`: Default dimensions 4.4m x 6.4m x 16cm.
 
 ## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| [[fairship/trees/DIS_tree]] | contains/supports | [[fairship/branches/UBT]] | PROVISIONAL | $(docs/wiki/fairship/detectors/UBT.md UBT #FairShip #detector #oracle PROVISIONAL UBT hit channel is candidate oracle input. Separates detector hit from truth label semantics. reports/fairship_muon_dis_oracle_observable_schema.md:5-13[6]) | runtime truth label |
+| from | relation | to | status | evidence |
+|---|---|---|---|---|
+| [[fairship/detectors/UBT]] | implements threshold in | [[fairship/scripts/shipVeto]] | CONFIRMED_BY_CODE | `python/shipVeto.py:77` |
+| [[fairship/detectors/UBT]] | defined in | [[fairship/detectors/UpstreamTagger]] | CONFIRMED_BY_CODE | `UpstreamTagger/UpstreamTagger.h:39` |
 
 ## Operational use
-Used by oracle candidate field mapping and runtime probe planning.
+Used to verify the UBT veto logic and its simplified geometry in the simulation.
 
 ## What this does NOT prove
+- Physics rationale for the 0.1 GeV/c threshold (UNRESOLVED).
 - Final physical truth labels.
 
 ## Open questions
-- What runtime threshold/predicate turns this into a final decision?
-
-
+- What is the physical basis for the 0.1 GeV/c threshold?

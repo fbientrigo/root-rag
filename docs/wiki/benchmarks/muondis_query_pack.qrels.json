@@ -1,0 +1,39 @@
+{
+  "pack_id": "fairship_muondis_query_pack_v1",
+  "generated_at": "2026-05-29",
+  "source_report": "reports/root_rag_muondis_query_audit.json",
+  "qrels": [
+    {
+      "query_id": "q01_make_muondis",
+      "file_path": "muonDIS/makeMuonDIS.py",
+      "start_line": 130,
+      "end_line": 150,
+      "relevance": 3,
+      "notes": "makeMuonDIS entrypoint creates the DIS output tree."
+    },
+    {
+      "query_id": "q02_run_simscript_muondis",
+      "file_path": "macro/run_simScript.py",
+      "start_line": 327,
+      "end_line": 333,
+      "relevance": 2,
+      "notes": "run_simScript enforces input requirements for muonDIS."
+    },
+    {
+      "query_id": "q02_run_simscript_muondis",
+      "file_path": "macro/run_simScript.py",
+      "start_line": 841,
+      "end_line": 861,
+      "relevance": 2,
+      "notes": "run_simScript injects CrossSection from muonDIS events."
+    },
+    {
+      "query_id": "q03_shipreco",
+      "file_path": "macro/ShipReco.py",
+      "start_line": 163,
+      "end_line": 175,
+      "relevance": 3,
+      "notes": "ShipReco digitize + reconstruct loop."
+    }
+  ]
+}

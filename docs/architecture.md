@@ -60,6 +60,15 @@ The system is a version-aware, evidence-first RAG pipeline for CERN ROOT.
                       +----------------------+
 ```
 
+### Retrieval Forest
+The Retrieval Forest is a multi-scale indexing strategy that builds multiple lexical indexes with varying chunk sizes and overlaps for the same corpus.
+- **Purpose**: To overcome the "fixed window" problem where relevant context is split across chunk boundaries.
+- **Implementation**: Uses Reciprocal Rank Fusion (RRF) to merge results from small, medium, and large window sizes.
+- **Scope**: Specialized for high-value targets like the FairShip profile.
+- **Validation**: Current performance metrics are validated **only** for FairShip Muon DIS benchmark slices.
+- **Disclaimer**: It is a **static evidence retrieval** strategy and must NOT be interpreted as FairShip runtime validation or physics simulation.
+- **Deduplication**: Uses `line_overlap` deduplication to ensure the returned evidence candidates represent unique or merged source ranges.
+
 ## Data flow
 
 ### 1. Corpus acquisition

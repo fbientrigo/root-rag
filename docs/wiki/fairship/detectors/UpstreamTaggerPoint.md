@@ -1,36 +1,33 @@
 # UpstreamTaggerPoint
 
-Tags: #FairShip #detector #oracle
+Tags: #FairShip #detector #oracle #UBT
 
 ## Status
-PROVISIONAL
+CONFIRMED_BY_CODE
 
 ## Summary
-upstream tagger point count is candidate oracle input.
+`UpstreamTaggerPoint` is the detector-point class for the Upstream Tagger (UBT), storing MC hits during simulation.
 
 ## What this note adds
-Detector-point channel anchor.
+Detector-point class anchor for the UBT.
 
 ## Claims
-<!-- CLAIM: PROVISIONAL -->
-Claim bounded to code-visible branch/detector channel.
-<!-- SOURCE: UpstreamTagger/UpstreamTaggerPoint.h:16-22 -->
+<!-- CLAIM: CONFIRMED code-local -->
+`UpstreamTaggerPoint` inherits from `SHiP::DetectorPoint`.
+<!-- SOURCE: UpstreamTagger/UpstreamTaggerPoint.h:16 -->
 
 ## Evidence anchors
-- $(docs/wiki/fairship/detectors/UpstreamTaggerPoint.md UpstreamTaggerPoint #FairShip #detector #oracle PROVISIONAL upstream tagger point count is candidate oracle input. Detector-point channel anchor. UpstreamTagger/UpstreamTaggerPoint.h:16-22[6]) - evidence anchor.
+- `UpstreamTagger/UpstreamTaggerPoint.h:16-31`: Class definition.
+- `UpstreamTagger/UpstreamTaggerPoint.cxx:1-21`: Implementation.
 
 ## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| [[fairship/trees/DIS_tree]] | contains/supports | [[fairship/branches/UpstreamTaggerPoint]] | PROVISIONAL | $(docs/wiki/fairship/detectors/UpstreamTaggerPoint.md UpstreamTaggerPoint #FairShip #detector #oracle PROVISIONAL upstream tagger point count is candidate oracle input. Detector-point channel anchor. UpstreamTagger/UpstreamTaggerPoint.h:16-22[6]) | runtime truth label |
+| from | relation | to | status | evidence |
+|---|---|---|---|---|
+| [[fairship/branches/UpstreamTaggerPoint]] | stores | [[fairship/detectors/UpstreamTaggerPoint]] | CONFIRMED_BY_CODE | `UpstreamTagger/UpstreamTaggerPoint.h` |
+| [[fairship/trees/DIS_tree]] | contains | [[fairship/branches/muon_UpstreamTaggerPoints]] | CONFIRMED_BY_CODE | `muonDIS/makeMuonDIS.py:164` |
 
 ## Operational use
-Used by oracle candidate field mapping and runtime probe planning.
+Used for branch dependency checks in the Muon DIS pipeline.
 
 ## What this does NOT prove
 - Final physical truth labels.
-
-## Open questions
-- What runtime threshold/predicate turns this into a final decision?
-
-

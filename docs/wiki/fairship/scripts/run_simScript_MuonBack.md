@@ -21,10 +21,10 @@ MuonBack steering branch appears in `macro/run_simScript.py` after shared setup.
 - `macro/run_simScript.py:360-369` - shared DY/Yheight setup.
 
 ## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| `[[fairship/config/DY_Yheight]]` | configures shared setup for | `[[fairship/scripts/run_simScript_MuonBack]]` | `CONFIRMED_BY_CODE` | `macro/run_simScript.py:360-369` | safe DY value |
-| `[[fairship/scripts/run_simScript_MuonBack]]` | configures | `[[MuonBack]]` | `PROVISIONAL` | `macro/run_simScript.py:571-640` | successful execution |
+| from                                          | relation                    | to                                            | status              | evidence                         | does_not_prove       |
+| --------------------------------------------- | --------------------------- | --------------------------------------------- | ------------------- | -------------------------------- | -------------------- |
+| `[[fairship/config/DY_Yheight]]`              | configures shared setup for | `[[fairship/scripts/run_simScript_MuonBack]]` | `CONFIRMED_BY_CODE` | `macro/run_simScript.py:360-369` | safe DY value        |
+| `[[fairship/scripts/run_simScript_MuonBack]]` | configures                  | `[[MuonBack]]`                                | `PROVISIONAL`       | `macro/run_simScript.py:571-640` | successful execution |
 
 ## Operational use
 Use as entry node for MuonBack runtime-preflight planning.

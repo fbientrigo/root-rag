@@ -3,7 +3,9 @@
 | area | status | anchor |
 |---|---|---|
 | FairShip index anchor | ACTIVE | `data/indexes_fairship/*` via `scripts/emv_status.py` |
-| DY/Yheight | PROVISIONAL | [[fairship/config/DY_Yheight]] |
+| DY/Yheight | CONFIRMED_BY_CODE | [[fairship/config/DY_Yheight]] |
+| SBT status | CONFIRMED_BY_CODE | [[fairship/detectors/SBT]] |
+| UBT status | CONFIRMED_BY_CODE | [[fairship/detectors/UBT]] |
 | MuonBack runtime | RUNTIME_UNVALIDATED | [[fairship/scripts/run_simScript_MuonBack]] |
 | MuDIS runtime | RUNTIME_UNVALIDATED | [[fairship/scripts/run_simScript_MuDIS]] |
 | Oracle status | PROVISIONAL | [[fairship/oracle/Oracle_schema]] |

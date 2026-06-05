@@ -1,36 +1,37 @@
 # SBT
 
-Tags: #FairShip #detector #oracle
+Tags: #FairShip #detector #oracle #SBT
 
 ## Status
-PROVISIONAL
+CONFIRMED_BY_CODE
 
 ## Summary
-SBT hit channel is candidate oracle input.
+The Scintillating Beauty Tagger (SBT) is a liquid scintillator detector used for vetoing backgrounds. In the digitization layer, it implements a 45 MeV energy deposition threshold.
 
 ## What this note adds
-Separates detector hit from truth label semantics.
+Canonical detector anchor with verified threshold logic.
 
 ## Claims
-<!-- CLAIM: PROVISIONAL -->
-Claim bounded to code-visible branch/detector channel.
-<!-- SOURCE: reports/fairship_muon_dis_oracle_observable_schema.md:5-13 -->
+<!-- CLAIM: CONFIRMED code-local -->
+SBT implements a 45 MeV (0.045 GeV) energy threshold in the digitization layer.
+<!-- SOURCE: python/detectors/SBTDetector.py:52-53 -->
 
 ## Evidence anchors
-- $(docs/wiki/fairship/detectors/SBT.md SBT #FairShip #detector #oracle PROVISIONAL SBT hit channel is candidate oracle input. Separates detector hit from truth label semantics. reports/fairship_muon_dis_oracle_observable_schema.md:5-13[6]) - evidence anchor.
+- `python/detectors/SBTDetector.py:52-53`: `if ElossPerDetId[seg] < 0.045: aHit.setInvalid()`
+- `python/shipVeto.py:61`: `hitSegments += 1  # threshold of 45 MeV per segment`
 
 ## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| [[fairship/trees/DIS_tree]] | contains/supports | [[fairship/branches/SBT]] | PROVISIONAL | $(docs/wiki/fairship/detectors/SBT.md SBT #FairShip #detector #oracle PROVISIONAL SBT hit channel is candidate oracle input. Separates detector hit from truth label semantics. reports/fairship_muon_dis_oracle_observable_schema.md:5-13[6]) | runtime truth label |
+| from | relation | to | status | evidence |
+|---|---|---|---|---|
+| [[fairship/detectors/SBT]] | implements threshold in | [[fairship/scripts/SBTDetector]] | CONFIRMED_BY_CODE | `python/detectors/SBTDetector.py:52-53` |
+| [[fairship/detectors/SBT]] | used by | [[fairship/scripts/shipVeto]] | CONFIRMED_BY_CODE | `python/shipVeto.py:60-65` |
 
 ## Operational use
-Used by oracle candidate field mapping and runtime probe planning.
+The 45 MeV threshold is critical for grounding the veto efficiency claims in the thesis.
 
 ## What this does NOT prove
-- Final physical truth labels.
+- Final physical truth labels (requires oracle mapping).
+- Physics validation of the 99.9% efficiency claim.
 
 ## Open questions
-- What runtime threshold/predicate turns this into a final decision?
-
-
+- None regarding the code-local implementation.

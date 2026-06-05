@@ -99,6 +99,24 @@ root-rag ask "RModel Generate ONNX"
 root-rag ask "SOFIE operator interface"
 ```
 
+### FairShip Specialized Retrieval
+The FairShip profile automatically enables the **Retrieval Forest** (multi-scale fusion) when pre-built forest indexes are available for the requested commit. This provides higher recall and better coverage for complex FairShip/ROOT queries.
+
+> ⚠️ **Disclaimer**: The Retrieval Forest is a **static evidence retrieval** strategy based on indexed source code. It is NOT FairShip runtime validation, physics simulation, or an oracle for execution-time behavior.
+
+> 📊 **Scientific Comparison**: For ablation studies or performance benchmarking, use the `--baseline` flag to bypass the forest and use the standard BM25 lexical baseline.
+
+```bash
+# Default FairShip search (auto-activates forest if indexes exist)
+root-rag ask "FairPrimaryGenerator" --profile fairship
+
+# Force baseline lexical search (bypass forest)
+root-rag ask "FairPrimaryGenerator" --profile fairship --baseline
+
+# Explicitly request forest (fails if indexes are missing)
+root-rag search "MuonBack" --profile fairship --retrieval-backend forest
+```
+
 ---
 
 ## Advanced Queries

@@ -1,36 +1,33 @@
+---
+type: node
+domain: fairship
+topic: muon_dis
+status: CONFIRMED
+claim_ids: [CLM-002]
+tags: [SoftParticles, schema, MuDIS, TVectorD]
+---
+
 # SoftParticles
 
-Tags: #FairShip #MuDIS #branch #oracle
+## Role
+The `SoftParticles` branch contains associated soft interaction products (pions, etc.) generated alongside the DIS event. These tracks are often low-momentum and are used to model the full hadronic final state.
 
-## Status
-CONFIRMED_BY_CODE
+## Confirmed Facts
+- **Tree Name**: `DIS`
+- **Data Type**: `TClonesArray` of `TVectorD`.
+- **Index Mapping**:
+    - `[0]`: **PDG Code** (did)
+    - `[1-3]`: **Momentum** (PX, PY, PZ) in GeV/c.
+    - `[4]`: **Energy** (GeV)
+    - `[5-7]`: **Start Position** (X, Y, Z) in meters.
+    - `[8]`: **Start Time** (ns).
+- **Filtering**: `MuDISGenerator::ReadEvent` skips soft particles that appear after the DIS interaction point (`(*SoftPart)[7] > zmu`).
 
-## Summary
-Soft particle branch in DIS tree.
+## Source Anchors
+- `muonDIS/makeMuonDIS.py:290-292`: TVectorD initialization (9 elements).
+- `shipgen/MuDISGenerator.cxx:212-222`: Filtering and injection logic.
 
-## What this note adds
-Candidate observable source.
-
-## Claims
-<!-- CLAIM: PROVISIONAL -->
-Claim bounded to code-visible branch/detector channel.
-<!-- SOURCE: muonDIS/makeMuonDIS.py:158-160 -->
-
-## Evidence anchors
-- $(docs/wiki/fairship/branches/SoftParticles.md SoftParticles #FairShip #MuDIS #branch #oracle CONFIRMED_BY_CODE Soft particle branch in DIS tree. Candidate observable source. muonDIS/makeMuonDIS.py:158-160[6]) - evidence anchor.
-
-## Connections
-| from | relation | to | status | evidence | does_not_prove |
-|---|---|---|---|---|---|
-| [[fairship/trees/DIS_tree]] | contains/supports | [[fairship/branches/SoftParticles]] | PROVISIONAL | $(docs/wiki/fairship/branches/SoftParticles.md SoftParticles #FairShip #MuDIS #branch #oracle CONFIRMED_BY_CODE Soft particle branch in DIS tree. Candidate observable source. muonDIS/makeMuonDIS.py:158-160[6]) | runtime truth label |
-
-## Operational use
-Used by oracle candidate field mapping and runtime probe planning.
-
-## What this does NOT prove
-- Final physical truth labels.
-
-## Open questions
-- What runtime threshold/predicate turns this into a final decision?
-
-
+## Links
+- [[fairship/trees/DIS_tree]]
+- [[fairship/generators/MuDISGenerator]]
+- [[fairship/branches/DISParticles]]
