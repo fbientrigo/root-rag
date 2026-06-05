@@ -1,0 +1,43 @@
+pack_id: fairship_muondis_query_pack_v1
+rq: FairShip Muon DIS query pack (workflow + selection + geometry)
+created: 2026-05-29
+tags:
+  - fairship
+  - muon-dis
+  - workflow
+  - bm25
+queries:
+  - id: q01_make_muondis
+    natural_language: "makeMuonDIS"
+    bm25_tokens: ["makeMuonDIS"]
+    group: workflow
+
+  - id: q02_run_simscript_muondis
+    natural_language: "run_simScript muonDIS"
+    bm25_tokens: ["run_simScript", "muonDIS"]
+    group: workflow
+
+  - id: q03_shipreco
+    natural_language: "ShipReco"
+    bm25_tokens: ["ShipReco"]
+    group: workflow
+
+  - id: q04_make_ntuple_front_side_cavern
+    natural_language: "make_nTuple front side cavern"
+    bm25_tokens: ["make_nTuple", "front", "side", "cavern"]
+    group: ntuple
+
+  - id: q05_inactivate_muon_processes_muioni
+    natural_language: "InactivateMuonProcesses muIoni"
+    bm25_tokens: ["InactivateMuonProcesses", "muIoni"]
+    group: processes
+
+  - id: q06_sbt_ubt_doca_ip
+    natural_language: "SBT UBT DOCA IP250 IP10"
+    bm25_tokens: ["SBT", "UBT", "DOCA", "IP250", "IP10"]
+    group: selection
+
+  - id: q07_tgeomgr_addnode_fairship_geometry
+    natural_language: "TGeoManager AddNode FairShip geometry"
+    bm25_tokens: ["TGeoManager", "AddNode", "FairShip", "geometry"]
+    group: geometry

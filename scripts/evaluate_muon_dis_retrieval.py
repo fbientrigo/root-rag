@@ -39,14 +39,45 @@ def _load_manifest(evidence_dir: Path) -> Dict[str, Any]:
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("Manifest must be a JSON object.")
+    
+    # Adapt to simpler manifest if needed
+    if "queries" not in payload and "results" in payload:
+         payload["queries"] = [{"id": r["query_id"], "query": r["query_text"], "output_file": r["artifact_path"]} for r in payload["results"]]
+         
     if "queries" not in payload or not isinstance(payload["queries"], list):
         raise ValueError("Manifest field queries must be a list.")
     return payload
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_mapping(path: Path) -> Dict[str, Any]:
     if not path.exists():
-        raise FileNotFoundError(f"YAML file not found: {path}")
+        raise FileNotFoundError(f"File not found: {path}")
+    
+    if path.suffix == ".json":
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+             return {"golden_queries": [{"query_id": q["id"], "query_text": q["query"]} for q in data]}
+        return data
+    
+    if path.suffix == ".jsonl":
+        # Handle JSONL qrels: convert to confirmed_qrels mapping
+        by_query: Dict[str, List[Dict[str, Any]]] = {}
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                qid = row.get("query_id")
+                if qid:
+                    if qid not in by_query:
+                        by_query[qid] = []
+                    by_query[qid].append(row)
+        
+        confirmed = []
+        for qid, qrels in by_query.items():
+            confirmed.append({"query_id": qid, "qrels": qrels})
+        return {"confirmed_qrels": confirmed}
+
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Expected mapping payload in: {path}")
@@ -63,6 +94,13 @@ def _resolve_output_file(output_ref: str | None, evidence_dir: Path, query_id: s
         return output_path
 
     candidates = [output_path, evidence_dir / output_path, evidence_dir / output_path.name, Path.cwd() / output_path]
+    # Special case for forest benchmark where output files are in subdirs
+    if not any(c.exists() for c in candidates):
+         # Try looking in evidence_dir's parent if it was relative to OUTPUT_ROOT
+         parent_candidate = evidence_dir.parent / output_ref if output_ref else None
+         if parent_candidate and parent_candidate.exists():
+              return parent_candidate
+
     for candidate in candidates:
         if candidate.exists():
             return candidate
@@ -148,7 +186,7 @@ def _canonical_qrel_anchor(qrel: Mapping[str, Any]) -> str:
 def _load_golden_queries(golden_payload: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
     rows = golden_payload.get("golden_queries")
     if not isinstance(rows, list):
-        raise ValueError("golden_queries.yaml must contain golden_queries list.")
+        raise ValueError("golden_queries must contain a list.")
     by_id: Dict[str, Dict[str, Any]] = {}
     for row in rows:
         if isinstance(row, dict) and isinstance(row.get("query_id"), str):
@@ -189,20 +227,160 @@ def _load_qrels_payload(qrels_payload: Mapping[str, Any]) -> Tuple[Dict[str, Dic
     return confirmed_map, sorted(set(pending_ids))
 
 
+import math
+
+def _compute_ndcg(hits: List[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int) -> float:
+    # Anchor by file and range
+    gains = []
+    for hit in hits[:top_k]:
+        hit_anchor = _canonical_hit_anchor(hit)
+        gain = 0
+        if ":" in hit_anchor:
+            ret_file, ret_range = hit_anchor.split(":", 1)
+            ret_start, ret_end = map(int, ret_range.split("-"))
+            for pos_anchor, pos_gain in relevance_map.items():
+                if ":" in pos_anchor:
+                    pos_file, pos_range = pos_anchor.split(":", 1)
+                    if ret_file == pos_file:
+                        pos_start, pos_end = map(int, pos_range.split("-"))
+                        if max(ret_start, pos_start) <= min(ret_end, pos_end):
+                            gain = max(gain, pos_gain)
+                elif ret_file == pos_anchor:
+                    gain = max(gain, pos_gain)
+        elif hit_anchor in relevance_map:
+            gain = relevance_map[hit_anchor]
+        gains.append(gain)
+    
+    dcg = 0.0
+    for i, g in enumerate(gains, 1):
+        dcg += (2**g - 1) / math.log2(i + 1)
+        
+    ideal_gains = sorted(relevance_map.values(), reverse=True)[:top_k]
+    idcg = 0.0
+    for i, g in enumerate(ideal_gains, 1):
+        idcg += (2**g - 1) / math.log2(i + 1)
+        
+    return dcg / idcg if idcg > 0 else 0.0
+
+
 def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int) -> Dict[str, Any]:
     top_hits = hits[:top_k]
     retrieved = [_canonical_hit_anchor(hit) for hit in top_hits]
     retrieved = [row for row in retrieved if row]
     positives = [anchor for anchor, gain in relevance_map.items() if gain > 0]
     positive_set = set(positives)
-    retrieved_positive = [anchor for anchor in retrieved if anchor in positive_set]
+    
+    # For forest benchmark, we need loose matching because chunk boundaries differ
+    # We'll count a hit if the retrieved file matches and lines overlap
+    found_positives = set()
+    unique_files_retrieved = set()
+    unique_files_positive = set()
+    for pos_anchor in positive_set:
+        if ":" in pos_anchor:
+            unique_files_positive.add(pos_anchor.split(":", 1)[0])
+        else:
+            unique_files_positive.add(pos_anchor)
 
-    precision_at_k = (len(retrieved_positive) / top_k) if top_k > 0 else 0.0
-    recall_at_k = (len(retrieved_positive) / len(positive_set)) if positive_set else 0.0
+    line_span_hits = 0
+    
+    for ret_anchor in retrieved:
+        is_hit = False
+        if ":" in ret_anchor:
+            ret_file, ret_range = ret_anchor.split(":", 1)
+            ret_start, ret_end = map(int, ret_range.split("-"))
+            
+            for pos_anchor in positive_set:
+                if ":" in pos_anchor:
+                    pos_file, pos_range = pos_anchor.split(":", 1)
+                    if ret_file == pos_file:
+                        pos_start, pos_end = map(int, pos_range.split("-"))
+                        if max(ret_start, pos_start) <= min(ret_end, pos_end):
+                            is_hit = True
+                            found_positives.add(pos_anchor)
+                            unique_files_retrieved.add(ret_file)
+                            # Check for exact span match or high overlap
+                            overlap = min(ret_end, pos_end) - max(ret_start, pos_start) + 1
+                            pos_span = pos_end - pos_start + 1
+                            if overlap / pos_span >= 0.8:
+                                line_span_hits += 1
+                            break
+                elif ret_file == pos_anchor:
+                    is_hit = True
+                    found_positives.add(pos_anchor)
+                    unique_files_retrieved.add(ret_file)
+                    break
+        elif ret_anchor in positive_set:
+            is_hit = True
+            found_positives.add(ret_anchor)
+            if ":" in ret_anchor:
+                 unique_files_retrieved.add(ret_anchor.split(":", 1)[0])
+            else:
+                 unique_files_retrieved.add(ret_anchor)
+    
+    # Duplicate rate: count how many results are from the same file and overlap significantly
+    duplicates = 0
+    seen_ranges = [] # list of (file, start, end)
+    for hit in top_hits:
+        h_anchor = _canonical_hit_anchor(hit)
+        if ":" in h_anchor:
+            h_file, h_range = h_anchor.split(":", 1)
+            h_start, h_end = map(int, h_range.split("-"))
+            is_dup = False
+            for s_file, s_start, s_end in seen_ranges:
+                if h_file == s_file:
+                    overlap = min(h_end, s_end) - max(h_start, s_start) + 1
+                    if overlap > 0:
+                        is_dup = True
+                        break
+            if is_dup:
+                duplicates += 1
+            seen_ranges.append((h_file, h_start, h_end))
+
+    precision_at_k = (len(found_positives) / top_k) if top_k > 0 else 0.0 # This is still tricky for Precision
+    recall_at_k = (len(found_positives) / len(positive_set)) if positive_set else 0.0
+    unique_file_recall = (len(unique_files_retrieved) / len(unique_files_positive)) if unique_files_positive else 0.0
+    line_span_hit_rate = (line_span_hits / len(positive_set)) if positive_set else 0.0
+    duplicate_result_rate = (duplicates / len(top_hits)) if top_hits else 0.0
+    
+    # MRR
+    mrr = 0.0
+    best_rank = None
+    for i, ret_anchor in enumerate(retrieved, 1):
+        is_hit = False
+        if ":" in ret_anchor:
+            ret_file, ret_range = ret_anchor.split(":", 1)
+            ret_start, ret_end = map(int, ret_range.split("-"))
+            for pos_anchor in positive_set:
+                if ":" in pos_anchor:
+                    pos_file, pos_range = pos_anchor.split(":", 1)
+                    if ret_file == pos_file:
+                        pos_start, pos_end = map(int, pos_range.split("-"))
+                        if max(ret_start, pos_start) <= min(ret_end, pos_end):
+                            is_hit = True
+                            break
+                elif ret_file == pos_anchor:
+                    is_hit = True
+                    break
+        elif ret_anchor in positive_set:
+            is_hit = True
+            
+        if is_hit:
+            mrr = 1.0 / i
+            best_rank = i
+            break
+
+    ndcg = _compute_ndcg(hits, relevance_map, top_k)
+
     return {
         "precision_at_k": precision_at_k,
         "recall_at_k": recall_at_k,
-        "retrieved_positive_count": len(retrieved_positive),
+        "mrr_at_k": mrr,
+        "ndcg_at_k": ndcg,
+        "unique_file_recall": unique_file_recall,
+        "line_span_hit_rate": line_span_hit_rate,
+        "duplicate_result_rate": duplicate_result_rate,
+        "best_relevant_rank": best_rank,
+        "retrieved_positive_count": len(found_positives),
         "qrels_positive_count": len(positive_set),
         "retrieved_anchors": retrieved,
     }
@@ -217,8 +395,8 @@ def evaluate_run(
 ) -> Dict[str, Any]:
     """Evaluate one manifest run and return deterministic JSON-serializable summary."""
     manifest = _load_manifest(evidence_dir)
-    golden_queries = _load_golden_queries(_load_yaml_mapping(golden_path))
-    confirmed_qrels, pending_ids = _load_qrels_payload(_load_yaml_mapping(qrels_path))
+    golden_queries = _load_golden_queries(_load_mapping(golden_path))
+    confirmed_qrels, pending_ids = _load_qrels_payload(_load_mapping(qrels_path))
 
     top_k = int(top_k_override if top_k_override is not None else manifest.get("top_k", 10))
 
@@ -229,10 +407,10 @@ def evaluate_run(
     scored_rows: List[Dict[str, float]] = []
 
     for query_row in manifest["queries"]:
-        query_id = str(query_row.get("id", "UNKNOWN"))
-        query_text = str(query_row.get("query", ""))
-        return_code = int(query_row.get("return_code", 1))
-        output_file = _resolve_output_file(query_row.get("output_file"), evidence_dir, query_id)
+        query_id = str(query_row.get("id", query_row.get("query_id", "UNKNOWN")))
+        query_text = str(query_row.get("query", query_row.get("query_text", "")))
+        return_code = int(query_row.get("return_code", 0))
+        output_file = _resolve_output_file(query_row.get("output_file", query_row.get("artifact_path")), evidence_dir, query_id)
         entry_format = query_row.get("evidence_format", manifest.get("evidence_format"))
 
         if entry_format == "text-wrapper":
@@ -285,6 +463,17 @@ def evaluate_run(
             row.update(metrics)
             row["scored"] = True
             row["evaluation_state"] = "scored"
+            
+            # Diagnosis logic (simplified for ablation study)
+            diagnosis = "no_change"
+            if metrics["recall_at_k"] == 0:
+                 diagnosis = "missing_source"
+            elif metrics["best_relevant_rank"] == 1:
+                 diagnosis = "ranking_gain" if metrics["best_relevant_rank"] == 1 else "no_change"
+            
+            # More complex diagnosis would require comparison with baseline A
+            # We'll handle aggregate diagnosis in the final report
+            row["diagnosis"] = diagnosis
             scored_rows.append(metrics)
 
         per_query.append(row)
@@ -297,9 +486,11 @@ def evaluate_run(
     if scored_rows:
         macro_precision = sum(row["precision_at_k"] for row in scored_rows) / len(scored_rows)
         macro_recall = sum(row["recall_at_k"] for row in scored_rows) / len(scored_rows)
+        macro_mrr = sum(row["mrr_at_k"] for row in scored_rows) / len(scored_rows)
     else:
         macro_precision = 0.0
         macro_recall = 0.0
+        macro_mrr = 0.0
 
     return {
         "metadata": {
@@ -320,6 +511,7 @@ def evaluate_run(
             "unresolved_count": len(unresolved),
             "macro_precision_at_k": macro_precision,
             "macro_recall_at_k": macro_recall,
+            "macro_mrr_at_k": macro_mrr,
             "qrels_state": "NO_CONFIRMED_QRELS" if not confirmed_qrels else "CONFIRMED_QRELS_PRESENT",
         },
         "per_query": per_query,
@@ -342,6 +534,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.output.write_text(json.dumps(result, indent=2), encoding="utf-8")
     except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         return 1
     return 0
 

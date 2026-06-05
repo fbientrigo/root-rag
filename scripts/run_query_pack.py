@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -35,6 +36,7 @@ class RunConfig:
     evidence_format: str
     dry_run: bool
     fail_fast: bool
+    root_rag_cmd: str | None
 
 
 def parse_args(argv: Sequence[str] | None = None) -> RunConfig:
@@ -54,6 +56,11 @@ def parse_args(argv: Sequence[str] | None = None) -> RunConfig:
     )
     parser.add_argument("--dry-run", action="store_true", help="Write manifest/placeholder outputs without calling CLI.")
     parser.add_argument("--fail-fast", action="store_true", help="Stop on first failed query execution.")
+    parser.add_argument(
+        "--root-rag-cmd",
+        default=None,
+        help="Optional executable command for root-rag CLI (default: auto-resolve).",
+    )
 
     parsed = parser.parse_args(argv)
     return RunConfig(
@@ -66,6 +73,7 @@ def parse_args(argv: Sequence[str] | None = None) -> RunConfig:
         evidence_format=parsed.evidence_format,
         dry_run=parsed.dry_run,
         fail_fast=parsed.fail_fast,
+        root_rag_cmd=parsed.root_rag_cmd,
     )
 
 
@@ -106,9 +114,26 @@ def extract_queries(pack_payload: Mapping[str, Any]) -> List[QuerySpec]:
     return query_specs
 
 
-def _build_command(query_text: str, top_k: int, index_dir: Path | None, index_id: str | None, root_ref: str | None) -> List[str]:
+def _resolve_root_rag_command(explicit_cmd: str | None) -> Tuple[List[str], str, str | None]:
+    """Resolve root-rag command with explicit > PATH > python module fallback priority."""
+    if explicit_cmd:
+        return [explicit_cmd], "path_executable", None
+    if shutil.which("root-rag"):
+        return ["root-rag"], "path_executable", None
+    return [sys.executable, "-m", "root_rag.cli"], "python_module_fallback", sys.executable
+
+
+def _build_command(
+    *,
+    root_rag_prefix: Sequence[str],
+    query_text: str,
+    top_k: int,
+    index_dir: Path | None,
+    index_id: str | None,
+    root_ref: str | None,
+) -> List[str]:
     """Build subprocess argument vector for root-rag query execution."""
-    command = ["root-rag", "ask", query_text, "--top-k", str(top_k)]
+    command = [*root_rag_prefix, "ask", query_text, "--top-k", str(top_k)]
     if index_dir is not None:
         command.extend(["--index-dir", str(index_dir)])
     if index_id:
@@ -229,11 +254,23 @@ def run_query_pack(config: RunConfig) -> Tuple[Dict[str, Any], int]:
         "warnings": [reuse_warning] if reuse_warning else [],
         "queries": [],
     }
+    root_rag_prefix, resolution_mode, fallback_python_executable = _resolve_root_rag_command(config.root_rag_cmd)
+    manifest["command_resolution_mode"] = resolution_mode
+    manifest["root_rag_command_prefix"] = list(root_rag_prefix)
+    manifest["root_rag_cmd"] = config.root_rag_cmd
+    manifest["python_executable"] = fallback_python_executable
 
     had_failure = False
     for query_spec in query_specs:
         query_text = " ".join(query_spec.bm25_tokens)
-        command = _build_command(query_text, config.top_k, config.index_dir, config.index_id, config.root_ref)
+        command = _build_command(
+            root_rag_prefix=root_rag_prefix,
+            query_text=query_text,
+            top_k=config.top_k,
+            index_dir=config.index_dir,
+            index_id=config.index_id,
+            root_ref=config.root_ref,
+        )
         return_code, stdout, stderr = _execute_command(command, config.dry_run)
         status = _status_from_return_code(return_code)
 

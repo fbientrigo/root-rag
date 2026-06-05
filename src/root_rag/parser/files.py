@@ -10,6 +10,10 @@ INCLUDED_EXTENSIONS = {".h", ".hpp", ".hh", ".hxx", ".cxx", ".cpp", ".cc", ".c"}
 FAIRSHIP_WORKFLOW_EXTENSIONS = INCLUDED_EXTENSIONS | {".py", ".md", ".C"}
 FAIRSHIP_WORKFLOW_DIRS = {"macro", "python", "muonDIS"}
 
+PROJECT_DOCS_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".txt"}
+PROJECT_DOCS_DIRS = {"docs", "reports", "query_packs", "benchmark"}
+PROJECT_DOCS_FILES = {"AGENTS.md", "boulder.json"}
+
 # Directories to exclude (case-insensitive on some systems, but match exactly)
 EXCLUDED_DIRS = {
     "build",
@@ -21,6 +25,8 @@ EXCLUDED_DIRS = {
     "__pycache__",
     ".venv",
     "venv",
+    "data",
+    "artifacts",
 }
 
 
@@ -28,6 +34,8 @@ def _resolve_extension_set(discovery_profile: Optional[str]) -> Set[str]:
     """Resolve extension set for a discovery profile."""
     if discovery_profile == "fairship_workflow":
         return FAIRSHIP_WORKFLOW_EXTENSIONS
+    if discovery_profile == "project_docs":
+        return PROJECT_DOCS_EXTENSIONS
     return INCLUDED_EXTENSIONS
 
 
@@ -64,6 +72,14 @@ def discover_text_files(repo_root: Path, discovery_profile: Optional[str] = None
         suffix = path.suffix
         is_readme = path.name.upper().startswith("README")
         is_workflow_dir = any(part in FAIRSHIP_WORKFLOW_DIRS for part in path.parts)
+        is_project_docs_dir = any(part in PROJECT_DOCS_DIRS for part in path.parts)
+        is_project_docs_file = path.name in PROJECT_DOCS_FILES
+
+        if discovery_profile == "project_docs":
+            if is_project_docs_file or is_project_docs_dir:
+                if suffix in included_extensions:
+                    files.append(path)
+            continue
 
         if suffix in included_extensions:
             files.append(path)

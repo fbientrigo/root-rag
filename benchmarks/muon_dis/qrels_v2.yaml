@@ -1,0 +1,58 @@
+pack_id: fairship_muondis_query_pack_v2
+updated: 2026-05-30
+
+confirmed_qrels:
+  - query_id: q01_make_muondis
+    qrels:
+      - file_path: muonDIS/makeMuonDIS.py
+        start_line: 130
+        end_line: 150
+        relevance: 3
+
+  - query_id: q02_run_simscript_muondis
+    qrels:
+      - file_path: macro/run_simScript.py
+        start_line: 327
+        end_line: 333
+        relevance: 2
+      - file_path: macro/run_simScript.py
+        start_line: 841
+        end_line: 861
+        relevance: 2
+
+  - query_id: q03_shipreco
+    qrels:
+      - file_path: macro/ShipReco.py
+        start_line: 163
+        end_line: 175
+        relevance: 3
+
+  - query_id: q04_make_ntuple_sbt
+    qrels:
+      - file_path: muonDIS/make_nTuple_SBT.py
+        start_line: 1
+        end_line: 80
+        relevance: 3
+
+  - query_id: q05_muioni
+    qrels:
+      - file_path: muonShieldOptimization/run_prod.py
+        start_line: 1
+        end_line: 80
+        relevance: 3
+
+  - query_id: q06_doca_impact_parameter
+    qrels:
+      - file_path: python/experimental/analysis_toolkit.py
+        start_line: 211
+        end_line: 290
+        relevance: 3
+
+  - query_id: q07_addnode
+    qrels:
+      - file_path: passive/ShipTargetStation.cxx
+        start_line: 281
+        end_line: 326
+        relevance: 3
+
+pending_qrels: []

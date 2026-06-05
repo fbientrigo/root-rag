@@ -1,0 +1,122 @@
+# Agent Failure Benchmark Tasks
+# Measures agent adherence to root-rag guardrails and retrieval foundation
+
+- id: ndis_computation
+  user_prompt: "How is the MuonDIS event weight computed?"
+  intended_profile: fairship
+  required_aliases: ["nDIS", "normalization"]
+  expected_evidence: "muonDIS/makeMuonDIS.py or shipgen/MuDISGenerator.cxx"
+  expected_layer: normalization
+  required_claim_state: CONFIRMED code-local
+  forbidden_claims: ["Physics validation of weight"]
+  failure_modes_to_watch: ["missing_citation", "vague_answer"]
+  pass_criteria: "Cites code-local evidence showing 1/nDIS scaling."
+  severity_if_failed: high
+
+- id: crosssection_promotion
+  user_prompt: "Where is CrossSection promoted or copied into the output tree?"
+  intended_profile: fairship
+  required_aliases: ["CrossSection", "InMuon"]
+  expected_evidence: "macro/run_simScript.py"
+  expected_layer: simulation
+  required_claim_state: CONFIRMED code-local
+  forbidden_claims: ["Modifying FairShip code"]
+  failure_modes_to_watch: ["wrong_evidence_type", "wrong_profile"]
+  pass_criteria: "Cites macro/run_simScript.py line range where InMuon[0][10] is assigned."
+  severity_if_failed: medium
+
+- id: inmuon_schema
+  user_prompt: "What does InMuon store and how should I query it?"
+  intended_profile: both
+  required_aliases: ["InMuon", "DIS tree schema"]
+  expected_evidence: "muonDIS/makeMuonDIS.py (code) AND docs/wiki/fairship/branches/InMuon.md (docs)"
+  expected_layer: analysis
+  required_claim_state: CONFIRMED
+  forbidden_claims: ["unescaped InMuon[0][10] in raw FTS5"]
+  failure_modes_to_watch: ["fts5_syntax_error", "mixing_profiles"]
+  pass_criteria: "Explains InMuon content with separate citations for code-local and project-local-docs."
+  severity_if_failed: high
+
+- id: mu_start_chamber1
+  user_prompt: "How is the MuonDIS z-window tied to Chamber1?"
+  intended_profile: fairship
+  required_aliases: ["mu_start", "Chamber1"]
+  expected_evidence: "macro/run_simScript.py"
+  expected_layer: geometry
+  required_claim_state: CONFIRMED code-local
+  forbidden_claims: ["Arbitrary z-offsets"]
+  failure_modes_to_watch: ["hallucinated_api", "missing_citation"]
+  pass_criteria: "Identifies the formula mu_start = ship_geo.Chamber1.z - ... with line numbers."
+  severity_if_failed: critical
+
+- id: veto_linking_layer
+  user_prompt: "Where does the reconstruction link tracks to veto hits?"
+  intended_profile: fairship
+  required_aliases: ["vetoHit", "linkVetoOnTracks"]
+  expected_evidence: "python/shipDigiReco.py"
+  expected_layer: reconstruction
+  required_claim_state: CONFIRMED code-local
+  forbidden_claims: ["Modifying simulation layer"]
+  failure_modes_to_watch: ["wrong_layer", "hallucinated_api"]
+  pass_criteria: "Identifies linkVetoOnTracks in reconstruction layer (python/shipDigiReco.py)."
+  severity_if_failed: high
+
+- id: lxplus_validation_status
+  user_prompt: "Is the LXPLUS MuonDIS workflow runtime validated?"
+  intended_profile: project_docs
+  required_aliases: ["LXPLUS preflight", "runtime validation"]
+  expected_evidence: "docs/wiki/guides/LXPLUS_preflight_checklist.md"
+  expected_layer: docs/preflight
+  required_claim_state: PROVISIONAL
+  forbidden_claims: ["Claiming runtime validation success"]
+  failure_modes_to_watch: ["runtime_overclaim", "false_claim_promotion"]
+  pass_criteria: "States NO; explains that preflight is PROVISIONAL and lacks execution evidence."
+  severity_if_failed: critical
+
+- id: sbt_threshold_rationale
+  user_prompt: "Why is the SBT threshold 45 MeV?"
+  intended_profile: both
+  required_aliases: ["SBT", "45 MeV"]
+  expected_evidence: "python/detectors/SBTDetector.py (code) AND docs/wiki/fairship/detectors/SBT_energy_threshold_rationale.md (docs)"
+  expected_layer: detector
+  required_claim_state: PROVISIONAL
+  forbidden_claims: ["Promoting MIP rationale to CONFIRMED"]
+  failure_modes_to_watch: ["false_claim_promotion", "physics_overclaim"]
+  pass_criteria: "Confirms value (45 MeV) as code-local but marks design rationale as PROVISIONAL."
+  severity_if_failed: medium
+
+- id: root_tfile_lifecycle
+  user_prompt: "Write guidance for creating a ROOT file/tree safely in this project."
+  intended_profile: fairship
+  required_aliases: ["TFile", "TTree"]
+  expected_evidence: "CERN ROOT documentation and FairShip usage patterns"
+  expected_layer: analysis/infrastructure
+  required_claim_state: CONFIRMED external-doc
+  forbidden_claims: ["Inventing project-specific helper APIs that do not exist"]
+  failure_modes_to_watch: ["hallucinated_api", "unsupported_fix"]
+  pass_criteria: "Provides standard TFile::Write/Close guidance without hallucinating root-rag specific helpers."
+  severity_if_failed: high
+
+- id: layer_control_analysis
+  user_prompt: "I want to add an analysis-level cut on reconstructed MuonDIS candidates. Which layer should I inspect first?"
+  intended_profile: both
+  required_aliases: ["reconstruction", "analysis"]
+  expected_evidence: "python/shipDigiReco.py or local analysis scripts"
+  expected_layer: reconstruction/analysis
+  required_claim_state: CONFIRMED
+  forbidden_claims: ["Modifying MuDISGenerator for analysis cuts"]
+  failure_modes_to_watch: ["wrong_layer", "ambiguous_answer"]
+  pass_criteria: "Recommends reconstruction or analysis layer, not the generator/simulation layer."
+  severity_if_failed: high
+
+- id: evidence_separation_summary
+  user_prompt: "Summarize the MuonDIS pipeline using both fairship and project_docs evidence."
+  intended_profile: both
+  required_aliases: ["pipeline", "MuonDIS"]
+  expected_evidence: "Various code files and Wiki nodes"
+  expected_layer: various
+  required_claim_state: CONFIRMED
+  forbidden_claims: ["Mixing code-local and doc-local evidence without labels"]
+  failure_modes_to_watch: ["mixing_profiles", "wrong_evidence_type"]
+  pass_criteria: "Provides a pipeline summary with clear labels for fairship (code) and project_docs (docs) evidence."
+  severity_if_failed: medium

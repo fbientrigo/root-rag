@@ -72,6 +72,7 @@ def test_run_query_pack_writes_manifest_and_outputs_with_mocked_subprocess(tmp_p
     _write_pack(pack_path)
 
     calls = []
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def fake_run(command, capture_output, text, check):
         calls.append(command)
@@ -90,6 +91,7 @@ def test_run_query_pack_writes_manifest_and_outputs_with_mocked_subprocess(tmp_p
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -128,6 +130,7 @@ def test_run_query_pack_dry_run_skips_subprocess(tmp_path: Path, monkeypatch) ->
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "dry"
     _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def raise_if_called(*args, **kwargs):
         raise AssertionError("subprocess.run should not be called in dry-run mode")
@@ -144,6 +147,7 @@ def test_run_query_pack_dry_run_skips_subprocess(tmp_path: Path, monkeypatch) ->
         evidence_format="text-wrapper",
         dry_run=True,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -165,6 +169,7 @@ def test_run_query_pack_passes_explicit_index_options(tmp_path: Path, monkeypatc
     _write_pack(pack_path)
 
     calls = []
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def fake_run(command, capture_output, text, check):
         calls.append(command)
@@ -182,6 +187,7 @@ def test_run_query_pack_passes_explicit_index_options(tmp_path: Path, monkeypatc
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -210,6 +216,7 @@ def test_run_query_pack_fail_fast_stops_after_first_error(tmp_path: Path, monkey
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "fail_fast"
     _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     call_count = {"count": 0}
 
@@ -229,6 +236,7 @@ def test_run_query_pack_fail_fast_stops_after_first_error(tmp_path: Path, monkey
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=True,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -246,6 +254,7 @@ def test_run_query_pack_return_code_5_writes_zero_hit_wrapper(tmp_path: Path, mo
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "zero"
     _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def fake_run(command, capture_output, text, check):
         return subprocess.CompletedProcess(command, 5, stdout="No evidence found", stderr="")
@@ -262,6 +271,7 @@ def test_run_query_pack_return_code_5_writes_zero_hit_wrapper(tmp_path: Path, mo
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -281,6 +291,7 @@ def test_run_query_pack_return_code_2_writes_error_wrapper(tmp_path: Path, monke
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "error"
     _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def fake_run(command, capture_output, text, check):
         return subprocess.CompletedProcess(command, 2, stdout="", stderr="Error: No such option: --json")
@@ -297,6 +308,7 @@ def test_run_query_pack_return_code_2_writes_error_wrapper(tmp_path: Path, monke
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -335,6 +347,7 @@ def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, 
     _write_pack(pack_path)
     output_dir.mkdir(parents=True)
     (output_dir / "manifest.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
 
     def fake_run(command, capture_output, text, check):
         return subprocess.CompletedProcess(command, 0, stdout="Evidence", stderr="")
@@ -351,6 +364,7 @@ def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, 
         evidence_format="text-wrapper",
         dry_run=False,
         fail_fast=False,
+        root_rag_cmd=None,
     )
 
     manifest, exit_code = module.run_query_pack(config)
@@ -361,3 +375,71 @@ def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, 
     assert manifest["output_dir_reused"] is True
     assert len(manifest["warnings"]) == 1
     assert "Prefer a fresh evidence directory." in manifest["warnings"][0]
+
+
+def test_run_query_pack_fallbacks_to_python_module_when_root_rag_missing(tmp_path: Path, monkeypatch) -> None:
+    module = _load_run_query_pack_module()
+    pack_path = tmp_path / "pack.yaml"
+    output_dir = tmp_path / "evidence" / "fallback"
+    _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda _: None)
+    monkeypatch.setattr(module.sys, "executable", "C:/venv/python.exe")
+
+    calls = []
+
+    def fake_run(command, capture_output, text, check):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="Evidence", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    config = module.RunConfig(
+        pack_path=pack_path,
+        output_dir=output_dir,
+        top_k=10,
+        index_dir=None,
+        index_id=None,
+        root_ref=None,
+        evidence_format="text-wrapper",
+        dry_run=False,
+        fail_fast=False,
+        root_rag_cmd=None,
+    )
+    manifest, exit_code = module.run_query_pack(config)
+    assert exit_code == 0
+    assert calls[0][:5] == ["C:/venv/python.exe", "-m", "root_rag.cli", "ask", "alpha beta"]
+    assert manifest["command_resolution_mode"] == "python_module_fallback"
+    assert manifest["python_executable"] == "C:/venv/python.exe"
+    wrapper = json.loads((output_dir / "q1.json").read_text(encoding="utf-8"))
+    assert wrapper["command"] == calls[0]
+
+
+def test_run_query_pack_honors_explicit_root_rag_cmd(tmp_path: Path, monkeypatch) -> None:
+    module = _load_run_query_pack_module()
+    pack_path = tmp_path / "pack.yaml"
+    output_dir = tmp_path / "evidence" / "explicit"
+    _write_pack(pack_path)
+    monkeypatch.setattr(module.shutil, "which", lambda _: None)
+    calls = []
+
+    def fake_run(command, capture_output, text, check):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="Evidence", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    config = module.RunConfig(
+        pack_path=pack_path,
+        output_dir=output_dir,
+        top_k=10,
+        index_dir=None,
+        index_id=None,
+        root_ref=None,
+        evidence_format="text-wrapper",
+        dry_run=False,
+        fail_fast=False,
+        root_rag_cmd="root-rag-custom",
+    )
+    manifest, exit_code = module.run_query_pack(config)
+    assert exit_code == 0
+    assert calls[0][0] == "root-rag-custom"
+    assert manifest["command_resolution_mode"] == "path_executable"
+    assert manifest["root_rag_cmd"] == "root-rag-custom"

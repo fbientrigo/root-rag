@@ -1,0 +1,437 @@
+generated_at: '2026-05-04T03:55:10.639055+00:00'
+source_candidates: benchmarks\muon_dis\qrels_candidates.yaml
+fairship_path: ..\FairShip
+dry_run: false
+proposals:
+- query_id: q02_make_muon_dis
+  query_text: makeMuonDIS
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 351
+  end_line: 355
+  rank: 1
+  proposed_decision: PROPOSE_NEEDS_CONTEXT
+  proposed_relevance: 1
+  confidence: MEDIUM
+  reasoning: Query symbol is present but snippet is too short for safe qrel approval.
+  risk_notes: Expand to a wider function/method block before any approval.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "   351: \n   352: \n   353: if __name__ == \"__main__\":\n   354:\
+    \     makeMuonDIS()\n   355:     inspect_file(\"muonDis.root\")"
+- query_id: q03_run_simscript
+  query_text: run_simScript
+  file_path: muonShieldOptimization/run_prod.py
+  start_line: 1
+  end_line: 80
+  rank: 1
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "     1: # SPDX-License-Identifier: LGPL-3.0-or-later\n     2:\
+    \ # SPDX-FileCopyrightText: Copyright CERN for the benefit of the SHiP Collaboration\n\
+    \     3: \n     4: import os\n     5: import time\n     6: \n     7: import ROOT\n\
+    \     8: \n     9: \n    10: def makeProd(prefix, DY, y: bool = False, phiRandom:\
+    \ bool = False, X=None) -> None:\n    11:     ncpu = 9\n    12:     shipsoft =\
+    \ os.environ[\"SHIPSOFT\"].replace(\"/dev\", \"\")\n    13:     if not y:\n  \
+    \  14:         f = shipsoft + \"/data/pythia8_Geant4_onlyMuons.root\"\n    15:\
+    \         cmd = \"python $FAIRSHIP/macro/run_simScript.py --MuonBack -f \" + f\
+    \ + \" -Y \" + str(float(DY))  # --display\"\n    16:     elif y == \"Jpsi\":\n\
+    \    17:         f = shipsoft + \"/data/pythia8_Geant4_Jpsi_onlyMuons.root\"\n\
+    \    18:         cmd = \"python $FAIRSHIP/macro/run_simScript.py --MuonBack -f\
+    \ \" + f + \" -Y \" + str(float(DY))  # --display\"\n    19:     else:\n    20:\
+    \         f = shipsoft + \"/data/pythia8_Geant4_Yandex_onlyMuons.root\"\n    21:\
+    \         cmd = \"python $FAIRSHIP/macro/run_simScript.py --MuonBack -f \" + f\
+    \ + \" -Y \" + str(float(DY))  # --display\"\n    22:     if phiRandom:\n    23:\
+    \         cmd = cmd + \" --phiRandom\"\n    24:     fn = ROOT.TFile(f)\n    25:\
+    \     sTree = fn.FindObjectAny(\"pythia8-Geant4\")\n    26:     ntot = sTree.GetEntries()\n\
+    \    27:     fn.Close()\n    28:     ns = 0\n    29:     n3 = int(ntot / ncpu)\n\
+    \    30:     for i in range(1, ncpu + 1):\n    31:         d = prefix + str(i)\n\
+    \    32:         if d not in os.listdir(\".\"):\n    33:             os.system(\"\
+    mkdir \" + d)\n    34:     os.chdir(\"./\" + prefix + \"1\")\n    35:     for\
+    \ i in range(1, ncpu + 1):\n    36:         if i == ncpu:\n    37:           \
+    \  n3 = ntot - (i - 1) * n3\n    38:         if X:\n    39:             if i ==\
+    \ X:\n    40:                 os.system(\"cp $FAIRSHIP/macro/run_simScript.py\
+    \ .\")\n    41:                 os.system(cmd + \" -n \" + str(n3) + \" -i \"\
+    \ + str(ns) + \" > log &\")\n    42:         else:\n    43:             os.system(\"\
+    cp $FAIRSHIP/macro/run_simScript.py .\")\n    44:             os.system(cmd +\
+    \ \" -n \" + str(n3) + \" -i \" + str(ns) + \" > log &\")\n    45:           \
+    \  time.sleep(5)\n    46:         # print \" -n \"+str(n3)+\" -i \"+str(ns)\n\
+    \    47:         ns += n3\n    48:         if i == ncpu:\n    49:            \
+    \ os.chdir(\"../\")\n    50:             break\n    51:         os.chdir(\"../\"\
+    \ + prefix + str(i + 1))\n    52: \n    53: \n    54: #\n    55: # 11-19 with\
+    \ QGSP_BERT_EMV instead of QGSP_BERT_HP_PEN\n    56: # 51-59 passive shielding\n\
+    \    57: # 41-49 fixed field horizontal\n    58: # 61-69  chamber with vacuum\n\
+    \    59: # 71-79 without field in the wings\n    60: # 81-89 add shielding\n \
+    \   61: # 91-99 also 111-119 switch off  muBrems, muPair\n    62: # 101-109 vacuum\
+    \ tube as cone, Al->Steel\n    63: # 121-129 switch off only muIoni\n    64: #\
+    \ 151-159 vacuum tube as cone, Al->Steel, air in cave\n    65: # 161-169 new geometry\n\
+    \    66: # 251-259 passive shielding with concrete walls\n    67: # 171-179 new\
+    \ increased Bdl,  2.5m clearance from start, 9m space for tau\n    68: # 181-189\
+    \ even more field, narrow tunnel around first magnet, add 2m hadron absorber\n\
+    \    69: # 311-314 change numbering of veto volumes\n    70: # 321-324 1 Teslas\n\
+    \    71: # 331-339 added TauSensitive, fixed C1, using muons from Yandex\n   \
+    \ 72: # 341-349 should be the same as 331-339\n    73: # 351-354 fixed RpcPoints,\
+    \ fixed field !  also - 359 made on t3\n    74: # 361-364 4m high magnets!\n \
+    \   75: # 371-374 new strawpoints  with magC1 fixed\n    76: # 381-389 yandex\
+    \ file, overwrite with magC1 fixed\n    77: # 391-399 change to dY = 2m\n    78:\
+    \ # 401-409 change to dY = 2m Yandex\n    79: # 411-419 back to dY = 4m, add sensitive\
+    \ plance downstream det2\n    80: # 421-429 reduce size of vacuum tank before\
+    \ veto station, add pdgcode for muonPoint, move det2 closer"
+- query_id: q04_shipreco
+  query_text: ShipReco
+  file_path: macro/ShipReco.py
+  start_line: 141
+  end_line: 179
+  rank: 1
+  proposed_decision: PROPOSE_REJECTED
+  proposed_relevance: 0
+  confidence: MEDIUM
+  reasoning: Snippet does not show explicit query target in exact range or surrounding
+    context.
+  risk_notes: Human should re-check retrieval candidate ranking if this was expected
+    to be relevant.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "   141: # -----Create geometry----------------------------------------------\n\
+    \   142: modules = shipDet_conf.configure(run, ShipGeo)\n   143: # run.Init()\n\
+    \   144: fgeo[\"FAIRGeom\"]\n   145: import geomGeant4\n   146: \n   147: if hasattr(ShipGeo.Bfield,\
+    \ \"fieldMap\"):\n   148:     fieldMaker = geomGeant4.addVMCFields(ShipGeo, \"\
+    \", True, withVirtualMC=False)\n   149: \n   150: # make global variables\n  \
+    \ 151: global_variables.debug = options.Debug\n   152: global_variables.fieldMaker\
+    \ = fieldMaker\n   153: global_variables.pidProton = pidProton\n   154: global_variables.withT0\
+    \ = options.withT0\n   155: global_variables.realPR = options.realPR\n   156:\
+    \ global_variables.vertexing = vertexing\n   157: global_variables.ShipGeo = ShipGeo\n\
+    \   158: global_variables.modules = modules\n   159: global_variables.withNoStrawSmearing\
+    \ = options.withNoStrawSmearing\n   160: global_variables.h = h\n   161: global_variables.iEvent\
+    \ = 0\n   162: \n   163: # import reco tasks\n   164: import shipDigiReco\n  \
+    \ 165: \n   166: SHiP = shipDigiReco.ShipDigiReco(options.inputFile, outFile,\
+    \ fgeo)\n   167: options.nEvents = min(SHiP.sTree.GetEntries(), options.nEvents)\n\
+    \   168: # main loop\n   169: for global_variables.iEvent in range(options.firstEvent,\
+    \ options.nEvents):\n   170:     if global_variables.iEvent % 1000 == 0 or global_variables.debug:\n\
+    \   171:         print(\"event \", global_variables.iEvent)\n   172:     rc =\
+    \ SHiP.sTree.GetEvent(global_variables.iEvent)\n   173:     SHiP.digitize()\n\
+    \   174:     SHiP.reconstruct()\n   175:     SHiP.recoTree.Fill()\n   176: # memory\
+    \ monitoring\n   177: # mem_monitor()\n   178: # end loop over events\n   179:\
+    \ SHiP.finish()"
+- query_id: q05_doca
+  query_text: DOCA
+  file_path: python/experimental/analysis_toolkit.py
+  start_line: 211
+  end_line: 290
+  rank: 1
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "   211:             flag = False\n   212:         if self.impact_parameter(candidate)\
+    \ >= IP_cut * u.cm:\n   213:             flag = False\n   214:         if self.DOCA(candidate)\
+    \ >= 1 * u.cm:\n   215:             flag = False\n   216:         if np.any(self.nDOF(candidate)\
+    \ <= 25):\n   217:             flag = False\n   218:         if np.any(self.chi2nDOF(candidate)\
+    \ >= 5):\n   219:             flag = False\n   220:         if np.any(self.daughtermomentum(candidate)\
+    \ <= 1 * u.GeV):\n   221:             flag = False\n   222: \n   223:        \
+    \ if show_table:\n   224:             table = [\n   225:                 [\n \
+    \  226:                     \"Number of candidates in event\",\n   227:      \
+    \               len(self.tree.Particles),\n   228:                     \"==1\"\
+    ,\n   229:                     len(self.tree.Particles) == 1,\n   230:       \
+    \          ],\n   231:                 [\n   232:                     \"Time @\
+    \ decay vertex (ns)\",\n   233:                     self.define_candidate_time(candidate),\n\
+    \   234:                     \"\",\n   235:                     \"\",\n   236:\
+    \                 ],\n   237:                 [\n   238:                     \"\
+    Impact Parameter (cm)\",\n   239:                     self.impact_parameter(candidate),\n\
+    \   240:                     f\"IP < {IP_cut * u.cm} cm\",\n   241:          \
+    \           self.impact_parameter(candidate) < IP_cut * u.cm,\n   242:       \
+    \          ],\n   243:                 [\n   244:                     \"DOCA (cm)\"\
+    ,\n   245:                     self.DOCA(candidate),\n   246:                \
+    \     \"DOCA < 1 cm\",\n   247:                     self.DOCA(candidate) < 1 *\
+    \ u.cm,\n   248:                 ],\n   249:                 [\n   250:      \
+    \               \"Is within Fiducial Volume?\",\n   251:                     self.is_in_fiducial(candidate),\n\
+    \   252:                     \"True\",\n   253:                     self.is_in_fiducial(candidate),\n\
+    \   254:                 ],\n   255:                 [\n   256:              \
+    \       \"Dist2InnerWall (cm)\",\n   257:                     self.dist_to_innerwall(candidate),\n\
+    \   258:                     \"> 5 cm\",\n   259:                     self.dist_to_innerwall(candidate)\
+    \ > 5 * u.cm,\n   260:                 ],\n   261:                 [\n   262:\
+    \                     \"Dist2VesselEntrance (cm)\",\n   263:                 \
+    \    self.dist_to_vesselentrance(candidate),\n   264:                     \">\
+    \ 100 cm\",\n   265:                     self.dist_to_vesselentrance(candidate)\
+    \ > 100 * u.cm,\n   266:                 ],\n   267:                 [\"Invariant\
+    \ Mass (GeV)\", self.invariant_mass(candidate), \"\", \"\"],\n   268:        \
+    \         [\n   269:                     \"Daughter Momentum [d1, d2] (GeV)\"\
+    ,\n   270:                     self.daughtermomentum(candidate),\n   271:    \
+    \                 \"> 1 GeV\",\n   272:                     np.all(self.daughtermomentum(candidate)\
+    \ > 1 * u.GeV),\n   273:                 ],\n   274:                 [\n   275:\
+    \                     \"Degrees of Freedom [d1, d2]\",\n   276:              \
+    \       self.nDOF(candidate),\n   277:                     \"> 25\",\n   278:\
+    \                     np.all(self.nDOF(candidate) > 25),\n   279:            \
+    \     ],\n   280:                 [\n   281:                     \"Reduced Chi^2\
+    \ [d1, d2]\",\n   282:                     self.chi2nDOF(candidate),\n   283:\
+    \                     \"< 5\",\n   284:                     np.all(self.chi2nDOF(candidate)\
+    \ < 5),\n   285:                 ],\n   286:                 [\"\\033[1mPre-selection\
+    \ passed:\\033[0m\", \"\", \"\", flag],\n   287:             ]\n   288: \n   289:\
+    \             for row in table:\n   290:                 row[3] = ("
+- query_id: q06_sbt
+  query_text: SBT
+  file_path: muonDIS/make_nTuple_SBT.py
+  start_line: 1
+  end_line: 80
+  rank: 1
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "     1: #!/usr/bin/env python\n     2: # SPDX-License-Identifier:\
+    \ LGPL-3.0-or-later\n     3: # SPDX-FileCopyrightText: Copyright CERN for the\
+    \ benefit of the SHiP Collaboration\n     4: \n     5: \"\"\"Script to collect\
+    \ muons hitting the SBT (including soft interaction products) to a ROOT file.\"\
+    \"\"\n     6: \n     7: import argparse\n     8: import csv\n     9: import logging\n\
+    \    10: import os\n    11: \n    12: import ROOT as r\n    13: import shipunit\
+    \ as u\n    14: from tabulate import tabulate\n    15: \n    16: pdg = r.TDatabasePDG.Instance()\n\
+    \    17: \n    18: \n    19: logging.basicConfig(level=logging.INFO)\n    20:\
+    \ \n    21: \n    22: parser = argparse.ArgumentParser(description=__doc__)\n\
+    \    23: parser.add_argument(\"--test\", dest=\"testing_code\", help=\"Run Test\"\
+    , action=\"store_true\")\n    24: parser.add_argument(\n    25:     \"-o\",\n\
+    \    26:     \"--outputfile\",\n    27:     default=\"muonsProduction_wsoft_SBT.root\"\
+    ,\n    28:     help=\"custom outputfile name\",\n    29: )\n    30: parser.add_argument(\n\
+    \    31:     \"-p\",\n    32:     \"--path\",\n    33:     help=\"path to muon\
+    \ background files\",\n    34:     default=\"/eos/experiment/ship/simulation/bkg/MuonBack_2024helium/8070735\"\
+    ,\n    35: )\n    36: args = parser.parse_args()\n    37: \n    38: if args.testing_code:\n\
+    \    39:     logging.info(\"test code, output file name overwritten as: muonsProduction_wsoft_SBT_test.root\"\
+    )\n    40:     args.outputfile = \"muonsProduction_wsoft_SBT_test.root\"\n   \
+    \ 41:     selectedmuons = \"SelectedMuonsSBT_test.txt\"\n    42: else:\n    43:\
+    \     selectedmuons = \"SelectedMuonsSBT.txt\"\n    44: \n    45: path = args.path\n\
+    \    46: logging.info(f\"Path to MuonBackground : {path}\")\n    47: \n    48:\
+    \ fsel = open(selectedmuons, \"w\")  # noqa: SIM115\n    49: csvwriter = csv.writer(fsel)\n\
+    \    50: \n    51: output_file = r.TFile.Open(args.outputfile, \"recreate\")\n\
+    \    52: output_tree = r.TTree(\"MuonAndSoftInteractions\", \"Muon information\
+    \ and soft interaction tracks\")\n    53: \n    54: imuondata = r.TVectorD(10)\
+    \  # 10 values: pid, px, py, pz, x, y, z, weight,time_of_hit,nmuons_in_event\n\
+    \    55: output_tree.Branch(\"imuondata\", imuondata)\n    56: \n    57: track_array\
+    \ = r.TObjArray()\n    58: output_tree.Branch(\"tracks\", track_array)\n    59:\
+    \ \n    60: muon_vetoPoints = r.TClonesArray(\"vetoPoint\")\n    61: output_tree.Branch(\"\
+    muon_vetoPoints\", muon_vetoPoints)\n    62: \n    63: muon_UpstreamTaggerPoints\
+    \ = r.TClonesArray(\"UpstreamTaggerPoint\")\n    64: output_tree.Branch(\"muon_UpstreamTaggerPoints\"\
+    , muon_UpstreamTaggerPoints)\n    65: \n    66: h = {}\n    67: h[\"PvPt_muon\"\
+    ] = r.TH2F(\n    68:     \"PvPt_muon\",\n    69:     \"The momentum of the muons\
+    \ hitting the SBT(unweighted);P(GeV/c);Pt(GeV/c)\",\n    70:     200,\n    71:\
+    \     0.0,\n    72:     400,\n    73:     40,\n    74:     0.0,\n    75:     20,\n\
+    \    76: )\n    77: h[\"n_muon\"] = r.TH2I(\n    78:     \"n_muon\",\n    79:\
+    \     \"Number of muons hitting the SBT per Event;number of mu- per event (unweighted)\
+    \ bin width =1;number of mu+ per event (unweighted) bin width=1\",\n    80:  \
+    \   6,"
+- query_id: q07_ubt
+  query_text: UBT
+  file_path: muonDIS/add_muonresponse.py
+  start_line: 141
+  end_line: 204
+  rank: 1
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "   141:             index += 1\n   142: \n   143:         muoncount\
+    \ = 0\n   144:         for hit in muon_event.muon_vetoPoints:\n   145:       \
+    \      if hit.GetZ() < interaction_point.Z():\n   146:                 if combined_vetoPoint.GetSize()\
+    \ == index:\n   147:                     combined_vetoPoint.Expand(index + 1)\n\
+    \   148:                 combined_vetoPoint[index] = hit  # pending fix to support\
+    \ ROOT 6.32+\n   149:                 index += 1\n   150:                 muoncount\
+    \ += 1\n   151: \n   152:         combined_UpstreamTaggerPoint.Clear()\n   153:\
+    \ \n   154:         ubt_index = 0\n   155: \n   156:         for hit in input_event.UpstreamTaggerPoint:\n\
+    \   157:             if combined_UpstreamTaggerPoint.GetSize() == ubt_index:\n\
+    \   158:                 combined_UpstreamTaggerPoint.Expand(ubt_index + 1)\n\
+    \   159:             combined_UpstreamTaggerPoint[ubt_index] = hit  # pending\
+    \ fix to support ROOT 6.32+\n   160:             ubt_index += 1\n   161: \n  \
+    \ 162:         muon_ubtcount = 0\n   163:         for hit in muon_event.muon_UpstreamTaggerPoints:\n\
+    \   164:             if hit.GetZ() < interaction_point.Z():\n   165:         \
+    \        if combined_UpstreamTaggerPoint.GetSize() == ubt_index:\n   166:    \
+    \                 combined_UpstreamTaggerPoint.Expand(ubt_index + 1)\n   167:\
+    \                 combined_UpstreamTaggerPoint[ubt_index] = hit  # pending fix\
+    \ to support ROOT 6.32+\n   168:                 ubt_index += 1\n   169:     \
+    \            muon_ubtcount += 1\n   170: \n   171:         table_data.append(\n\
+    \   172:             [\n   173:                 i,\n   174:                 len(muon_event.muon_vetoPoints),\n\
+    \   175:                 len(input_event.vetoPoint),\n   176:                \
+    \ muoncount,\n   177:                 len(combined_vetoPoint),\n   178:      \
+    \           len(muon_event.muon_UpstreamTaggerPoints),\n   179:              \
+    \   len(input_event.UpstreamTaggerPoint),\n   180:                 muon_ubtcount,\n\
+    \   181:                 len(combined_UpstreamTaggerPoint),\n   182:         \
+    \    ]\n   183:         )\n   184:         output_tree.Fill()\n   185: \n   186:\
+    \     output_tree.Write(\"cbmsim\", r.TObject.kOverwrite)\n   187:     temp_file.Close()\n\
+    \   188:     input_file.Close()\n   189:     muon_file.Close()\n   190: \n   191:\
+    \     os.remove(inputfile)\n   192:     os.rename(temp_filename, inputfile)\n\
+    \   193:     print(f\"File updated with incoming muon info as {inputfile}\")\n\
+    \   194:     print(tabulate(table_data, headers=headers, tablefmt=\"grid\"))\n\
+    \   195: \n   196: \n   197: muons_found = inspect_file(args.inputfile, args.muonfile)\n\
+    \   198: \n   199: if not muons_found:\n   200:     print(\"Incoming muon's vetoPoints\
+    \ & UpstreamTaggerPoints inf missing in file, proceeding with modification\")\n\
+    \   201:     modify_file(args.inputfile, args.muonfile)\n   202: else:\n   203:\
+    \     print(\"File is already updated with incoming muon info. Nothing to do.\"\
+    )\n   204:     muons_found = inspect_file(args.inputfile, args.muonfile, print_table=True)"
+- query_id: q08_muioni
+  query_text: muIoni
+  file_path: muonShieldOptimization/ana_ShipMuon.py
+  start_line: 1
+  end_line: 80
+  rank: 1
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "     1: # SPDX-License-Identifier: LGPL-3.0-or-later\n     2:\
+    \ # SPDX-FileCopyrightText: Copyright CERN for the benefit of the SHiP Collaboration\n\
+    \     3: \n     4: # analyze muon background /media/Data/HNL/PythiaGeant4Production/pythia8_Geant4_total.root\n\
+    \     5: import multiprocessing as mp\n     6: import os\n     7: from io import\
+    \ TextIOWrapper\n     8: \n     9: import ROOT\n    10: from ROOT import TF1\n\
+    \    11: from ShipGeoConfig import load_from_root_file\n    12: \n    13: ROOT.gInterpreter.ProcessLine(\"\
+    typedef double Double32_t\")\n    14: local = False\n    15: if not os.uname()[1].lower().find(\"\
+    ubuntu\") < 0:\n    16:     local = True\n    17: \n    18: parallel = True\n\
+    \    19: if parallel:\n    20:     # Define an output queue\n    21:     output\
+    \ = mp.Queue()\n    22:     processes = []\n    23: \n    24: \n    25: # 11-19\
+    \ with QGSP_BERT_EMV instead of QGSP_BERT_HP_PEN\n    26: # 51-59 passive shielding\n\
+    \    27: # 41-49 fixed field horizontal\n    28: # 61-69  chamber with vacuum\n\
+    \    29: # 71-79 without field in the wings\n    30: # 81-89 add shielding\n \
+    \   31: # 91-99 switch off  muBrems, muPair\n    32: # 101-109 vacuum tube as\
+    \ cone, Al->Steel\n    33: \n    34: # prefix = 'muon4' # default\n    35: # prefix\
+    \ = 'muon6' # Al -> vacuum\n    36: # prefix = 'muon7' # no field in wings\n \
+    \   37: # prefix = 'muon8' # entry window + additional shielding\n    38: # prefix\
+    \ = 'muon9' # switch off  muBrems, muPair\n    39: # prefix = 'muon10' # vacuum\
+    \ tube as cone, Al->Steel\n    40: # prefix = 'muon14' # vacuum tube as cone,\
+    \ Al->Steel, slightly smaller lead shield\n    41: # prefix = 'muon12' # switch\
+    \ off  muIoni\n    42: # prefix = 'muon13' # switch off  muBrems, muPair AND muIoni\n\
+    \    43: # prefix = 'muon15' # vacuum tube as cone, Al->Steel, cave with air\n\
+    \    44: # prefix = 'muon 161-169 new geometry\n    45: # prefix = 'muon 251-259\
+    \ passive shielding with concrete walls\n    46: # prefix = 'muon 171-179 new\
+    \ increased Bdl,  2.5m clearance from start, 9m space for tau\n    47: # 181-189\
+    \ narrow tunnel around first magnet, add 2m hadron absorber, fixed problem with\
+    \ B-field -> G4\n    48: # 191-199 narrow tunnel bug fix, also bug fix for top/bottom,\
+    \ now with tungsten core in add absorber\n    49: # 201-209 test with reduced\
+    \ field, 1.5T\n    50: # 211-219 many bug fixes, overlaps, added Goliath magnet\n\
+    \    51: # 221-229 bug fix for Goliath\n    52: # 231-239 reduce field to 1T\n\
+    \    53: # 311-314 change numbering of veto volumes\n    54: # 321-324 1 Teslas\n\
+    \    55: # 331-339 added TauSensitive, fixed C1, using muons from Yandex\n   \
+    \ 56: # 341-349 should be the same as 331-339\n    57: # 361-364 4m high magnets!\n\
+    \    58: # 371-374 new strawpoints\n    59: # 381-389 yandex file, overwrite with\
+    \ magC1 fixed\n    60: # 391-399 change to dY = 2m\n    61: # 401-409 change to\
+    \ dY = 2m Yandex\n    62: # 411-419 back to dY = 4m, add sensitive plance downstream\
+    \ det2\n    63: # 421-429 reduce size of vacuum tank before veto station, add\
+    \ pdgcode for muonPoint, move det2 closer\n    64: # 431-439 reduce size of vacuum\
+    \ tank before veto station, add pdgcode for muonPoint, move det2 closer Yandex\n\
+    \    65: # 441-449 try with increased tau mu detector, and reduced height of active\
+    \ muon shield, dy=1m\n    66: # 451-459 try with increased tau mu detector, and\
+    \ reduced height of active muon shield, dy=1m  Yandex\n    67: # 461-469 dy=4m\
+    \ and then 1m, RPC fixed, display on\n    68: # 471-479 dy=4m and then 1m, RPC\
+    \ fixed, Yandex\n    69: # 481-489 dy=4m and then 1m, RPC fixed, display OFF\n\
+    \    70: # 491-499 back to dy=1m display on\n    71: # 551-554 ultimate slim design\n\
+    \    72: # 561-564 fixing overlaps hcal and almost overlaps in magnets\n    73:\
+    \ # 571-574 more undetected overlaps fixed\n    74: # 581-584 test with replacing\
+    \ tungsten core with iron, 10m height\n    75: # 591-599 test with replacing tungsten\
+    \ core with iron, 6m height, display\n    76: # 601-609 replacing tungsten core\
+    \ with iron, 6m height, Yandex data, display\n    77: # 610-619 replacing tungsten\
+    \ core with iron, 10m height, display\n    78: # 620-629 replacing tungsten core\
+    \ with iron, 10m height, Yandex data, display\n    79: # 630-639 10m height, change\
+    \ RPC width 4.5->3.6m\n    80: # 640-649 10m height, change RPC width 4.5->3.6m\
+    \ Yandex"
+- query_id: q09_inactivate_muon_processes
+  query_text: InactivateMuonProcesses
+  file_path: NOT_FOUND_IN_INDEX
+  start_line: null
+  end_line: null
+  rank: 0
+  proposed_decision: PROPOSE_NOT_FOUND_IN_INDEX
+  proposed_relevance: 0
+  confidence: HIGH
+  reasoning: NOT FOUND IN INDEX; this is not a retrievable qrel snippet.
+  risk_notes: Require explicit human confirmation for V0 not-found coverage semantics.
+  required_human_check: Confirm whether NOT_FOUND_IN_INDEX is sufficient for q09 coverage.
+  snippet_excerpt: NOT FOUND IN INDEX
+- query_id: q01_muondis_anchor
+  query_text: muonDIS
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 351
+  end_line: 355
+  rank: 1
+  proposed_decision: PROPOSE_NEEDS_CONTEXT
+  proposed_relevance: 1
+  confidence: MEDIUM
+  reasoning: Query symbol is present but snippet is too short for safe qrel approval.
+  risk_notes: Expand to a wider function/method block before any approval.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "   351: \n   352: \n   353: if __name__ == \"__main__\":\n   354:\
+    \     makeMuonDIS()\n   355:     inspect_file(\"muonDis.root\")"
+- query_id: q02_make_muon_dis
+  query_text: makeMuonDIS
+  file_path: muonDIS/makeMuonDIS.py
+  start_line: 71
+  end_line: 150
+  rank: 2
+  proposed_decision: PROPOSE_APPROVED
+  proposed_relevance: 3
+  confidence: HIGH
+  reasoning: Exact snippet contains the query symbol with sufficient executable context
+    for qrel relevance.
+  risk_notes: Human should still confirm this claim is qrel relevance, not a workflow-order/data-flow
+    assertion.
+  required_human_check: Inspect snippet and surrounding function to confirm workflow
+    relevance.
+  snippet_excerpt: "    71:     file = r.TFile.Open(filename, \"read\")\n    72: \n\
+    \    73:     original_tree = file.DIS\n    74: \n    75:     temp_filename = filename\
+    \ + \".tmp\"\n    76:     temp_file = r.TFile.Open(temp_filename, \"recreate\"\
+    )\n    77: \n    78:     updated_tree = original_tree.CloneTree(0)\n    79: \n\
+    \    80:     for i, event in enumerate(original_tree):\n    81:         mu = event.InMuon[0]\n\
+    \    82:         mu[10] = final_xsec[int(first_mu_event + i / args.nDIS)]\n  \
+    \  83:         updated_tree.Fill()\n    84: \n    85:     updated_tree.Write(\"\
+    DIS\", r.TObject.kOverwrite)\n    86:     temp_file.Close()\n    87:     file.Close()\n\
+    \    88: \n    89:     os.remove(filename)\n    90:     os.rename(temp_filename,\
+    \ filename)\n    91:     logging.info(\"Muon DIS events successfully updated with\
+    \ converged cross sections.\")\n    92: \n    93: \n    94: headers = [\n    95:\
+    \     \"DIS_index\",\n    96:     \"Fix_Target\",\n    97:     \"nParticles in\
+    \ event\",\n    98:     \"nSoftTracks_iMuon\",\n    99:     \"nSBThits_iMuon\"\
+    ,\n   100:     \"nUBThits_iMuon\",\n   101:     \"cross_sec\",\n   102: ]\n  \
+    \ 103: Fixtarget = {1: \"p+\", 0: \"n0\"}\n   104: \n   105: \n   106: def inspect_file(filename:\
+    \ str) -> None:\n   107:     \"\"\"Inspect the contents of muonDis file.\"\"\"\
+    \n   108:     file = r.TFile.Open(filename, \"READ\")\n   109:     tree = file.DIS\n\
+    \   110: \n   111:     table_rows = []\n   112: \n   113:     for i, event in\
+    \ enumerate(tree):\n   114:         muon = event.InMuon[0]\n   115:         isProton\
+    \ = int(muon[9])\n   116:         fix_target = Fixtarget.get(isProton, \"unknown\"\
+    )\n   117:         cross_sec = muon[10]\n   118: \n   119:         nParticles\
+    \ = len(event.DISParticles)\n   120:         nSoftTracks = len(event.SoftParticles)\n\
+    \   121:         nSBThits = len(event.muon_vetoPoints)\n   122:         nUBThits\
+    \ = len(event.muon_UpstreamTaggerPoints)\n   123: \n   124:         table_rows.append([i,\
+    \ fix_target, nParticles, nSoftTracks, nSBThits, nUBThits, cross_sec])\n   125:\
+    \ \n   126:     file.Close()\n   127:     logging.info(\"\\n\" + tabulate(table_rows,\
+    \ headers=headers, tablefmt=\"grid\"))\n   128: \n   129: \n   130: def makeMuonDIS()\
+    \ -> None:\n   131:     \"\"\"Generate DIS events.\"\"\"\n   132:     final_xsec\
+    \ = {}\n   133: \n   134:     logging.info(f\"Opening input file: {args.inputFile}\"\
+    )\n   135:     muonFile = r.TFile.Open(args.inputFile, \"read\")\n   136: \n \
+    \  137:     try:\n   138:         muon_tree = muonFile.MuonAndSoftInteractions\n\
+    \   139:     except Exception as e:\n   140:         logging.error(e)\n   141:\
+    \         muonFile.Close()\n   142:         exit(1)\n   143: \n   144:     logging.debug(f\"\
+    Total entries in the tree: {muon_tree.GetEntries()}\")\n   145:     last_mu_event\
+    \ = min(muon_tree.GetEntries(), first_mu_event + n_events)\n   146: \n   147:\
+    \     logging.info(\"Creating output file: muonDis.root\")\n   148: \n   149:\
+    \     outputFile = r.TFile.Open(\"muonDis.root\", \"recreate\")\n   150:     output_tree\
+    \ = r.TTree(\"DIS\", \"muon DIS\")"

@@ -1,0 +1,49 @@
+golden_queries:
+- bm25_tokens:
+  - makeMuonDIS
+  group: workflow
+  id: q01_make_muondis
+  natural_language: makeMuonDIS
+  query_id: q01_make_muondis
+- bm25_tokens:
+  - run_simScript
+  - muonDIS
+  group: workflow
+  id: q02_run_simscript_muondis
+  natural_language: run_simScript muonDIS
+  query_id: q02_run_simscript_muondis
+- bm25_tokens:
+  - ShipReco
+  group: workflow
+  id: q03_shipreco
+  natural_language: ShipReco
+  query_id: q03_shipreco
+- bm25_tokens:
+  - make_nTuple_SBT
+  expected_target: muonDIS/make_nTuple_SBT.py
+  group: ntuple
+  id: q04_make_ntuple_sbt
+  natural_language: make_nTuple_SBT
+  query_id: q04_make_ntuple_sbt
+- bm25_tokens:
+  - muIoni
+  expected_target: Process control in muonShieldOptimization/run_prod.py
+  group: processes
+  id: q05_muioni
+  natural_language: muIoni
+  query_id: q05_muioni
+- bm25_tokens:
+  - DOCA
+  - impact_parameter
+  expected_target: python/experimental/analysis_toolkit.py
+  group: selection
+  id: q06_doca_impact_parameter
+  natural_language: DOCA impact_parameter
+  query_id: q06_doca_impact_parameter
+- bm25_tokens:
+  - AddNode
+  expected_target: passive/ShipTargetStation.cxx or similar passive volumes
+  group: geometry
+  id: q07_addnode
+  natural_language: AddNode
+  query_id: q07_addnode

@@ -7,24 +7,42 @@ from root_rag.core.errors import IndexNotFoundError
 from root_rag.index.schemas import IndexManifest
 
 logger = logging.getLogger(__name__)
-
-
 def _resolve_manifest_paths(manifest: IndexManifest, manifest_file: Path) -> IndexManifest:
-    """Resolve relative manifest artifact paths against the manifest directory."""
+    """Resolve relative manifest artifact paths.
+
+    If a path is relative, it is first checked relative to the current working 
+    directory. If not found, it is resolved against the manifest directory.
+    """
     manifest_dir = manifest_file.parent
 
+    # Resolve chunks_path
     chunks_path = Path(manifest.chunks_path)
     if not chunks_path.is_absolute():
-        manifest.chunks_path = str((manifest_dir / chunks_path).resolve())
+        # Try relative to CWD first
+        if chunks_path.exists():
+            manifest.chunks_path = str(chunks_path.resolve())
+        else:
+            # Fallback to manifest_dir
+            manifest.chunks_path = str((manifest_dir / chunks_path).resolve())
 
+    # Resolve fts_db_path
     fts_db_path = Path(manifest.fts_db_path)
     if not fts_db_path.is_absolute():
-        manifest.fts_db_path = str((manifest_dir / fts_db_path).resolve())
+        # Try relative to CWD first
+        if fts_db_path.exists():
+            manifest.fts_db_path = str(fts_db_path.resolve())
+        else:
+            # Fallback to manifest_dir
+            manifest.fts_db_path = str((manifest_dir / fts_db_path).resolve())
 
+    # Resolve semantic_manifest_path
     if manifest.semantic_manifest_path:
         semantic_manifest_path = Path(manifest.semantic_manifest_path)
         if not semantic_manifest_path.is_absolute():
-            manifest.semantic_manifest_path = str((manifest_dir / semantic_manifest_path).resolve())
+            if semantic_manifest_path.exists():
+                manifest.semantic_manifest_path = str(semantic_manifest_path.resolve())
+            else:
+                manifest.semantic_manifest_path = str((manifest_dir / semantic_manifest_path).resolve())
 
     return manifest
 

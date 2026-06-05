@@ -99,6 +99,24 @@ root-rag ask "RModel Generate ONNX"
 root-rag ask "SOFIE operator interface"
 ```
 
+### FairShip Specialized Retrieval
+The FairShip profile automatically enables the **Retrieval Forest** (multi-scale fusion) when pre-built forest indexes are available for the requested commit. This provides higher recall and better coverage for complex FairShip/ROOT queries.
+
+> ⚠️ **Disclaimer**: The Retrieval Forest is a **static evidence retrieval** strategy based on indexed source code. It is NOT FairShip runtime validation, physics simulation, or an oracle for execution-time behavior.
+
+> 📊 **Scientific Comparison**: For ablation studies or performance benchmarking, use the `--baseline` flag to bypass the forest and use the standard BM25 lexical baseline.
+
+```bash
+# Default FairShip search (auto-activates forest if indexes exist)
+root-rag ask "FairPrimaryGenerator" --profile fairship
+
+# Force baseline lexical search (bypass forest)
+root-rag ask "FairPrimaryGenerator" --profile fairship --baseline
+
+# Explicitly request forest (fails if indexes are missing)
+root-rag search "MuonBack" --profile fairship --retrieval-backend forest
+```
+
 ---
 
 ## Advanced Queries
@@ -162,12 +180,17 @@ root-rag ask "Can you explain TGeoManager?"    # ✗ Too broad
 
 ### Index ROOT Corpus
 
-#### Tier 1 (Recommended)
+#### Default Seed Corpus
+By default, `root-rag index` creates a small index for ROOT v6.36.08 using `configs/seed_corpus_root_636.yaml`.
 ```bash
-# 35 most-used ROOT classes
-root-rag index --root-ref v6-36-08 \
-  --seed-corpus configs/tier1_corpus_root_636.yaml \
-  --output-dir data/indexes_tier1
+# Build the small, default index
+root-rag index
+```
+
+#### Tier 1 Corpus (Recommended for more coverage)
+```bash
+# Build a larger index with 35 most-used ROOT classes
+root-rag index --seed-corpus configs/tier1_corpus_root_636.yaml
 
 # Result: 1,106 chunks from 53 files (~45 seconds)
 ```

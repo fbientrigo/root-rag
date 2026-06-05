@@ -1,9 +1,10 @@
 """Root RAG CLI - Command line interface for root-rag."""
 import json as json_module
 import logging
+import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 import click
 
@@ -13,6 +14,7 @@ from root_rag.index import build_full_index, check_fts5_available
 from root_rag.index.locator import resolve_index
 from root_rag.index.schemas import IndexManifest
 from root_rag.retrieval import build_retrieval_backend, lexical_search
+from root_rag.retrieval.models import EvidenceCandidate
 from root_rag.retrieval.s1_semantic import (
     SentenceTransformerLocalEmbedder,
     _slugify_model_name,
@@ -28,12 +30,231 @@ logging.basicConfig(
 logger = logging.getLogger("root_rag")
 
 
+INDEX_PROFILES: Dict[str, Path] = {
+    "root": Path("data/indexes"),
+    "fairship": Path("data/indexes_fairship"),
+    "project_docs": Path("data/indexes_project_docs"),
+}
+
+
+def _select_indexes_root(index_dir: Optional[Path], profile: str, index_id: Optional[str]) -> Path:
+    """Resolve index root with optional profile and fallback for explicit index IDs."""
+    if index_dir is not None:
+        return Path(index_dir)
+
+    if profile in INDEX_PROFILES:
+        return INDEX_PROFILES[profile]
+
+    if index_id:
+        for candidate in INDEX_PROFILES.values():
+            if (candidate / index_id / "index_manifest.json").exists():
+                return candidate
+
+    return INDEX_PROFILES["root"]
+
+
+def _parse_file_range(raw: str) -> Tuple[str, int, int]:
+    match = re.fullmatch(r"(.+):(\d+)-(\d+)", raw.strip())
+    if match is None:
+        raise click.UsageError("Range must be formatted as <file:start-end>, e.g. shipgen/MuDISGenerator.cxx:71-150")
+
+    file_path = match.group(1)
+    start_line = int(match.group(2))
+    end_line = int(match.group(3))
+    if start_line < 1 or end_line < 1 or end_line < start_line:
+        raise click.UsageError("Invalid line range: start and end must be positive and end >= start")
+    return file_path, start_line, end_line
+
+
+def _load_indexed_file_lines(chunks_path: Path, file_path: str) -> Tuple[bool, Dict[int, str]]:
+    """Reconstruct line text from indexed chunk content only (no source checkout dependency)."""
+    found_file = False
+    line_map: Dict[int, str] = {}
+
+    with open(chunks_path, "r", encoding="utf-8") as handle:
+        for raw in handle:
+            row = json_module.loads(raw)
+            if row.get("file_path") != file_path:
+                continue
+
+            found_file = True
+            start_line = int(row["start_line"])
+            end_line = int(row["end_line"])
+            content_lines = row.get("content", "").splitlines()
+
+            max_count = max(0, end_line - start_line + 1)
+            for offset, text in enumerate(content_lines[:max_count]):
+                line_no = start_line + offset
+                if line_no not in line_map:
+                    line_map[line_no] = text
+
+    return found_file, line_map
+
+
+def _resolve_chunks_path(manifest: IndexManifest, indexes_root: Path) -> Path:
+    """Resolve chunks path with compatibility fallback for older relative manifests."""
+    chunks_path = Path(manifest.chunks_path)
+    if chunks_path.exists():
+        return chunks_path
+
+    manifest_file = Path(indexes_root) / manifest.index_id / "index_manifest.json"
+    if manifest_file.exists():
+        raw_manifest = IndexManifest.load(manifest_file)
+        raw_chunks_path = Path(raw_manifest.chunks_path)
+        if raw_chunks_path.is_absolute():
+            if raw_chunks_path.exists():
+                return raw_chunks_path
+        else:
+            cwd_candidate = raw_chunks_path.resolve()
+            if cwd_candidate.exists():
+                return cwd_candidate
+            data_candidate = (Path("data") / raw_chunks_path).resolve()
+            if data_candidate.exists():
+                return data_candidate
+            manifest_dir_candidate = (manifest_file.parent / raw_chunks_path).resolve()
+            if manifest_dir_candidate.exists():
+                return manifest_dir_candidate
+
+    return chunks_path
+
+
 def _resolve_semantic_manifest_path(index_manifest: IndexManifest, explicit_path: Optional[Path]) -> Optional[Path]:
     if explicit_path:
         return explicit_path
     if index_manifest.semantic_manifest_path:
         return Path(index_manifest.semantic_manifest_path)
     return None
+
+
+def _resolve_backend_and_results(
+    query: str,
+    manifest: IndexManifest,
+    top_k: int,
+    retrieval_backend: str,
+    retrieval_forest: Optional[str],
+    fusion: str,
+    dedup: str,
+    tie_breaker: str,
+    baseline: bool,
+    profile: str = "root",
+    semantic_manifest: Optional[Path] = None,
+    semantic_model: str = "",
+) -> Tuple[List[EvidenceCandidate], str, Optional[str]]:
+    """Internal helper to resolve backend and execute search with fallbacks.
+
+    Returns (results, actual_backend_name, fallback_reason).
+    """
+    requested_backend = retrieval_backend.strip().lower()
+    if baseline:
+        requested_backend = "lexical"
+
+    # FairShip-only forest default logic
+    is_auto_forest = False
+    if requested_backend == "lexical" and not baseline and profile.lower() == "fairship":
+        # Check if forest config exists
+        config_path = Path("configs/retrieval_forest_profiles.json")
+        if config_path.exists():
+            is_auto_forest = True
+            requested_backend = "forest"
+
+    db_path = manifest.fts_db_path
+    fallback_reason = None
+
+    if requested_backend == "forest":
+        config_path = Path("configs/retrieval_forest_profiles.json")
+        if not config_path.exists():
+            if not is_auto_forest:
+                raise click.UsageError(f"Forest config not found: {config_path}")
+            fallback_reason = "configs/retrieval_forest_profiles.json missing"
+            requested_backend = "lexical"
+        else:
+            with open(config_path, "r") as f:
+                config = json_module.load(f)
+
+            forest_profiles = retrieval_forest or ",".join(config.get("default_profiles", []))
+            if not forest_profiles:
+                if not is_auto_forest:
+                    raise click.UsageError("No forest profiles specified or found in config")
+                fallback_reason = "no default profiles in forest config"
+                requested_backend = "lexical"
+            else:
+                requested_profile_list = [p.strip() for p in forest_profiles.split(",")]
+                forest_db_paths = []
+                forest_profile_names = []
+
+                missing_in_config = []
+                commit_mismatch = []
+                missing_on_disk = []
+
+                for p_name in requested_profile_list:
+                    found_in_config = False
+                    for p_entry in config["profiles"]:
+                        if p_entry["profile_id"] == p_name:
+                            found_in_config = True
+                            # Verify commit matches to avoid cross-version contamination
+                            target_commit = manifest.resolved_commit[:12]
+                            entry_commit = (p_entry.get("source_commit") or "")[:12]
+                            if entry_commit and entry_commit != target_commit:
+                                commit_mismatch.append(f"{p_name} (needs {entry_commit}, got {target_commit})")
+                                continue
+
+                            db_path_entry = Path(p_entry["index_output_path"]) / "fts.sqlite"
+                            if db_path_entry.exists():
+                                forest_db_paths.append(db_path_entry)
+                                forest_profile_names.append(p_name)
+                            else:
+                                missing_on_disk.append(str(db_path_entry))
+                            break
+                    if not found_in_config:
+                        missing_in_config.append(p_name)
+
+                # Decision: must have all requested profiles to use forest
+                error_msgs = []
+                if missing_in_config:
+                    error_msgs.append(f"profiles not in config: {', '.join(missing_in_config)}")
+                if commit_mismatch:
+                    error_msgs.append(f"commit mismatch: {', '.join(commit_mismatch)}")
+                if missing_on_disk:
+                    error_msgs.append(f"indexes missing on disk: {', '.join(missing_on_disk)}")
+
+                if not error_msgs and forest_db_paths:
+                    backend = build_retrieval_backend(
+                        "retrieval_forest",
+                        forest_db_paths=forest_db_paths,
+                        forest_profile_names=forest_profile_names,
+                        fusion_method=fusion,
+                        dedup_method=dedup,
+                        tie_breaker=tie_breaker,
+                    )
+                    return backend.search(query, top_k=top_k), "forest", None
+                else:
+                    fallback_reason = "; ".join(error_msgs)
+                    if not is_auto_forest:
+                        raise click.UsageError(f"Forest backend requested but unavailable: {fallback_reason}")
+                    requested_backend = "lexical"
+
+    if requested_backend == "lexical":
+        return lexical_search(
+            db_path=str(db_path),
+            query=query,
+            top_k=top_k,
+        ), "lexical", fallback_reason
+
+    # Semantic / Hybrid
+    semantic_manifest_path = _resolve_semantic_manifest_path(manifest, semantic_manifest)
+    if semantic_manifest_path is None or not semantic_manifest_path.exists():
+        if requested_backend in {"semantic", "hybrid"}:
+            raise click.UsageError("S1 semantic manifest not found. Build semantic artifacts first or pass --semantic-manifest.")
+        return lexical_search(db_path=str(db_path), query=query, top_k=top_k), "lexical (fallback)", fallback_reason
+
+    actual_name = "semantic" if requested_backend == "semantic" else "hybrid"
+    backend = build_retrieval_backend(
+        "semantic_faiss" if requested_backend == "semantic" else "hybrid_s1",
+        db_path=Path(db_path),
+        semantic_manifest_path=semantic_manifest_path,
+        semantic_model_name=semantic_model,
+    )
+    return backend.search(query, top_k=top_k), actual_name, fallback_reason
 
 
 @click.group()
@@ -263,11 +484,17 @@ def index(
 
 
 @main.command()
-@click.argument("query")
+@click.argument("query", required=False)
 @click.option(
     "--root-ref",
     required=False,
     help="Root reference for index resolution (overrides --index-id)",
+)
+@click.option(
+    "--literal",
+    "literal_query",
+    required=False,
+    help="Literal query text (supports flag-like literals such as -Y, --MuonBack, --MuDIS).",
 )
 @click.option(
     "--index-id",
@@ -277,8 +504,15 @@ def index(
 @click.option(
     "--index-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("data/indexes"),
-    help="Directory containing indexes",
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
 )
 @click.option(
     "--top-k",
@@ -288,9 +522,36 @@ def index(
 )
 @click.option(
     "--retrieval-backend",
-    type=click.Choice(["lexical", "semantic", "hybrid"], case_sensitive=False),
+    type=click.Choice(["lexical", "semantic", "hybrid", "forest"], case_sensitive=False),
     default="lexical",
-    help="Opt-in retrieval backend. Default keeps lexical behavior unchanged.",
+    help="Opt-in retrieval backend. Default is lexical. Forest is multi-chunk fusion.",
+)
+@click.option(
+    "--baseline",
+    is_flag=True,
+    help="Force baseline lexical retrieval (shortcut for --retrieval-backend lexical).",
+)
+@click.option(
+    "--retrieval-forest",
+    help="Comma-separated profile names for retrieval forest. Default uses configs/retrieval_forest_profiles.json.",
+)
+@click.option(
+    "--fusion",
+    type=click.Choice(["rrf", "concat"], case_sensitive=False),
+    default="rrf",
+    help="Fusion method for retrieval forest.",
+)
+@click.option(
+    "--dedup",
+    type=click.Choice(["line_overlap", "none"], case_sensitive=False),
+    default="line_overlap",
+    help="Deduplication method for retrieval forest.",
+)
+@click.option(
+    "--tie-breaker",
+    type=click.Choice(["stable", "enhanced"], case_sensitive=False),
+    default="stable",
+    help="Tie-breaking logic for fused results.",
 )
 @click.option(
     "--semantic-manifest",
@@ -315,12 +576,18 @@ def index(
     help="Enable verbose logging",
 )
 def search(
-    query: str,
+    query: Optional[str],
     root_ref: str,
+    literal_query: Optional[str],
     index_id: str,
-    index_dir: Path,
+    index_dir: Optional[Path],
+    profile: str,
     top_k: int,
     retrieval_backend: str,
+    retrieval_forest: Optional[str],
+    fusion: str,
+    dedup: str,
+    tie_breaker: str,
     semantic_manifest: Path,
     semantic_model: str,
     output_json: bool,
@@ -344,12 +611,20 @@ def search(
     
     if verbose:
         logger.setLevel(logging.DEBUG)
-    
+
+    if query and literal_query:
+        raise click.UsageError("Provide either QUERY or --literal, not both")
+    effective_query = literal_query if literal_query is not None else query
+    if not effective_query:
+        raise click.UsageError("Missing query text. Pass QUERY or --literal <text>")
+
     try:
+        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+
         # Resolve index
         logger.debug(f"Resolving index: root_ref={root_ref}, index_id={index_id}")
         manifest = resolve_index(
-            indexes_root=index_dir,
+            indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
@@ -361,53 +636,56 @@ def search(
             logger.error(f"FTS5 database not found: {db_path}")
             sys.exit(4)
 
-        logger.debug(f"Searching in {db_path} using backend={retrieval_backend}")
-        backend_name = retrieval_backend.strip().lower()
-        if backend_name == "lexical":
-            results = lexical_search(
-                db_path=str(db_path),
-                query=query,
-                top_k=top_k,
-            )
-        else:
-            semantic_manifest_path = _resolve_semantic_manifest_path(manifest, semantic_manifest)
-            if semantic_manifest_path is None or not semantic_manifest_path.exists():
-                logger.error("S1 semantic manifest not found. Build semantic artifacts first or pass --semantic-manifest.")
-                sys.exit(4)
-            backend = build_retrieval_backend(
-                "semantic_faiss" if backend_name == "semantic" else "hybrid_s1",
-                db_path=Path(db_path),
-                semantic_manifest_path=semantic_manifest_path,
-                semantic_model_name=semantic_model,
-            )
-            results = backend.search(query, top_k=top_k)
-        
-        # Handle no results
-        if not results:
-            logger.error(f"No evidence found for query: {query}")
-            sys.exit(5)
-        
+        # Resolve backend and results
+        results, actual_backend, fallback_reason = _resolve_backend_and_results(
+            query=effective_query,
+            manifest=manifest,
+            top_k=top_k,
+            retrieval_backend=retrieval_backend,
+            retrieval_forest=retrieval_forest,
+            fusion=fusion,
+            dedup=dedup,
+            tie_breaker=tie_breaker,
+            baseline=baseline,
+            profile=profile,
+            semantic_manifest=semantic_manifest,
+            semantic_model=semantic_model,
+        )
+
         # Format and output results
         if output_json:
-            output = [
-                {
-                    "chunk_id": r.chunk_id,
-                    "file_path": r.file_path,
-                    "source_type": r.source_type,
-                    "start_line": r.start_line,
-                    "end_line": r.end_line,
-                    "symbol_path": r.symbol_path,
-                    "doc_origin": r.doc_origin,
-                    "language": r.language,
-                    "root_ref": r.root_ref,
-                    "resolved_commit": r.resolved_commit,
-                    "score": r.score,
+            output = {
+                "results": [
+                    {
+                        "chunk_id": r.chunk_id,
+                        "file_path": r.file_path,
+                        "source_type": r.source_type,
+                        "start_line": r.start_line,
+                        "end_line": r.end_line,
+                        "symbol_path": r.symbol_path,
+                        "doc_origin": r.doc_origin,
+                        "language": r.language,
+                        "root_ref": r.root_ref,
+                        "resolved_commit": r.resolved_commit,
+                        "score": r.score,
+                    }
+                    for r in results
+                ],
+                "metadata": {
+                    "actual_backend": actual_backend,
+                    "fallback_reason": fallback_reason,
+                    "fusion": fusion if actual_backend == "forest" else None,
+                    "profile": profile,
                 }
-                for r in results
-            ]
+            }
             click.echo(json_module.dumps(output, indent=2))
         else:
             # Human-readable output
+            click.echo(f"Actual backend: {actual_backend}")
+            if fallback_reason:
+                click.echo(f"Fallback reason: {fallback_reason}")
+            click.echo("")
+            
             for i, result in enumerate(results, 1):
                 click.echo(
                     f"[{i}] [{result.source_type}] {result.file_path}:{result.start_line}-{result.end_line} "
@@ -447,8 +725,15 @@ def search(
 @click.option(
     "--index-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("data/indexes"),
-    help="Directory containing indexes",
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
 )
 @click.option(
     "--semantic-output-dir",
@@ -475,7 +760,8 @@ def search(
 def build_semantic_index(
     root_ref: str,
     index_id: str,
-    index_dir: Path,
+    index_dir: Optional[Path],
+    profile: str,
     semantic_output_dir: Path,
     model_name: str,
     batch_size: int,
@@ -483,19 +769,20 @@ def build_semantic_index(
 ):
     """Build opt-in S1 semantic artifacts from an existing lexical index."""
     try:
+        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
         manifest = resolve_index(
-            indexes_root=index_dir,
+            indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
-        chunks_path = Path(manifest.chunks_path)
+        chunks_path = _resolve_chunks_path(manifest, indexes_root=indexes_root)
         if not chunks_path.exists():
             logger.error(f"Chunks file not found: {chunks_path}")
             sys.exit(4)
 
         output_dir = semantic_output_dir
         if output_dir is None:
-            output_dir = Path(index_dir) / manifest.index_id / "semantic" / _slugify_model_name(model_name)
+            output_dir = Path(indexes_root) / manifest.index_id / "semantic" / _slugify_model_name(model_name)
 
         corpus_rows = load_corpus_rows(chunks_path)
         embedder = SentenceTransformerLocalEmbedder(
@@ -517,7 +804,7 @@ def build_semantic_index(
             if mode not in retrieval_modes:
                 retrieval_modes.append(mode)
         manifest.retrieval_modes = retrieval_modes
-        manifest_path = Path(index_dir) / manifest.index_id / "index_manifest.json"
+        manifest_path = Path(indexes_root) / manifest.index_id / "index_manifest.json"
         manifest.save(manifest_path)
 
         click.echo(f"[OK] S1 semantic artifacts created for {manifest.index_id}")
@@ -552,8 +839,15 @@ def build_semantic_index(
 @click.option(
     "--index-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("data/indexes"),
-    help="Directory containing indexes",
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
 )
 @click.option(
     "--top-k",
@@ -561,7 +855,41 @@ def build_semantic_index(
     default=5,
     help="Maximum number of results to return",
 )
-def ask(query: str, root_ref: str, index_id: str, index_dir: Path, top_k: int):
+@click.option(
+    "--retrieval-backend",
+    type=click.Choice(["lexical", "forest"], case_sensitive=False),
+    default="lexical",
+    help="Opt-in retrieval backend. Default is lexical. Forest is multi-chunk fusion.",
+)
+@click.option(
+    "--baseline",
+    is_flag=True,
+    help="Force baseline lexical retrieval (shortcut for --retrieval-backend lexical).",
+)
+@click.option(
+    "--retrieval-forest",
+    help="Comma-separated profile names for retrieval forest. Default uses configs/retrieval_forest_profiles.json.",
+)
+@click.option(
+    "--fusion",
+    type=click.Choice(["rrf", "concat"], case_sensitive=False),
+    default="rrf",
+    help="Fusion method for retrieval forest.",
+)
+@click.option(
+    "--dedup",
+    type=click.Choice(["line_overlap", "none"], case_sensitive=False),
+    default="line_overlap",
+    help="Deduplication method for retrieval forest.",
+)
+@click.option(
+    "--tie-breaker",
+    type=click.Choice(["stable", "enhanced"], case_sensitive=False),
+    default="stable",
+    help="Tie-breaking logic for fused results.",
+)
+def ask(query: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str, top_k: int,
+        retrieval_backend: str, baseline: bool, retrieval_forest: Optional[str], fusion: str, dedup: str, tie_breaker: str):
     """Ask a question and get evidence-based answers.
     
     Evidence-first retrieval: returns file paths and line ranges with ROOT version.
@@ -586,9 +914,10 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Path, top_k: int):
         5: No evidence found
     """
     try:
+        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
         # Resolve index
         manifest = resolve_index(
-            indexes_root=index_dir,
+            indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
@@ -599,24 +928,44 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Path, top_k: int):
             click.echo(f"Error: Index database not found for {root_ref}", err=True)
             sys.exit(4)
         
-        # Perform search
-        results = lexical_search(
-            db_path=str(db_path),
+        # Resolve backend and results
+        results, actual_backend, fallback_reason = _resolve_backend_and_results(
             query=query,
+            manifest=manifest,
             top_k=top_k,
+            retrieval_backend=retrieval_backend,
+            retrieval_forest=retrieval_forest,
+            fusion=fusion,
+            dedup=dedup,
+            tie_breaker=tie_breaker,
+            baseline=baseline,
+            profile=profile,
         )
-        
+
         if not results:
+            click.echo(f"Actual backend: {actual_backend}")
+            if fallback_reason:
+                click.echo(f"Fallback reason: {fallback_reason}")
             click.echo(f"No evidence found in ROOT {manifest.root_ref}")
             click.echo(f"Try broader search terms or check if the class is in the indexed corpus.")
             sys.exit(5)
         
         # Output evidence
+        click.echo(f"Actual backend: {actual_backend}")
+        if fallback_reason:
+            click.echo(f"Fallback reason: {fallback_reason}")
+        
         click.echo(f"Evidence (ROOT {manifest.root_ref}, commit {manifest.resolved_commit[:12]}):")
+        # Logic to detect if forest was actually used
+        if actual_backend == "forest":
+             click.echo(f"Mode: Forest, Fusion: {fusion}, Dedup: {dedup}")
+        elif actual_backend != "lexical":
+             click.echo(f"Mode: {actual_backend}")
         click.echo("")
         
         for i, r in enumerate(results, 1):
-            click.echo(f"[{i}] {r.file_path}:{r.start_line}-{r.end_line}")
+            provenance = f" [{r.source_profile} rank {r.original_rank}]" if r.source_profile else ""
+            click.echo(f"[{i}]{provenance} {r.file_path}:{r.start_line}-{r.end_line}")
             if r.symbol_path:
                 click.echo(f"    Symbol: {r.symbol_path}")
         
@@ -646,10 +995,17 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Path, top_k: int):
 @click.option(
     "--index-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("data/indexes"),
-    help="Directory containing indexes",
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
 )
-def grep(pattern: str, root_ref: str, index_id: str, index_dir: Path):
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
+)
+def grep(pattern: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str):
     """Grep for symbol/pattern in indexed ROOT corpus.
     
     Fast exact-match search for symbols, methods, or code patterns.
@@ -665,9 +1021,10 @@ def grep(pattern: str, root_ref: str, index_id: str, index_dir: Path):
         5: No matches found
     """
     try:
+        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
         # Resolve index
         manifest = resolve_index(
-            indexes_root=index_dir,
+            indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
@@ -712,10 +1069,17 @@ def grep(pattern: str, root_ref: str, index_id: str, index_dir: Path):
 @click.option(
     "--index-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("data/indexes"),
-    help="Directory containing indexes",
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
 )
-def versions(index_dir: Path):
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
+)
+def versions(index_dir: Optional[Path], profile: str):
     """List indexed ROOT versions.
     
     Shows all ROOT versions currently indexed and available for retrieval.
@@ -723,7 +1087,7 @@ def versions(index_dir: Path):
     Example:
         root-rag versions
     """
-    index_dir = Path(index_dir)
+    index_dir = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=None)
     
     if not index_dir.exists():
         click.echo("No indexes found. Run 'root-rag index' to create one.")
@@ -763,6 +1127,91 @@ def versions(index_dir: Path):
         click.echo(f"    Index ID: {latest.index_id}")
         click.echo("")
     
+    sys.exit(0)
+
+
+@main.command()
+@click.argument("target")
+@click.option(
+    "--root-ref",
+    required=False,
+    help="Root reference for index resolution (overrides --index-id)",
+)
+@click.option(
+    "--index-id",
+    required=False,
+    help="Explicit index ID to read from",
+)
+@click.option(
+    "--index-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Directory containing indexes (defaults to profile root).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["root", "fairship", "project_docs"], case_sensitive=False),
+    default="root",
+    show_default=True,
+    help="Named index profile.",
+)
+@click.option(
+    "--context",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Extra context lines before/after requested range.",
+)
+def show(target: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str, context: int):
+    """Show indexed source lines for <file:start-end> from chunk text."""
+    if context < 0:
+        raise click.UsageError("--context must be >= 0")
+
+    file_path, start_line, end_line = _parse_file_range(target)
+    indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+
+    try:
+        manifest = resolve_index(
+            indexes_root=indexes_root,
+            root_ref=root_ref,
+            index_id=index_id,
+        )
+    except IndexNotFoundError as e:
+        logger.error(f"Index not found: {str(e)}")
+        sys.exit(4)
+
+    chunks_path = _resolve_chunks_path(manifest, indexes_root=indexes_root)
+    if not chunks_path.exists():
+        logger.error(f"Chunks file not found: {chunks_path}")
+        sys.exit(4)
+
+    found_file, line_map = _load_indexed_file_lines(chunks_path=chunks_path, file_path=file_path)
+    if not found_file:
+        click.echo(
+            f"Error: file not present in indexed corpus/chunks: {file_path}",
+            err=True,
+        )
+        sys.exit(5)
+
+    from_line = max(1, start_line - context)
+    to_line = end_line + context
+    missing = 0
+    width = len(str(to_line))
+
+    click.echo(f"{file_path}:{start_line}-{end_line} (context={context})")
+    for line_no in range(from_line, to_line + 1):
+        text = line_map.get(line_no)
+        if text is None:
+            text = "[line not available in indexed chunks]"
+            missing += 1
+        click.echo(f"{line_no:>{width}} | {text}")
+
+    if missing:
+        click.echo("")
+        click.echo(
+            "[WARN] Indexed chunks do not cover all requested lines. "
+            "Showing available chunk text only."
+        )
     sys.exit(0)
 
 

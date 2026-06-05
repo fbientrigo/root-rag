@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claim Audit Schema",
+  "description": "Schema for enforcing evidence-grounded claim audits in root-rag.",
+  "type": "object",
+  "required": [
+    "audit_type",
+    "audit_date",
+    "claims"
+  ],
+  "properties": {
+    "audit_type": {
+      "type": "string",
+      "description": "The type of audit performed."
+    },
+    "audit_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the audit was performed (YYYY-MM-DD)."
+    },
+    "fairship_commit": {
+      "type": "string",
+      "description": "The FairShip commit hash the audit is based on."
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "claim_text",
+          "claim_state",
+          "evidence_type",
+          "profile",
+          "source",
+          "line_range_or_section",
+          "runtime_validated",
+          "physics_validated",
+          "thesis_safe_sentence",
+          "remaining_uncertainty"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "pattern": "^CLM-[A-Z0-9-]+$",
+            "description": "Unique identifier for the claim (e.g., CLM-SBT-001)."
+          },
+          "claim_text": {
+            "type": "string",
+            "description": "The literal text of the claim being audited."
+          },
+          "claim_state": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED code-local",
+              "CONFIRMED external-doc",
+              "CONFIRMED project-local-docs",
+              "PROVISIONAL",
+              "UNRESOLVED",
+              "CONTRADICTED"
+            ],
+            "description": "The current validation state of the claim."
+          },
+          "evidence_type": {
+            "type": "string",
+            "enum": [
+              "code-local",
+              "external-doc",
+              "project-local-docs",
+              "mixed",
+              "unsupported"
+            ],
+            "description": "The type of evidence supporting the claim."
+          },
+          "profile": {
+            "type": "string",
+            "description": "The retrieval profile used (e.g., fairship, project_docs, root)."
+          },
+          "source": {
+            "type": "string",
+            "description": "The file path or document identifier (e.g., arXiv ID)."
+          },
+          "line_range_or_section": {
+            "type": "string",
+            "description": "Specific line range (e.g., 53-60) or document section (e.g., Section 5.3)."
+          },
+          "runtime_validated": {
+            "type": "boolean",
+            "description": "Whether the claim has been validated via code execution."
+          },
+          "physics_validated": {
+            "type": "boolean",
+            "description": "Whether the claim has been validated by a subject matter expert in physics."
+          },
+          "thesis_safe_sentence": {
+            "type": "string",
+            "description": "A refined, evidence-grounded sentence suitable for inclusion in the thesis."
+          },
+          "remaining_uncertainty": {
+            "type": "string",
+            "description": "Description of any remaining doubts or missing evidence."
+          }
+        }
+      }
+    }
+  }
+}

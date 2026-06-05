@@ -1,0 +1,225 @@
+- task_id: ndis_computation
+  user_prompt: "How is the MuonDIS event weight computed?"
+  expected_profiles: ["fairship"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "muonDIS/makeMuonDIS.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "claiming physics validation"
+    - "generic CONFIRMED state"
+  pass_criteria: "Cites muonDIS/makeMuonDIS.py with line numbers showing 1/nDIS scaling."
+
+- task_id: crosssection_promotion
+  user_prompt: "Where is CrossSection promoted or copied into the output tree?"
+  expected_profiles: ["fairship"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "macro/run_simScript.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "wrong profile used for code evidence"
+  pass_criteria: "Cites macro/run_simScript.py line range where InMuon[0][10] is assigned to CrossSection."
+
+- task_id: inmuon_schema
+  user_prompt: "What does InMuon store and how should I query it?"
+  expected_profiles: ["fairship", "project_docs"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "muonDIS/makeMuonDIS.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+    - profile: project_docs
+      evidence_type: project-local-docs
+      file: "docs/wiki/fairship/branches/InMuon.md"
+      line_range_required: false
+      claim_state_required: "CONFIRMED project-local-docs"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "mixing profiles without labels"
+  pass_criteria: "Explains InMuon content with separate citations for code (with line numbers) and docs."
+
+- task_id: mu_start_chamber1
+  user_prompt: "How is the MuonDIS z-window tied to Chamber1?"
+  expected_profiles: ["fairship"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "macro/run_simScript.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "using wiki as sole evidence for code-local claim"
+  pass_criteria: "Identifies the formula mu_start = ship_geo.Chamber1.z - ... with line numbers in macro/run_simScript.py."
+
+- task_id: veto_linking_layer
+  user_prompt: "Where does the reconstruction link tracks to veto hits?"
+  expected_profiles: ["fairship"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "python/shipDigiReco.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "wrong layer identification (e.g. simulation)"
+  pass_criteria: "Identifies linkVetoOnTracks in python/shipDigiReco.py with line numbers."
+
+- task_id: lxplus_validation_status
+  user_prompt: "Is the LXPLUS MuonDIS workflow runtime validated?"
+  expected_profiles: ["project_docs"]
+  required_evidence_items:
+    - profile: project_docs
+      evidence_type: project-local-docs
+      file: "docs/wiki/guides/LXPLUS_preflight_checklist.md"
+      line_range_required: false
+      claim_state_required: "PROVISIONAL"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "claiming runtime validation success"
+    - "promoting PROVISIONAL to CONFIRMED"
+  pass_criteria: "States NO; explains that preflight is PROVISIONAL and lacks execution evidence."
+
+- task_id: sbt_threshold_rationale
+  user_prompt: "Why is the SBT threshold 45 MeV?"
+  expected_profiles: ["fairship", "project_docs"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "python/detectors/SBTDetector.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+    - profile: project_docs
+      evidence_type: external-doc
+      file: "docs/wiki/fairship/detectors/SBT_energy_threshold_rationale.md"
+      line_range_required: false
+      claim_state_required: "CONFIRMED external-doc"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "promoting design rationale without external citation"
+  pass_criteria: "Confirms value (45 MeV) in code with line numbers and cites arXiv:2112.01487 for the MIP/30cm rationale."
+
+- task_id: root_tfile_lifecycle
+  user_prompt: "Write guidance for creating a ROOT file/tree safely in this project."
+  expected_profiles: ["fairship"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: external-doc
+      file: "CERN ROOT Documentation"
+      line_range_required: false
+      claim_state_required: "CONFIRMED external-doc"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "hallucinating project-specific helper APIs"
+    - "labeling local code as external-doc"
+  pass_criteria: "Provides standard TFile::Write/Close guidance citing ROOT documentation accurately."
+
+- task_id: layer_control_analysis
+  user_prompt: "I want to add an analysis-level cut on reconstructed MuonDIS candidates. Which layer should I inspect first?"
+  expected_profiles: ["fairship", "project_docs"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "python/shipDigiReco.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "recommending simulation/generator layer for analysis cuts"
+  pass_criteria: "Recommends reconstruction/analysis layer with code-local citation and line numbers."
+
+- task_id: evidence_separation_summary
+  user_prompt: "Summarize the MuonDIS pipeline using both fairship and project_docs evidence."
+  expected_profiles: ["fairship", "project_docs"]
+  required_evidence_items:
+    - profile: fairship
+      evidence_type: code-local
+      file: "muonDIS/makeMuonDIS.py"
+      line_range_required: true
+      claim_state_required: "CONFIRMED code-local"
+    - profile: project_docs
+      evidence_type: project-local-docs
+      file: "docs/wiki/fairship/maps/MuonDIS_variable_pointer_map.md"
+      line_range_required: false
+      claim_state_required: "CONFIRMED project-local-docs"
+  required_answer_fields:
+    - answer_text
+    - evidence_summary
+    - claim_state_handling
+    - runtime_validation_statement
+    - physics_validation_statement
+    - layer_identification
+  automatic_fail_conditions:
+    - "missing line range for code-local evidence"
+    - "mixing code and doc evidence without clear labels"
+  pass_criteria: "Provides pipeline summary with clear labels for fairship (code + lines) and project_docs (docs) evidence."

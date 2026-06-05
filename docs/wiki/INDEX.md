@@ -14,6 +14,8 @@ Navigation:
 - [Claim Format](CLAIM_FORMAT.md)
 - [Evidence Contract](concepts/evidence_contract.md)
 - [Muon DIS Workflow Scaffold](workflows/muon_dis_pipeline.md)
+- [MuonDIS Query Pack Benchmark](benchmarks/muondis_query_pack.md)
+- [DIS Occurred Concept](concepts/DIS_occurred/INDEX.md)
 - [Weekly Notes Policy](weekly/README.md)
 - [Open Questions](open_questions.md)
 
