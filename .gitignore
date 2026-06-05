@@ -13,3 +13,19 @@ data/
 
 # local iterative planning workspace
 plans_runtime/
+
+# graphify and temporary
+.graphify_detect*
+.graphify_python
+*-out/
+atomic_results.json
+boulder.json
+
+# evidence and reports
+evidence/
+evidence_claims/
+reports/
+
+# docs extras
+docs/wiki/.obsidian/
+

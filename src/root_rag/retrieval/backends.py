@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 from root_rag.retrieval.interfaces import BaseRetrievalBackend, OperationalMetrics
 from root_rag.retrieval.models import EvidenceCandidate
+from root_rag.retrieval.forest import RetrievalForestBackend
 from root_rag.retrieval.s1_semantic import (
     LocalEmbedder,
     SemanticFaissSearcher,
@@ -656,9 +657,26 @@ def build_retrieval_backend(
     k1: float = 1.5,
     b: float = 0.75,
     dense_dim: int = 256,
+    forest_db_paths: Optional[List[Path]] = None,
+    forest_profile_names: Optional[List[str]] = None,
+    fusion_method: str = "rrf",
+    dedup_method: str = "line_overlap",
+    tie_breaker: str = "stable",
 ) -> BaseRetrievalBackend:
     """Factory for retrieval backends used by runtime and benchmarks."""
     normalized = name.strip().lower()
+
+    if normalized in {"forest", "retrieval_forest"}:
+        if not forest_db_paths or not forest_profile_names:
+            raise ValueError("forest_db_paths and forest_profile_names are required for forest backend")
+        profiles = [FTS5LexicalBackend(p) for p in forest_db_paths]
+        return RetrievalForestBackend(
+            profiles=profiles,
+            profile_names=forest_profile_names,
+            fusion_method=fusion_method,
+            dedup_method=dedup_method,
+            tie_breaker=tie_breaker,
+        )
 
     if normalized in {"lexical_fts5", "fts5", "lexical"}:
         if db_path is None:

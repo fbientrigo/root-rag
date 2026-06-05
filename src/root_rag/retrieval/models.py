@@ -61,6 +61,8 @@ class EvidenceCandidate:
     root_ref: str
     resolved_commit: str
     score: float
+    source_profile: Optional[str] = None
+    original_rank: Optional[int] = None
 
     @property
     def source_type(self) -> str:

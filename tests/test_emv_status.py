@@ -10,6 +10,17 @@ from pathlib import Path
 import yaml
 
 
+MANDATORY = [
+    "q02_make_muon_dis",
+    "q03_run_simscript",
+    "q04_shipreco",
+    "q05_doca",
+    "q06_sbt",
+    "q07_ubt",
+    "q08_muioni",
+]
+
+
 def _load_module():
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "emv_status.py"
     spec = importlib.util.spec_from_file_location("emv_status", script_path)
@@ -21,181 +32,229 @@ def _load_module():
     return module
 
 
-def _write_state(root: Path, verdict: str = "ACCEPT WITH NOTES") -> None:
+def _write_state(root: Path) -> None:
     state_path = root / "agents" / "codex_emv" / "heartbeat" / "state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
         json.dumps(
             {
-                "last_verdict": verdict,
+                "last_verdict": "ACCEPT WITH NOTES",
                 "last_run_summary": "summary",
                 "next_prompt_path": "agents/codex_emv/heartbeat/next_prompt.md",
                 "open_items": [],
-                "last_updated": "2026-04-30",
+                "last_updated": "2026-05-03",
             }
         ),
         encoding="utf-8",
     )
 
 
-def _write_summary(root: Path, run_id: str, gate_status: str, stamp: int, qrels_state: str = "NO_CONFIRMED_QRELS") -> Path:
+def _write_summary(root: Path, run_id: str = "run_pass") -> None:
     summary_path = root / "reports" / f"{run_id}_vertical_slice_summary.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
-        json.dumps({"run_id": run_id, "acceptance_gate_status": gate_status, "qrels_state": qrels_state}),
+        json.dumps({"run_id": run_id, "acceptance_gate_status": "PASS", "qrels_state": "NO_CONFIRMED_QRELS"}),
         encoding="utf-8",
     )
-    os.utime(summary_path, (stamp, stamp))
-    return summary_path
 
 
-def _write_candidates(path: Path) -> None:
-    payload = {
-        "pack_id": "muon_dis_workflow_v1",
-        "candidates": [
+def _write_candidates(path: Path, *, include_not_found: bool) -> None:
+    rows = []
+    for query_id in MANDATORY:
+        rows.append(
             {
-                "query_id": "q01",
-                "query_text": "muonDIS",
+                "query_id": query_id,
+                "query_text": query_id,
                 "manifest_status": "HIT_OR_TEXT_EVIDENCE",
                 "review_status": "REVIEW_REQUIRED",
-                "qrels": [{"file_path": "muonDIS/makeMuonDIS.py", "start_line": 10, "end_line": 20}],
-            },
-            {
-                "query_id": "q09",
-                "query_text": "InactivateMuonProcesses",
-                "manifest_status": "ZERO_HIT",
-                "review_status": "NOT_FOUND_IN_INDEX",
-                "qrels": [],
-            },
-        ],
+                "qrels": [{"file_path": f"{query_id}.py", "start_line": 10, "end_line": 20}],
+            }
+        )
+    inactivate = {
+        "query_id": "q09_inactivate_muon_processes",
+        "query_text": "InactivateMuonProcesses",
+        "manifest_status": "ZERO_HIT",
+        "review_status": "NOT_FOUND_IN_INDEX" if include_not_found else "REVIEW_REQUIRED",
+        "qrels": [],
     }
+    rows.append(inactivate)
+
+    payload = {"pack_id": "muon_dis_workflow_v1", "candidates": rows}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
-def _write_decisions(path: Path, decision: str = "NEEDS_CONTEXT") -> None:
-    payload = {
-        "review_id": "review-1",
-        "decisions": [
+def _write_decisions(path: Path, approved_queries: list[str]) -> None:
+    rows = []
+    for query_id in MANDATORY:
+        decision = "APPROVED" if query_id in approved_queries else "NEEDS_CONTEXT"
+        reason = "validated anchor" if decision == "APPROVED" else "pending review"
+        notes = "manual verified" if decision == "APPROVED" else "pending"
+        rows.append(
             {
-                "query_id": "q01",
-                "file_path": "muonDIS/makeMuonDIS.py",
+                "query_id": query_id,
+                "file_path": f"{query_id}.py",
                 "start_line": 10,
                 "end_line": 20,
                 "decision": decision,
                 "relevance": 1,
-                "reason": "reason",
-                "reviewer_notes": "notes",
+                "reason": reason,
+                "reviewer_notes": notes,
             }
-        ],
-    }
+        )
+    payload = {"review_id": "review-1", "decisions": rows}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
-def _write_qrels(path: Path, confirmed_count: int = 0) -> None:
+def _write_qrels(path: Path, confirmed_queries: list[str]) -> None:
     confirmed_rows = []
-    if confirmed_count > 0:
-        confirmed_rows = [
+    for query_id in confirmed_queries:
+        confirmed_rows.append(
             {
-                "query_id": "q01",
-                "qrels": [
-                    {
-                        "file_path": "muonDIS/makeMuonDIS.py",
-                        "start_line": 10 + idx,
-                        "end_line": 20 + idx,
-                        "relevance": 1,
-                    }
-                    for idx in range(confirmed_count)
-                ],
+                "query_id": query_id,
+                "qrels": [{"file_path": f"{query_id}.py", "start_line": 10, "end_line": 20, "relevance": 1}],
             }
-        ]
+        )
     payload = {"pack_id": "muon_dis_workflow_v1", "confirmed_qrels": confirmed_rows, "pending_qrels": []}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
-def _prepare_required_files(root: Path, decision: str = "NEEDS_CONTEXT", confirmed_count: int = 0) -> None:
+def _write_agent_adjudicated(path: Path, *, approved_count: int) -> None:
+    rows = []
+    for idx in range(approved_count):
+        rows.append(
+            {
+                "query_id": f"q{idx + 1:02d}",
+                "query_text": "x",
+                "file_path": f"f{idx}.py",
+                "start_line": 1,
+                "end_line": 2,
+                "rank": 1,
+                "agent_decision": "AGENT_APPROVED",
+                "proposed_relevance": 3,
+                "confidence": "HIGH",
+                "reasoning": "ok",
+                "residual_risk": "risk",
+                "label_source": "codex_agent",
+                "human_review_required": True,
+            }
+        )
+    payload = {
+        "adjudicated": rows,
+        "summary": {
+            "agent_adjudicated_count": approved_count,
+            "agent_approved_count": approved_count,
+            "agent_rejected_count": 0,
+            "agent_needs_context_count": 0,
+            "human_approved_count": 0,
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+
+def _prepare(root: Path, *, approved_queries: list[str], confirmed_queries: list[str], include_not_found: bool) -> None:
     _write_state(root)
-    _write_candidates(root / "benchmarks" / "muon_dis" / "qrels_candidates.yaml")
-    _write_decisions(root / "benchmarks" / "muon_dis" / "qrels_review_decisions.yaml", decision=decision)
-    _write_qrels(root / "benchmarks" / "muon_dis" / "qrels.yaml", confirmed_count=confirmed_count)
+    _write_summary(root)
+    _write_candidates(root / "benchmarks" / "muon_dis" / "qrels_candidates.yaml", include_not_found=include_not_found)
+    _write_decisions(root / "benchmarks" / "muon_dis" / "qrels_review_decisions.yaml", approved_queries=approved_queries)
+    _write_qrels(root / "benchmarks" / "muon_dis" / "qrels.yaml", confirmed_queries=confirmed_queries)
 
 
-def test_status_includes_qrel_decision_counts(tmp_path: Path) -> None:
+def test_no_approved_qrels_gives_no_qrels_confirmed_state(tmp_path: Path) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
     try:
-        _prepare_required_files(tmp_path, decision="NEEDS_CONTEXT", confirmed_count=0)
-        _write_summary(tmp_path, "run_pass", "PASS", 2000)
+        _prepare(tmp_path, approved_queries=[], confirmed_queries=[], include_not_found=True)
         summary = module.collect_status()
-        assert summary["qrel_review_decision_count"] == 1
-        assert summary["approved_decision_count"] == 0
-        assert summary["rejected_decision_count"] == 0
-        assert summary["needs_context_decision_count"] == 1
-        assert summary["qrel_candidates_count"] == 1
-        assert summary["not_found_in_index_count"] == 1
-    finally:
-        os.chdir(cwd_before)
-
-
-def test_scientific_state_no_qrels_confirmed_when_no_approved(tmp_path: Path) -> None:
-    module = _load_module()
-    cwd_before = Path.cwd()
-    os.chdir(tmp_path)
-    try:
-        _prepare_required_files(tmp_path, decision="NEEDS_CONTEXT", confirmed_count=0)
-        _write_summary(tmp_path, "run_pass", "PASS", 2000)
-        summary = module.collect_status()
-        assert summary["approved_decision_count"] == 0
+        assert summary["v0_readiness_state"] == "NO_QRELS_CONFIRMED"
         assert summary["scientific_state"] == "NO_QRELS_CONFIRMED"
+        assert summary["v0_coverage_ready"] is False
     finally:
         os.chdir(cwd_before)
 
 
-def test_scientific_state_ready_for_eval_when_confirmed_qrels_exist(tmp_path: Path) -> None:
+def test_partial_approvals_give_partial_coverage(tmp_path: Path) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
     try:
-        _prepare_required_files(tmp_path, decision="APPROVED", confirmed_count=2)
-        _write_summary(tmp_path, "run_pass", "PASS", 2000, qrels_state="HAS_CONFIRMED_QRELS")
+        _prepare(
+            tmp_path,
+            approved_queries=["q02_make_muon_dis", "q03_run_simscript"],
+            confirmed_queries=[],
+            include_not_found=True,
+        )
         summary = module.collect_status()
-        assert summary["confirmed_qrel_count"] == 2
-        assert summary["scientific_state"] == "QRELS_CONFIRMED_READY_FOR_EVAL"
-        assert summary["v0_freeze_allowed"] is True
+        assert summary["v0_readiness_state"] == "PARTIAL_COVERAGE"
+        assert summary["v0_coverage_ready"] is False
+        assert "ShipReco" in summary["missing_v0_coverage_areas"]
     finally:
         os.chdir(cwd_before)
 
 
-def test_markdown_mode_prints_readable_summary(tmp_path: Path, capsys) -> None:
+def test_missing_inactivate_review_blocks_coverage(tmp_path: Path) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
     try:
-        _prepare_required_files(tmp_path, decision="NEEDS_CONTEXT", confirmed_count=0)
-        _write_summary(tmp_path, "run_pass", "PASS", 2000)
+        _prepare(tmp_path, approved_queries=MANDATORY, confirmed_queries=[], include_not_found=False)
+        summary = module.collect_status()
+        assert summary["v0_coverage_ready"] is False
+        assert "InactivateMuonProcesses" in summary["missing_v0_coverage_areas"]
+        assert summary["v0_readiness_state"] == "PARTIAL_COVERAGE"
+    finally:
+        os.chdir(cwd_before)
+
+
+def test_reviewed_not_found_inactivate_satisfies_area_without_qrel(tmp_path: Path) -> None:
+    module = _load_module()
+    cwd_before = Path.cwd()
+    os.chdir(tmp_path)
+    try:
+        _prepare(tmp_path, approved_queries=MANDATORY, confirmed_queries=[], include_not_found=True)
+        summary = module.collect_status()
+        assert summary["confirmed_qrel_count"] == 0
+        assert "InactivateMuonProcesses" in summary["reviewed_not_found_areas"]
+        assert summary["v0_coverage_ready"] is True
+        assert summary["v0_readiness_state"] == "COVERAGE_READY_FOR_FREEZE"
+    finally:
+        os.chdir(cwd_before)
+
+
+def test_markdown_mode_prints_v0_fields(tmp_path: Path, capsys) -> None:
+    module = _load_module()
+    cwd_before = Path.cwd()
+    os.chdir(tmp_path)
+    try:
+        _prepare(tmp_path, approved_queries=[], confirmed_queries=[], include_not_found=True)
         assert module.main(["--markdown"]) == 0
         out = capsys.readouterr().out
-        assert "# EMV Status" in out
-        assert "scientific_state" in out
-        assert "qrel_review_decision_count" in out
+        assert "v0_coverage_ready" in out
+        assert "missing_v0_coverage_areas" in out
+        assert "v0_readiness_state" in out
     finally:
         os.chdir(cwd_before)
 
 
-def test_malformed_yaml_or_json_handled_clearly(tmp_path: Path, capsys) -> None:
+def test_emv_status_reports_agent_adjudication_counts_and_scientific_state_gate(tmp_path: Path) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
     try:
-        state_path = tmp_path / "agents" / "codex_emv" / "heartbeat" / "state.json"
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        state_path.write_text("{not-json", encoding="utf-8")
-        code = module.main([])
-        out = capsys.readouterr().out
-        assert code == 2
-        assert "MALFORMED_REQUIRED_FILE" in out
+        _prepare(tmp_path, approved_queries=MANDATORY, confirmed_queries=[], include_not_found=True)
+        _write_agent_adjudicated(
+            tmp_path / "benchmarks" / "muon_dis" / "qrels_agent_adjudicated.yaml",
+            approved_count=2,
+        )
+        summary = module.collect_status()
+        assert summary["agent_adjudicated_count"] == 2
+        assert summary["agent_approved_count"] == 2
+        assert summary["human_approved_count"] == 0
+        assert summary["confirmed_qrel_count"] == 0
+        assert summary["scientific_state"] == "NO_QRELS_CONFIRMED"
     finally:
         os.chdir(cwd_before)
