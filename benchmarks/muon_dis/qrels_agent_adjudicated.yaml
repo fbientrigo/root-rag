@@ -1,0 +1,43 @@
+generated_at: '2026-05-04T00:00:00+00:00'
+label_tier: agentic_bootstrap
+label_source: codex_agent
+human_approved: false
+policy: conservative_agentic_adjudication_v1
+inputs:
+  safe_shortlist: benchmarks/muon_dis/qrels_safe_to_review.yaml
+  proposals: benchmarks/muon_dis/qrels_agent_review_proposals.yaml
+  redteam: benchmarks/muon_dis/qrels_agent_review_redteam.yaml
+adjudicated:
+  - query_id: q06_sbt
+    query_text: SBT
+    file_path: muonDIS/make_nTuple_SBT.py
+    start_line: 1
+    end_line: 80
+    rank: 1
+    agent_decision: AGENT_APPROVED
+    proposed_relevance: 3
+    confidence: HIGH
+    reasoning: Proposal and red-team are aligned (PROPOSE_APPROVED + KEEP_APPROVED), evidence range is concrete, and snippet is executable rather than comment/doc-only.
+    residual_risk: Measures lexical/local relevance only; does not validate full workflow truth or physics correctness.
+    label_source: codex_agent
+    human_review_required: true
+  - query_id: q02_make_muon_dis
+    query_text: makeMuonDIS
+    file_path: muonDIS/makeMuonDIS.py
+    start_line: 71
+    end_line: 150
+    rank: 2
+    agent_decision: AGENT_APPROVED
+    proposed_relevance: 3
+    confidence: HIGH
+    reasoning: Proposal and red-team are aligned (PROPOSE_APPROVED + KEEP_APPROVED), evidence range is concrete, and function-level context is present in retrieved snippet.
+    residual_risk: Must not be used to infer call-order/data-flow beyond local snippet evidence.
+    label_source: codex_agent
+    human_review_required: true
+summary:
+  agent_adjudicated_count: 2
+  agent_approved_count: 2
+  agent_rejected_count: 0
+  agent_needs_context_count: 0
+  human_approved_count: 0
+  bootstrap_only: true

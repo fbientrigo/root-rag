@@ -1,0 +1,153 @@
+pack_id: fairship_muon_dis_operational_v1
+rq: FairShip Muon DIS operational tracing (evidence-first)
+created: 2026-05-04
+tags:
+  - fairship
+  - muon-dis
+  - operational
+  - bm25
+queries:
+  - id: q01_make_muondis
+    natural_language: "makeMuonDIS"
+    bm25_tokens: ["makeMuonDIS"]
+    group: muon_dis
+
+  - id: q02_disparticles
+    natural_language: "DISParticles"
+    bm25_tokens: ["DISParticles"]
+    group: muon_dis
+
+  - id: q03_softparticles
+    natural_language: "SoftParticles"
+    bm25_tokens: ["SoftParticles"]
+    group: muon_dis
+
+  - id: q04_inmuon
+    natural_language: "InMuon"
+    bm25_tokens: ["InMuon"]
+    group: muon_dis
+
+  - id: q05_muondis_root
+    natural_language: "muonDis.root"
+    bm25_tokens: ["muonDis.root"]
+    group: muon_dis
+
+  - id: q06_ndis
+    natural_language: "nDIS"
+    bm25_tokens: ["nDIS"]
+    group: muon_dis
+
+  - id: q07_cross_sec
+    natural_language: "cross_sec"
+    bm25_tokens: ["cross_sec"]
+    group: muon_dis
+
+  - id: q08_run_simscript
+    natural_language: "run_simScript"
+    bm25_tokens: ["run_simScript"]
+    group: simulation_steering
+
+  - id: q09_muonback
+    natural_language: "MuonBack"
+    bm25_tokens: ["MuonBack"]
+    group: simulation_steering
+
+  - id: q10_pythia8_geant4_onlymuons
+    natural_language: "pythia8_Geant4_onlyMuons"
+    bm25_tokens: ["pythia8_Geant4_onlyMuons"]
+    group: simulation_steering
+
+  - id: q11_setmaterials
+    natural_language: "SetMaterials"
+    bm25_tokens: ["SetMaterials"]
+    group: simulation_steering
+
+  - id: q12_run_init
+    natural_language: "run.Init"
+    bm25_tokens: ["run.Init"]
+    group: simulation_steering
+
+  - id: q13_fairrunsim
+    natural_language: "FairRunSim"
+    bm25_tokens: ["FairRunSim"]
+    group: simulation_steering
+
+  - id: q14_geant4
+    natural_language: "Geant4"
+    bm25_tokens: ["Geant4"]
+    group: simulation_steering
+
+  - id: q15_sbt
+    natural_language: "SBT"
+    bm25_tokens: ["SBT"]
+    group: detector_veto
+
+  - id: q16_ubt
+    natural_language: "UBT"
+    bm25_tokens: ["UBT"]
+    group: detector_veto
+
+  - id: q17_upstreamtaggerpoint
+    natural_language: "UpstreamTaggerPoint"
+    bm25_tokens: ["UpstreamTaggerPoint"]
+    group: detector_veto
+
+  - id: q18_vetopoint
+    natural_language: "vetoPoint"
+    bm25_tokens: ["vetoPoint"]
+    group: detector_veto
+
+  - id: q19_muon_vetopoints
+    natural_language: "muon_vetoPoints"
+    bm25_tokens: ["muon_vetoPoints"]
+    group: detector_veto
+
+  - id: q20_muon_upstreamtaggerpoints
+    natural_language: "muon_UpstreamTaggerPoints"
+    bm25_tokens: ["muon_UpstreamTaggerPoints"]
+    group: detector_veto
+
+  - id: q21_innerwall
+    natural_language: "innerwall"
+    bm25_tokens: ["innerwall"]
+    group: geometry_wall
+
+  - id: q22_dist2innerwall
+    natural_language: "Dist2InnerWall"
+    bm25_tokens: ["Dist2InnerWall"]
+    group: geometry_wall
+
+  - id: q23_is_in_fiducial
+    natural_language: "is_in_fiducial"
+    bm25_tokens: ["is_in_fiducial"]
+    group: geometry_wall
+
+  - id: q24_vessel
+    natural_language: "vessel"
+    bm25_tokens: ["vessel"]
+    group: geometry_wall
+
+  - id: q25_wall
+    natural_language: "Wall"
+    bm25_tokens: ["Wall"]
+    group: geometry_wall
+
+  - id: q26_muioni
+    natural_language: "muIoni"
+    bm25_tokens: ["muIoni"]
+    group: processes
+
+  - id: q27_mubrems
+    natural_language: "muBrems"
+    bm25_tokens: ["muBrems"]
+    group: processes
+
+  - id: q28_mupair
+    natural_language: "muPair"
+    bm25_tokens: ["muPair"]
+    group: processes
+
+  - id: q29_inactivate_muon_processes
+    natural_language: "InactivateMuonProcesses"
+    bm25_tokens: ["InactivateMuonProcesses"]
+    group: processes

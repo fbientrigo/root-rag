@@ -1,0 +1,134 @@
+# MuonDIS Benchmark Tasks
+# Measures root-rag retrieval accuracy for PhD thesis support
+
+- id: entrypoint_sim
+  user_story: "As a researcher, I want to find the exact FairShip simulation macro used for Muon DIS to understand how the geometry is initialized."
+  query: "run_simScript.py simulation entrypoint MuDIS"
+  expected_answer_shape: "Reference to macro/run_simScript.py with --MuDIS flag check."
+  expected_artifacts: ["macro/run_simScript.py"]
+  pass_criteria: "Correct file path identified; simulation layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: entrypoint_muondis
+  user_story: "As an agent, I need to find the Muon DIS interaction generator script to extract Pythia6 settings."
+  query: "makeMuonDIS.py MuonDIS generator entrypoint"
+  expected_answer_shape: "Reference to muonDIS/makeMuonDIS.py."
+  expected_artifacts: ["muonDIS/makeMuonDIS.py"]
+  pass_criteria: "Correct file path identified; generation layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: chamber1_alignment
+  user_story: "As a researcher, I want to verify if mu_start is calculated relative to Chamber1.z."
+  query: "Chamber1 z-window alignment mu_start ship_geo"
+  expected_answer_shape: "Formula: mu_start = ship_geo.Chamber1.z - ship_geo.chambers.Tub1length - 10.0 * u.cm"
+  expected_artifacts: ["macro/run_simScript.py", "docs/wiki/fairship/geometry/Chamber1_alignment.md"]
+  pass_criteria: "Correct formula or z-anchor identified; geometry layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: vertex_sampling
+  user_story: "As a researcher, I want to know if Muon DIS vertices are sampled according to material density."
+  query: "MeanMaterialBudget MuDIS vertex sampling density rejection sampling"
+  expected_answer_shape: "Description of MeanMaterialBudget call and rejection sampling loop in MuDISGenerator.cxx."
+  expected_artifacts: ["shipgen/MuDISGenerator.cxx", "docs/wiki/fairship/generators/MeanMaterialBudget_usage.md"]
+  pass_criteria: "Identification of the probabilistic sampling mechanism; generator layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: pythia6_params
+  user_story: "As an agent, I need to extract the Pythia6 MSEL and PARP(2) values for MuDIS."
+  query: "Pythia6 MuDIS parameters MSEL PARP FIXT MDCY"
+  expected_answer_shape: "MSEL=2, PARP(2)=2.0, Mode=FIXT."
+  expected_artifacts: ["muonDIS/makeMuonDIS.py", "docs/wiki/fairship/config/Pythia6_MuDIS_params.md"]
+  pass_criteria: "Exact parameter values identified; configuration layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: normalization_factors
+  user_story: "As a researcher, I need to know how the nDIS multiplicity factor is used to weight events."
+  query: "MuDIS normalization nDIS nmuons weight CrossSection"
+  expected_answer_shape: "Weight = 1/nDIS applied in MuDISGenerator."
+  expected_artifacts: ["muonDIS/makeMuonDIS.py", "shipgen/MuDISGenerator.cxx", "docs/wiki/fairship/normalization/MuDIS_normalization_factors.md"]
+  pass_criteria: "Correct weighting factor (1/nDIS) identified; normalization layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: crosssection_promotion
+  user_story: "As a researcher, I want to confirm that CrossSection is saved as a per-event branch in the simulation output."
+  query: "CrossSection branch promotion run_simScript.py InMuon"
+  expected_answer_shape: "Explanation of how InMuon[0][10] is extracted and assigned to a new CrossSection branch."
+  expected_artifacts: ["macro/run_simScript.py", "docs/wiki/fairship/branches/CrossSection_promotion.md"]
+  pass_criteria: "Correct branch promotion logic identified; analysis/simulation bridge correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: dis_tree_schema
+  user_story: "As an agent, I need the branch names and types of the muonDis.root tree."
+  query: "DIS tree schema InMuon DISParticles SoftParticles TVectorD"
+  expected_answer_shape: "List of branches (InMuon, DISParticles, SoftParticles) as TClonesArray<TVectorD>."
+  expected_artifacts: ["muonDIS/makeMuonDIS.py", "docs/wiki/fairship/trees/DIS_tree_schema.md"]
+  pass_criteria: "Correct branch names and TVectorD types identified; analysis layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: sbt_threshold
+  user_story: "As a researcher, I want to find the energy threshold used to validate SBT hits."
+  query: "SBT 45 MeV threshold energy loss MIP setInvalid"
+  expected_answer_shape: "Threshold = 0.045 GeV (45 MeV) in SBTDetector.py."
+  expected_artifacts: ["python/detectors/SBTDetector.py", "docs/wiki/fairship/detectors/SBT_energy_threshold_rationale.md"]
+  pass_criteria: "45 MeV value identified; rationale marked PROVISIONAL; detector layer correctly attributed."
+  claim_state_policy: PROVISIONAL
+  last_run: null
+  result: null
+  pass: null
+
+- id: ubt_geometry
+  user_story: "As a researcher, I want to confirm the UBT simplified geometry dimensions."
+  query: "UpstreamTagger simplified geometry vacuum box threshold 0.1 GeV"
+  expected_answer_shape: "UBT as vacuum box (4.4m x 6.4m x 16cm) with 0.1 GeV/c threshold."
+  expected_artifacts: ["UpstreamTagger/UpstreamTagger.h", "python/shipVeto.py", "docs/wiki/fairship/detectors/UpstreamTagger_simplified_geometry.md"]
+  pass_criteria: "Correct dimensions and threshold identified; geometry layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: veto_linking
+  user_story: "As a researcher, I want to find the method that links reconstructed tracks to SBT veto hits."
+  query: "vetoHit track linking extrapolation shipDigiReco.py distMin"
+  expected_answer_shape: "Reference to findVetoHitOnTrack and linkVetoOnTracks in shipDigiReco.py."
+  expected_artifacts: ["python/shipDigiReco.py", "docs/wiki/fairship/reconstruction/vetoHit_track_linking.md"]
+  pass_criteria: "Correct method names identified; reconstruction layer correctly attributed."
+  claim_state_policy: CONFIRMED
+  last_run: null
+  result: null
+  pass: null
+
+- id: lxplus_preflight
+  user_story: "As a researcher, I want to know the prerequisites for running a MuDIS job on LXPLUS."
+  query: "LXPLUS preflight checklist prerequisites CVMFS setup"
+  expected_answer_shape: "Checklist including CVMFS setup, MuDIS ROOT file, and generator compatibility."
+  expected_artifacts: ["docs/wiki/guides/LXPLUS_preflight_checklist.md"]
+  pass_criteria: "Prerequisites identified; marked PROVISIONAL; runtime-preflight layer correctly attributed."
+  claim_state_policy: PROVISIONAL
+  last_run: null
+  result: null
+  pass: null

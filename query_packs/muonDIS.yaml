@@ -1,0 +1,135 @@
+# MuonDIS Query Pack
+# Grounded in FairShip master and audited Wiki notes (2026-05-13)
+
+- id: entrypoint_sim
+  description: Find the main FairShip simulation entrypoint used for Muon DIS.
+  query: "run_simScript.py simulation entrypoint MuDIS"
+  aliases: ["run_simScript", "MuonBack"]
+  fallback_queries: ["run_simScript MuDIS", "simulation macro"]
+  expected_evidence_type: code-local
+  expected_files_or_notes: 
+    - macro/run_simScript.py
+    - docs/wiki/fairship/branches/CrossSection_promotion.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Hallucination of standard GEANT4 main() instead of FairShip macro.
+
+- id: entrypoint_muondis
+  description: Find the script responsible for generating Muon DIS interactions.
+  query: "makeMuonDIS.py MuonDIS generator entrypoint"
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - muonDIS/makeMuonDIS.py
+    - docs/wiki/fairship/trees/DIS_tree_schema.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Confusion with standard Pythia8 event generation.
+
+- id: chamber1_alignment
+  description: Identify the geometric alignment of Chamber1 for MuDIS z-window boundaries.
+  query: "Chamber1 z-window alignment mu_start ship_geo"
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - macro/run_simScript.py
+    - docs/wiki/fairship/geometry/Chamber1_alignment.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Incorrect z-offset or referencing the wrong tracking station.
+
+- id: vertex_sampling
+  description: Find the material-density-based vertex sampling logic for Muon DIS.
+  query: "MeanMaterialBudget MuDIS vertex sampling density rejection sampling"
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - shipgen/MuDISGenerator.cxx
+    - docs/wiki/fairship/generators/MeanMaterialBudget_usage.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Assuming uniform vertex distribution in vacuum.
+
+- id: pythia6_params
+  description: Find Pythia6 parameters used in the Muon DIS generator.
+  query: "Pythia6 MuDIS parameters MSEL PARP FIXT MDCY"
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - muonDIS/makeMuonDIS.py
+    - docs/wiki/fairship/config/Pythia6_MuDIS_params.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Using collider mode instead of fixed-target mode.
+
+- id: normalization_factors
+  description: Identify normalization factors nDIS and nmuons for cross-section scaling.
+  query: "MuDIS normalization nDIS nmuons weight CrossSection"
+  aliases: ["nDIS", "nmuons"]
+  fallback_queries: ["nDIS weight", "normalization factors"]
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - muonDIS/makeMuonDIS.py
+    - shipgen/MuDISGenerator.cxx
+    - docs/wiki/fairship/normalization/MuDIS_normalization_factors.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Missing the 1/nDIS weight scaling.
+
+- id: crosssection_promotion
+  description: Find the logic that promotes CrossSection from input to output tree.
+  query: "CrossSection branch promotion run_simScript.py InMuon"
+  aliases: ["CrossSection", "InMuon[0][10]"]
+  fallback_queries: ["CrossSection Fill", "CrossSection promotion"]
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - macro/run_simScript.py
+    - docs/wiki/fairship/branches/CrossSection_promotion.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Claiming CrossSection is a static constant instead of per-event.
+
+- id: dis_tree_schema
+  description: Identify the schema of the DIS input tree branches.
+  query: "DIS tree schema InMuon DISParticles SoftParticles TVectorD"
+  aliases: ["InMuon", "DISParticles", "SoftParticles"]
+  fallback_queries: ["DIS tree", "DIS branches"]
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - muonDIS/makeMuonDIS.py
+    - docs/wiki/fairship/trees/DIS_tree_schema.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Hallucinating branch names or data types (e.g., float vs TVectorD).
+
+- id: sbt_threshold
+  description: Find the energy threshold for the Surrounding Background Tagger (SBT).
+  query: "SBT 45 MeV threshold energy loss MIP setInvalid"
+  aliases: ["45 MeV", "SBT threshold"]
+  fallback_queries: ["SBT energy loss", "SBT setInvalid"]
+  expected_evidence_type: mixed
+  expected_files_or_notes:
+    - python/detectors/SBTDetector.py
+    - docs/wiki/fairship/detectors/SBT_energy_threshold_rationale.md
+  expected_claim_state: PROVISIONAL
+  failure_mode_if_missing: Claiming the 45 MeV rationale is physics-validated without primary documentation.
+
+- id: ubt_geometry
+  description: Find the simplified geometry and threshold for the Upstream Background Tagger (UBT).
+  query: "UpstreamTagger simplified geometry vacuum box threshold 0.1 GeV"
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - UpstreamTagger/UpstreamTagger.h
+    - python/shipVeto.py
+    - docs/wiki/fairship/detectors/UpstreamTagger_simplified_geometry.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Referencing the legacy multi-layer RPC geometry.
+
+- id: veto_linking
+  description: Find the reconstruction logic for linking tracks to veto hits.
+  query: "vetoHit track linking extrapolation shipDigiReco.py distMin"
+  aliases: ["vetoHit", "linkVetoOnTracks"]
+  fallback_queries: ["vetoHit linking", "veto extrapolation"]
+  expected_evidence_type: code-local
+  expected_files_or_notes:
+    - python/shipDigiReco.py
+    - docs/wiki/fairship/reconstruction/vetoHit_track_linking.md
+  expected_claim_state: CONFIRMED
+  failure_mode_if_missing: Assuming direct geometric intersection instead of GENFIT extrapolation.
+
+- id: lxplus_preflight
+  description: Verify prerequisites for running Muon DIS simulation on LXPLUS.
+  query: "LXPLUS preflight checklist prerequisites CVMFS setup"
+  expected_evidence_type: external-doc
+  expected_files_or_notes:
+    - docs/wiki/guides/LXPLUS_preflight_checklist.md
+  expected_claim_state: PROVISIONAL
+  failure_mode_if_missing: Claiming runtime validation or successful execution on LXPLUS.

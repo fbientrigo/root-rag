@@ -1,0 +1,14 @@
+[
+  {"id": "forest_q01", "query": "InMuon", "category": "schema"},
+  {"id": "forest_q02", "query": "CrossSection cbmsim InMuon", "category": "workflow"},
+  {"id": "forest_q03", "query": "MuDISGenerator MeanMaterialBudget", "category": "workflow"},
+  {"id": "forest_q04", "query": "makeMuonDIS DISParticles SoftParticles", "category": "schema"},
+  {"id": "forest_q05", "query": "ShipCave Cavern", "category": "geometry"},
+  {"id": "forest_q06", "query": "SBT 45 MeV", "category": "selection"},
+  {"id": "forest_q07", "query": "UBT momentum", "category": "selection"},
+  {"id": "forest_q08", "query": "fiducialCheck DecayVacuum", "category": "geometry"},
+  {"id": "forest_q09", "query": "UseGeneralProcess GammaToMuons", "category": "physics"},
+  {"id": "forest_q10", "query": "FairPrimaryGenerator AddTrack MuDISGenerator", "category": "workflow"},
+  {"id": "forest_q11", "query": "MeanMaterialBudget density prob2int", "category": "physics"},
+  {"id": "forest_q12", "query": "add_muonresponse interaction_point", "category": "selection"}
+]

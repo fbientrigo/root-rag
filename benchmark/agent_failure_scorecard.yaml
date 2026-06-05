@@ -1,0 +1,33 @@
+runs:
+  - run_id: gemini_run_001_original
+    date: "2026-05-13"
+    pass: 10
+    partial: 0
+    fail: 0
+    status: INFLATED
+    note: "Original self-score before audit."
+
+  - run_id: gemini_run_001_audited
+    date: "2026-05-13"
+    pass: 1
+    partial: 7
+    fail: 2
+    status: AUDITED
+    failure_modes:
+      missing_line_range: 9
+      wrong_evidence_type: 2
+      generic_claim_state: 3
+    note: "Downgraded due to missing line ranges and profile mixing."
+
+  - run_id: agent_failure_v2_run_002
+    date: "2026-05-13"
+    pass: 10
+    partial: 0
+    fail: 0
+    status: HARDENED
+    note: "Executed under v2 schema with mandatory line ranges and show-tool verification."
+
+summary:
+  latest_pass_rate: 1.0
+  total_audited_tasks: 10
+  remaining_blockers: []

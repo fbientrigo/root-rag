@@ -1,0 +1,49 @@
+{
+  "default_profiles": [
+    "small_80_20",
+    "medium_180_40",
+    "large_420_80"
+  ],
+  "profiles": [
+    {
+      "profile_id": "baseline_current",
+      "chunk_size_lines": 80,
+      "overlap_lines": 10,
+      "offset_lines": 0,
+      "source_commit": "98de16a5b264",
+      "corpus_id": "fairship__master__98de16a5b264",
+      "index_output_path": "data/indexes_fairship/fairship__master__98de16a5b264__20260428T060008679936+0000Z",
+      "parent_expansion_policy": null
+    },
+    {
+      "profile_id": "small_80_20",
+      "chunk_size_lines": 80,
+      "overlap_lines": 20,
+      "offset_lines": 0,
+      "source_commit": "98de16a5b264",
+      "corpus_id": "fairship__master__98de16a5b264",
+      "index_output_path": "data/indexes_fairship_forest/small_80_20",
+      "parent_expansion_policy": "context_2"
+    },
+    {
+      "profile_id": "medium_180_40",
+      "chunk_size_lines": 180,
+      "overlap_lines": 40,
+      "offset_lines": 0,
+      "source_commit": "98de16a5b264",
+      "corpus_id": "fairship__master__98de16a5b264",
+      "index_output_path": "data/indexes_fairship_forest/medium_180_40",
+      "parent_expansion_policy": "context_1"
+    },
+    {
+      "profile_id": "large_420_80",
+      "chunk_size_lines": 420,
+      "overlap_lines": 80,
+      "offset_lines": 0,
+      "source_commit": "98de16a5b264",
+      "corpus_id": "fairship__master__98de16a5b264",
+      "index_output_path": "data/indexes_fairship_forest/large_420_80",
+      "parent_expansion_policy": null
+    }
+  ]
+}

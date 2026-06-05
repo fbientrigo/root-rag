@@ -1,0 +1,113 @@
+generated_at: '2026-05-04T00:00:00+00:00'
+source_proposals: benchmarks/muon_dis/qrels_agent_review_proposals.yaml
+reviews:
+  - query_id: q02_make_muon_dis
+    query_text: makeMuonDIS
+    file_path: muonDIS/makeMuonDIS.py
+    start_line: 351
+    end_line: 355
+    original_proposed_decision: PROPOSE_APPROVED
+    redteam_decision: DOWNGRADE_TO_NEEDS_CONTEXT
+    redteam_confidence: HIGH
+    reason: Snippet is only the __main__ call site and is too short to justify qrel-level relevance.
+    required_extra_context: Expand to function body showing makeMuonDIS definition and core logic.
+    human_action: Request broader evidence window before any approval.
+  - query_id: q03_run_simscript
+    query_text: run_simScript
+    file_path: muonShieldOptimization/run_prod.py
+    start_line: 1
+    end_line: 80
+    original_proposed_decision: PROPOSE_NEEDS_CONTEXT
+    redteam_decision: DOWNGRADE_TO_NEEDS_CONTEXT
+    redteam_confidence: HIGH
+    reason: Contains command construction references but still mixes setup and historical comments; needs tighter anchor.
+    required_extra_context: Confirm invocation semantics in focused function block with downstream usage.
+    human_action: Keep pending manual context review.
+  - query_id: q04_shipreco
+    query_text: ShipReco
+    file_path: macro/ShipReco.py
+    start_line: 141
+    end_line: 179
+    original_proposed_decision: PROPOSE_REJECTED
+    redteam_decision: REJECT
+    redteam_confidence: MEDIUM
+    reason: Query token is not explicit in snippet text and this slice does not prove query-specific lexical anchor.
+    required_extra_context: Candidate slice containing explicit ShipReco symbol usage.
+    human_action: Re-rank or fetch alternate candidate for this query.
+  - query_id: q05_doca
+    query_text: DOCA
+    file_path: python/experimental/analysis_toolkit.py
+    start_line: 211
+    end_line: 290
+    original_proposed_decision: PROPOSE_NEEDS_CONTEXT
+    redteam_decision: DOWNGRADE_TO_NEEDS_CONTEXT
+    redteam_confidence: MEDIUM
+    reason: DOCA appears, but this is still selection/table logic and may not be the intended qrel anchor without broader function scope.
+    required_extra_context: Include DOCA method definition and call chain context.
+    human_action: Hold for contextual review.
+  - query_id: q06_sbt
+    query_text: SBT
+    file_path: muonDIS/make_nTuple_SBT.py
+    start_line: 1
+    end_line: 80
+    original_proposed_decision: PROPOSE_APPROVED
+    redteam_decision: KEEP_APPROVED
+    redteam_confidence: HIGH
+    reason: Snippet contains explicit SBT terms in script purpose, filenames, branches, and data structures with executable setup.
+    required_extra_context: None required for initial relevance approval.
+    human_action: Keep as approved candidate.
+  - query_id: q07_ubt
+    query_text: UBT
+    file_path: muonDIS/add_muonresponse.py
+    start_line: 141
+    end_line: 204
+    original_proposed_decision: PROPOSE_NEEDS_CONTEXT
+    redteam_decision: DOWNGRADE_TO_NEEDS_CONTEXT
+    redteam_confidence: HIGH
+    reason: Uses ubt variables and UpstreamTagger fields but still requires query-intent confirmation versus generic merging helper logic.
+    required_extra_context: Add upstream function context and query-specific expected symbol mapping.
+    human_action: Keep pending.
+  - query_id: q08_muioni
+    query_text: muIoni
+    file_path: muonShieldOptimization/ana_ShipMuon.py
+    start_line: 1
+    end_line: 80
+    original_proposed_decision: PROPOSE_NEEDS_CONTEXT
+    redteam_decision: REJECT
+    redteam_confidence: HIGH
+    reason: muIoni appears only in historical comment lines; this is documentation-like context, not strong executable relevance evidence.
+    required_extra_context: Need executable code path that actually toggles or uses muIoni setting.
+    human_action: Reject current candidate and retrieve stronger code evidence.
+  - query_id: q09_inactivate_muon_processes
+    query_text: InactivateMuonProcesses
+    file_path: NOT_FOUND_IN_INDEX
+    start_line: null
+    end_line: null
+    original_proposed_decision: PROPOSE_NOT_FOUND_IN_INDEX
+    redteam_decision: KEEP_NOT_FOUND
+    redteam_confidence: HIGH
+    reason: NOT_FOUND_IN_INDEX must remain coverage metadata, not a qrel candidate.
+    required_extra_context: NOT FOUND IN INDEX
+    human_action: Keep as not-found review record only.
+  - query_id: q01_muondis_anchor
+    query_text: muonDIS
+    file_path: muonDIS/makeMuonDIS.py
+    start_line: 351
+    end_line: 355
+    original_proposed_decision: PROPOSE_APPROVED
+    redteam_decision: DOWNGRADE_TO_NEEDS_CONTEXT
+    redteam_confidence: HIGH
+    reason: This is a minimal entrypoint call snippet; approval appears path/call-site driven and lacks substantive context.
+    required_extra_context: Include surrounding function body and data operations.
+    human_action: Downgrade pending human review.
+  - query_id: q02_make_muon_dis
+    query_text: makeMuonDIS
+    file_path: muonDIS/makeMuonDIS.py
+    start_line: 71
+    end_line: 150
+    original_proposed_decision: PROPOSE_APPROVED
+    redteam_decision: KEEP_APPROVED
+    redteam_confidence: HIGH
+    reason: Contains explicit makeMuonDIS function definition and operational statements in adequate context.
+    required_extra_context: None for preliminary relevance.
+    human_action: Keep approved.

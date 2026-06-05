@@ -1,0 +1,5 @@
+retrieval_sota:
+  contextual_retrieval_enabled: false
+  hybrid_retrieval_enabled: false
+  graphify_comparison_enabled: false
+  enforce_v0_baseline_prerequisite: true
