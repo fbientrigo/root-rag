@@ -8,7 +8,7 @@ ROOT-RAG is a **version-aware, zero-hallucination retrieval system** for CERN RO
 - Finding usage patterns across ROOT + FairShip
 - Exploring SOFIE operators for ML inference
 
-**Current Status:** Production-ready with 4 operational indices (ROOT Tier 1, FairShip, SOFIE, Legacy)
+**Current Status:** Working lexical retrieval pipeline. Indices are **built locally on first run** (none are shipped in the repo) — see Quick Start below.
 
 [![Benchmark Mode Alignment](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml/badge.svg)](https://github.com/fbientrigo/root-rag/actions/workflows/benchmark_mode_alignment.yml)
 
@@ -16,23 +16,34 @@ ROOT-RAG is a **version-aware, zero-hallucination retrieval system** for CERN RO
 
 ## Quick Start
 
+**Prerequisites:** Python 3.9+ (3.10+ recommended), `git`, and network access for
+the first index build (it clones CERN ROOT from GitHub). No indices ship with the
+repo, so **you must build one before querying.**
+
 ```bash
-# Install
+# 1. Install
 git clone https://github.com/fbientrigo/root-rag
 cd root-rag
 pip install -e .
 
-# Query existing indices (instant)
-root-rag ask "Where is TTree::Fill defined?"
-root-rag ask "How does FairShip use TGeoManager?"
-root-rag grep "ROperator_Conv SOFIE"
+# 2. Build your first index (one-time; clones ROOT v6.36.08 and indexes the
+#    default FairShip-focused seed corpus → data/indexes/). Takes a few minutes
+#    on the first run because it clones ROOT; re-runs use the local cache.
+root-rag index --root-ref v6-36-08
 
-# Build new index (one-time, ~45 seconds)
-root-rag index --root-ref v6-36-08 --seed-corpus configs/tier1_corpus_root_636.yaml
-
-# List available indices
+# 3. Confirm the index is ready
 root-rag versions
+
+# 4. Query it (keywords, not full sentences)
+root-rag ask "TTree Fill"
+root-rag grep "TGeoManager"
 ```
+
+> First run prints `[OK] Index created: ...` with chunk/file counts. If you see
+> `No index found`, step 2 has not completed yet.
+
+See [`docs/quickstart.md`](docs/quickstart.md) for a step-by-step walkthrough and
+[`docs/HOW_TO_GUIDE.md`](docs/HOW_TO_GUIDE.md) for detailed usage.
 
 ## Opt-in S1 Semantic Retrieval
 
@@ -52,7 +63,11 @@ root-rag search "TTree::Draw" --root-ref v6-36-08 --retrieval-backend hybrid
 
 ---
 
-## What's Indexed
+## What You Can Index
+
+These are the corpora you can build locally (via `root-rag index` and the helper
+scripts in `scripts/`). They are **not** bundled in the repository — each is
+produced on your machine from the upstream sources.
 
 | Index | Files | Chunks | Content |
 |-------|-------|--------|---------|
@@ -176,8 +191,8 @@ $ root-rag ask "RModel Generate ONNX"
 → RModel.hxx showing ONNX to C++ code generation
 
 # Find operator list
-$ root-rag grep "ROperator" --index sofie
-→ Lists all 39 available SOFIE operators
+$ root-rag grep "ROperator" --profile root
+→ Lists available SOFIE operators (when the SOFIE corpus is indexed)
 ```
 
 **Note:** FairShip doesn't use SOFIE yet (as of 2026-04-01), but ROOT-RAG is ready for future adoption.
@@ -220,8 +235,8 @@ root-rag ask "TGeoManager MakeBox AddNode"
 # Limit results
 root-rag ask "TVector3 momentum" --top-k 5
 
-# JSON output
-root-rag ask "DetectorHit" --json > results.json
+# JSON output is available via the `search` command (see below)
+root-rag search "DetectorHit" --json > results.json
 ```
 
 ### `root-rag grep`
@@ -229,14 +244,11 @@ root-rag ask "DetectorHit" --json > results.json
 Fast keyword search (like grep but on indexed code).
 
 ```bash
-# Search all indices
+# Search the default (root) profile
 root-rag grep "ROperator_Conv"
 
-# Search specific index
-root-rag grep "TTree::Fill" --index tier1
-
-# Limit results
-root-rag grep "TGeoManager" --top-k 10
+# Search a specific index profile (root | fairship | project_docs)
+root-rag grep "TTree::Fill" --profile root
 ```
 
 ### `root-rag index`
@@ -244,15 +256,21 @@ root-rag grep "TGeoManager" --top-k 10
 Build new search indices.
 
 ```bash
-# Index ROOT 6.36.08 with Tier 1 corpus
+# Default: ROOT 6.36.08 with the FairShip-focused seed corpus → data/indexes/
+# (this is what the default `ask`/`grep`/`versions` read from)
+root-rag index --root-ref v6-36-08
+
+# Larger Tier 1 corpus (35 ROOT classes). Query it with --index-dir, since it
+# is written outside the default data/indexes/ location.
 root-rag index --root-ref v6-36-08 \
   --seed-corpus configs/tier1_corpus_root_636.yaml \
   --output-dir data/indexes_tier1
+root-rag ask "TTree Fill" --index-dir data/indexes_tier1
 
-# Index FairShip (requires local clone)
+# Index FairShip (requires a local FairShip clone)
 python scripts/index_fairship.py --fairship-path ../FairShip
 
-# Index SOFIE
+# Index SOFIE operators
 root-rag index --root-ref v6-36-08 \
   --seed-corpus configs/sofie_corpus_root_636.yaml \
   --output-dir data/indexes_sofie
@@ -265,10 +283,15 @@ List all available indices and their metadata.
 ```bash
 root-rag versions
 
-# Output:
-# ROOT Tier 1 (v6-36-08): 1,106 chunks, 53 files
-# FairShip (master): 386 chunks, 163 files  
-# SOFIE (v6-36-08): 140 chunks, 40 files
+# Output (example, after building the default seed index):
+# Indexed ROOT versions:
+#
+#   v6-36-08
+#     Commit: 9005eb7d69f1
+#     Chunks: 619
+#     Files: 19
+#     Created: 2026-06-12T...
+#     Index ID: v6-36-08__9005eb7d69f1__<timestamp>
 ```
 
 ### Other Commands
@@ -317,28 +340,32 @@ root-rag/
 │   ├── parser/           # File discovery, chunking
 │   ├── index/            # FTS5 builder, manifest
 │   └── retrieval/        # Search backends, cross-index
-├── tests/                 # 125 tests (122 passing)
+├── tests/                 # pytest suite (unit + data-dependent integration)
 ├── configs/              # Corpus definitions, golden queries
 ├── scripts/              # Indexing, extraction tools
 ├── docs/                 # Architecture, ADRs, guides
-└── data/                 # Indices, corpora cache
-    ├── indexes_tier1/    # ROOT Tier 1 index
-    ├── indexes_fairship/ # FairShip index
+└── data/                 # Indices + corpora cache (git-ignored, built locally)
+    ├── indexes/          # Default seed index (root profile)
+    ├── indexes_fairship/ # FairShip index (built via scripts/index_fairship.py)
     └── indexes_sofie/    # SOFIE index
 ```
+
+> `data/` is git-ignored and created on first `root-rag index`. Nothing under it
+> ships with the repo.
 
 ---
 
 ## Current Status
 
-**Version:** 0.2.0 (Post-SOFIE Fix)  
-**Health:** Production-Ready ✅
+**Version:** 0.2.0  
+**Health:** Core lexical pipeline working and verified end-to-end ✅
 
 ### Completed Milestones
 
-✅ **Test Infrastructure** (2026-03-31)
-- Fixed failing tests, added SOFIE coverage
-- 125 tests total (122 passing, 0 failures)
+✅ **Test Infrastructure**
+- Unit suite covers corpus fetch, parsing/chunking, FTS5 indexing, and the CLI.
+- Data-dependent integration suites (FairShip, semantic `[s1]`, benchmarks)
+  require pre-built indices — see [Testing](#test-suite).
 
 ✅ **Tier 1 Corpus** (2026-03-31)
 - Expanded to 35 ROOT classes (100% FairShip coverage)
@@ -362,11 +389,12 @@ root-rag/
 
 ### Quality Metrics
 
-- **Tests:** 125 total (122 passing, 3 intentional skips, 0 failures)
-- **Coverage:** 83% (production-ready for MVP)
-- **Storage:** 16 MB (highly efficient)
-- **Query Speed:** <200ms (cross-index)
-- **Indexing Speed:** 10-45 seconds per corpus
+- **Tests:** ~290 total. The unit suite passes on a bare clone; the remaining
+  suites are integration tests that need pre-built indices or the optional
+  `[s1]` extras (see [Test Suite](#test-suite)).
+- **Storage:** ~16 MB for the full set of indices once built.
+- **Query Speed:** <200ms (cross-index).
+- **Indexing Speed:** 10-45 seconds per corpus (after the one-time ROOT clone).
 
 ### Capabilities
 
@@ -415,18 +443,23 @@ root-rag/
 ### Test Suite
 
 ```bash
-# Run all tests
+# Install dev dependencies, then run the suite
+pip install -e ".[dev]"
 pytest
 
-# Run specific test file
-pytest tests/test_golden_queries.py
+# Run a specific test file
+pytest tests/test_fts_index.py
 
 # Run with coverage
 pytest --cov=src/root_rag --cov-report=html
-
-# Verbose output
-pytest -v
 ```
+
+**Note on integration tests:** several suites (e.g. `test_fairship_corpus.py`,
+`test_cross_index.py`, `test_fairship_golden_queries.py`, `test_semantic_*`)
+assert against pre-built indices under `data/` or artifacts that must be
+generated first. On a bare clone they fail with "index not found" / missing-file
+errors until you build the corresponding indices (and install `".[s1]"` for the
+semantic suites). The core unit tests pass without any data setup.
 
 ### Code Style
 
@@ -475,6 +508,23 @@ Manual GitHub Actions run:
 - **Total: ~16 MB** (very efficient)
 
 ---
-ent)
+
+## Code-Graph Scripts (Advanced)
+
+The root-level scripts `rebuild_graph.py`, `rebuild_graph_fast.py`, and
+`explore_graph.py` build a static code-relationship graph. They require extra
+dependencies:
+
+```bash
+pip install -e ".[graph]"   # installs networkx
+```
+
+These scripts also import `graphify`, which is **not published on PyPI** and must
+be obtained separately. They are optional tooling and are not needed for the
+core `index`/`ask`/`grep` workflow.
 
 ---
+
+## License
+
+See [LICENSE](LICENSE). MIT.

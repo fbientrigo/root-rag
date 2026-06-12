@@ -62,8 +62,12 @@ def discover_text_files(repo_root: Path, discovery_profile: Optional[str] = None
     included_extensions = _resolve_extension_set(discovery_profile)
     
     for path in repo_root.rglob("*"):
-        # Skip if any parent directory is excluded
-        if any(part in EXCLUDED_DIRS for part in path.parts):
+        # Skip if any directory *within the repo* is excluded. Evaluate parts
+        # relative to repo_root so that an excluded name in the checkout location
+        # itself (e.g. corpora installed under data/, test fixtures under
+        # artifacts/) does not filter out the entire corpus.
+        relative_parts = path.relative_to(repo_root).parts
+        if any(part in EXCLUDED_DIRS for part in relative_parts):
             continue
         
         if not path.is_file():
