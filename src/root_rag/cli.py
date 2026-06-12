@@ -584,6 +584,7 @@ def search(
     profile: str,
     top_k: int,
     retrieval_backend: str,
+    baseline: bool,
     retrieval_forest: Optional[str],
     fusion: str,
     dedup: str,

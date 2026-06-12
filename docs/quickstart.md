@@ -50,5 +50,6 @@ root-rag versions
 
 You've successfully set up `root-rag`!
 
--   To learn about more advanced indexing and searching, see the guides in `docs/guides/`.
--   For a complete list of commands, see the `README.md` or run `root-rag --help`.
+-   For a detailed walkthrough, see [`docs/HOW_TO_GUIDE.md`](HOW_TO_GUIDE.md).
+-   For writing effective queries, see [`docs/QUERY_SYNTAX_GUIDE.md`](QUERY_SYNTAX_GUIDE.md).
+-   For a complete list of commands, see the [`README.md`](../README.md) or run `root-rag --help`.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "root-rag"
-version = "0.0.1"
+version = "0.2.0"
 description = "Root RAG - A hybrid retrieval-based RAG system"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -25,6 +25,13 @@ s1 = [
     "numpy>=1.26",
     "faiss-cpu>=1.8.0",
     "sentence-transformers>=3.0",
+]
+# Optional dependencies for the root-level code-graph scripts
+# (rebuild_graph.py, rebuild_graph_fast.py, explore_graph.py).
+# NOTE: these scripts also import `graphify`, which is not published on PyPI
+# and must be obtained separately. See README "Code-graph scripts (advanced)".
+graph = [
+    "networkx>=3.0",
 ]
 
 [project.scripts]
