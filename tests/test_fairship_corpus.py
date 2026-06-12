@@ -126,10 +126,11 @@ def test_fairship_chunks_metadata():
     conn = sqlite3.connect(latest_fts)
     cursor = conn.cursor()
     
-    # Check metadata columns
+    # Check metadata columns for a source code chunk
     cursor.execute("""
         SELECT file_path, start_line, end_line, root_ref, resolved_commit, language
         FROM chunks_fts
+        WHERE language IN ('c', 'cpp')
         LIMIT 1
     """)
     

@@ -1,0 +1,34 @@
+# FairShip source files included in the frozen benchmark corpus
+# (artifacts/corpus.jsonl). One repo-relative path per line.
+shipdata/ShipMCTrack.h
+shipdata/ShipMCTrack.cxx
+shipdata/ShipStack.h
+shipdata/ShipStack.cxx
+shipdata/ShipParticle.h
+shipgen/GenieGenerator.h
+shipgen/GenieGenerator.cxx
+shipgen/CosmicsGenerator.h
+shipgen/EvtCalcGenerator.cxx
+shipgen/HNLPythia8Generator.h
+shipgen/tPythia6Generator.h
+shipgen/tPythia6Generator.cxx
+shipgen/TEvtGenDecayer.h
+shipgen/TEvtGenDecayer.cxx
+shipgen/MuonBackGenerator.cxx
+muonShieldOptimization/exitHadronAbsorber.cxx
+muonShieldOptimization/exitHadronAbsorber.h
+field/ShipBFieldMap.cxx
+field/ShipFieldMaker.cxx
+field/ShipFieldMaker.h
+passive/ShipMagnet.cxx
+passive/ShipCave.cxx
+splitcal/splitcal.cxx
+veto/veto.cxx
+UpstreamTagger/UpstreamTagger.cxx
+SND/MTC/MTCDetector.h
+SND/MTC/MTCDetector.cxx
+SND/EmulsionTarget/Target.cxx
+SND/EmulsionTarget/TargetTracker.cxx
+TimeDet/TimeDet.h
+Detector/Detector.h
+tests/test_rntuple_io.cxx

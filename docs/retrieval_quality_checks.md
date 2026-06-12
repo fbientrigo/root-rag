@@ -30,12 +30,11 @@ Frozen benchmark run contract:
 - `top_k=10`
 - backend: `lexical_bm25_memory`
 
-Run command:
-- `python scripts/run_retrieval_benchmark.py --backend lexical_bm25_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_retrieval_baseline_refactor.json`
-Always execute this command before reporting a baseline comparison so the metadata/test expectations stay accurate.
-
 Official mode-alignment command (B0 vs B1, plus audits and comparison report):
 - `python scripts/run_benchmark_mode_tracks.py`
+Always execute this command before reporting a baseline comparison so the
+metadata/test expectations in `tests/test_benchmark_metadata.py` (which reads
+`artifacts/benchmark_eval_results_B0.json`) stay accurate.
 This generates:
 - `artifacts/benchmark_eval_results_B0.json`
 - `artifacts/benchmark_eval_results_B1.json`
@@ -88,6 +87,35 @@ Frozen benchmark inputs:
 - `artifacts/benchmark_eval_results.json` (legacy benchmark artifact used to reconstruct fixed query/qrel set)
 - `configs/benchmark_queries.json` (materialized query set snapshot)
 - `configs/benchmark_qrels.jsonl` (materialized qrel snapshot)
+
+### Corpus Provenance
+
+`artifacts/corpus.jsonl` is generated (not gitignored, checked in) from a pinned
+FairShip checkout using the canonical sliding-window chunker:
+
+- Source repo: `https://github.com/ShipSoft/FairShip.git`
+- `root_ref`: `master`
+- `resolved_commit`: `f18183d02d6aa3f5b31d20ff5b4515fc86c48a78`
+- Chunking params: `window_lines=40`, `overlap_lines=10`
+- File manifest: `configs/benchmark_corpus_files.txt` (one repo-relative FairShip path per line)
+- Build script: `scripts/build_benchmark_corpus.py`
+
+Each row's `chunk_id` is the canonical SHA256-derived id from
+`root_rag.index.schemas.compute_chunk_id` (`root_ref:resolved_commit:file_path:start_line:end_line`,
+truncated to 12 hex chars). `configs/benchmark_qrels.jsonl` and
+`configs/benchmark_qrels_semantic.jsonl` reference these `chunk_id`s
+directly, so regenerating the corpus from a different FairShip commit, ref,
+or chunking parameters will invalidate the qrels and requires regenerating
+all three files together.
+
+The manifest also includes `passive/ShipCave.cxx` and `splitcal/splitcal.cxx`,
+which are referenced by the bridge-light queries `br006`/`br007` (and
+`br001`/`br007`) in `configs/benchmark_queries_semantic.json` /
+`configs/benchmark_qrels_semantic.jsonl`, used by
+`tests/test_split_geometry_audit.py`.
+
+To regenerate from a local FairShip checkout pinned at the commit above:
+- `python scripts/build_benchmark_corpus.py --fairship-path <path-to-fairship> --resolved-commit f18183d02d6aa3f5b31d20ff5b4515fc86c48a78`
 
 Benchmark output now includes both:
 - retrieval quality metrics (`summary`, `per_class`, `per_query`)

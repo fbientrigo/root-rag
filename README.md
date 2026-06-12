@@ -69,6 +69,13 @@ These are the corpora you can build locally (via `root-rag index` and the helper
 scripts in `scripts/`). They are **not** bundled in the repository — each is
 produced on your machine from the upstream sources.
 
+To build the default, Tier 1, and SOFIE ROOT indexes in one step using a
+sparse/shallow clone (much faster than the full `root-rag index` clone), run:
+
+```bash
+python scripts/setup_root_corpus.py
+```
+
 | Index | Files | Chunks | Content |
 |-------|-------|--------|---------|
 | **ROOT Tier 1** | 53 | 1,106 | 35 most-used ROOT classes (TTree, TGeoManager, TVector3, etc.) |

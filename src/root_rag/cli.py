@@ -42,15 +42,16 @@ def _select_indexes_root(index_dir: Optional[Path], profile: str, index_id: Opti
     if index_dir is not None:
         return Path(index_dir)
 
-    if profile in INDEX_PROFILES:
-        return INDEX_PROFILES[profile]
+    profile_root = INDEX_PROFILES.get(profile, INDEX_PROFILES["root"])
 
-    if index_id:
+    if index_id and not (profile_root / index_id / "index_manifest.json").exists():
         for candidate in INDEX_PROFILES.values():
+            if candidate == profile_root:
+                continue
             if (candidate / index_id / "index_manifest.json").exists():
                 return candidate
 
-    return INDEX_PROFILES["root"]
+    return profile_root
 
 
 def _parse_file_range(raw: str) -> Tuple[str, int, int]:
@@ -655,30 +656,22 @@ def search(
 
         # Format and output results
         if output_json:
-            output = {
-                "results": [
-                    {
-                        "chunk_id": r.chunk_id,
-                        "file_path": r.file_path,
-                        "source_type": r.source_type,
-                        "start_line": r.start_line,
-                        "end_line": r.end_line,
-                        "symbol_path": r.symbol_path,
-                        "doc_origin": r.doc_origin,
-                        "language": r.language,
-                        "root_ref": r.root_ref,
-                        "resolved_commit": r.resolved_commit,
-                        "score": r.score,
-                    }
-                    for r in results
-                ],
-                "metadata": {
-                    "actual_backend": actual_backend,
-                    "fallback_reason": fallback_reason,
-                    "fusion": fusion if actual_backend == "forest" else None,
-                    "profile": profile,
+            output = [
+                {
+                    "chunk_id": r.chunk_id,
+                    "file_path": r.file_path,
+                    "source_type": r.source_type,
+                    "start_line": r.start_line,
+                    "end_line": r.end_line,
+                    "symbol_path": r.symbol_path,
+                    "doc_origin": r.doc_origin,
+                    "language": r.language,
+                    "root_ref": r.root_ref,
+                    "resolved_commit": r.resolved_commit,
+                    "score": r.score,
                 }
-            }
+                for r in results
+            ]
             click.echo(json_module.dumps(output, indent=2))
         else:
             # Human-readable output
@@ -698,8 +691,11 @@ def search(
                 click.echo(f"    Commit: {result.resolved_commit[:12]}")
         
         logger.info(f"Found {len(results)} evidence candidates")
+        logger.debug(f"Actual backend: {actual_backend}, fallback reason: {fallback_reason}")
+        if not results:
+            sys.exit(5)
         sys.exit(0)
-    
+
     except IndexNotFoundError as e:
         logger.error(f"Index not found: {str(e)}")
         sys.exit(4)
