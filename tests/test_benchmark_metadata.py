@@ -6,8 +6,8 @@ from pathlib import Path
 
 def test_baseline_benchmark_metadata():
     """Metadata must explicitly reflect the frozen baseline contract."""
-    path = Path("artifacts/benchmark_retrieval_baseline_refactor.json")
-    assert path.exists(), f"Run baseline benchmark to produce {path}"
+    path = Path("artifacts/benchmark_eval_results_B0.json")
+    assert path.exists(), f"Run scripts/run_benchmark_mode_tracks.py to produce {path}"
 
     report = json.loads(path.read_text(encoding="utf-8"))
     metadata = report.get("metadata", {})

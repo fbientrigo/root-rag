@@ -30,12 +30,11 @@ Frozen benchmark run contract:
 - `top_k=10`
 - backend: `lexical_bm25_memory`
 
-Run command:
-- `python scripts/run_retrieval_benchmark.py --backend lexical_bm25_memory --query-mode baseline --top-k 10 --output artifacts/benchmark_retrieval_baseline_refactor.json`
-Always execute this command before reporting a baseline comparison so the metadata/test expectations stay accurate.
-
 Official mode-alignment command (B0 vs B1, plus audits and comparison report):
 - `python scripts/run_benchmark_mode_tracks.py`
+Always execute this command before reporting a baseline comparison so the
+metadata/test expectations in `tests/test_benchmark_metadata.py` (which reads
+`artifacts/benchmark_eval_results_B0.json`) stay accurate.
 This generates:
 - `artifacts/benchmark_eval_results_B0.json`
 - `artifacts/benchmark_eval_results_B1.json`
