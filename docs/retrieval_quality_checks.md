@@ -103,10 +103,17 @@ FairShip checkout using the canonical sliding-window chunker:
 
 Each row's `chunk_id` is the canonical SHA256-derived id from
 `root_rag.index.schemas.compute_chunk_id` (`root_ref:resolved_commit:file_path:start_line:end_line`,
-truncated to 12 hex chars). `configs/benchmark_qrels.jsonl` references these
-`chunk_id`s directly, so regenerating the corpus from a different FairShip
-commit, ref, or chunking parameters will invalidate the qrels and requires
-regenerating both files together.
+truncated to 12 hex chars). `configs/benchmark_qrels.jsonl` and
+`configs/benchmark_qrels_semantic.jsonl` reference these `chunk_id`s
+directly, so regenerating the corpus from a different FairShip commit, ref,
+or chunking parameters will invalidate the qrels and requires regenerating
+all three files together.
+
+The manifest also includes `passive/ShipCave.cxx` and `splitcal/splitcal.cxx`,
+which are referenced by the bridge-light queries `br006`/`br007` (and
+`br001`/`br007`) in `configs/benchmark_queries_semantic.json` /
+`configs/benchmark_qrels_semantic.jsonl`, used by
+`tests/test_split_geometry_audit.py`.
 
 To regenerate from a local FairShip checkout pinned at the commit above:
 - `python scripts/build_benchmark_corpus.py --fairship-path <path-to-fairship> --resolved-commit f18183d02d6aa3f5b31d20ff5b4515fc86c48a78`

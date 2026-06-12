@@ -21,6 +21,8 @@ field/ShipBFieldMap.cxx
 field/ShipFieldMaker.cxx
 field/ShipFieldMaker.h
 passive/ShipMagnet.cxx
+passive/ShipCave.cxx
+splitcal/splitcal.cxx
 veto/veto.cxx
 UpstreamTagger/UpstreamTagger.cxx
 SND/MTC/MTCDetector.h
