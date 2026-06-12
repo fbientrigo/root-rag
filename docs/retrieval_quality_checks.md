@@ -89,6 +89,28 @@ Frozen benchmark inputs:
 - `configs/benchmark_queries.json` (materialized query set snapshot)
 - `configs/benchmark_qrels.jsonl` (materialized qrel snapshot)
 
+### Corpus Provenance
+
+`artifacts/corpus.jsonl` is generated (not gitignored, checked in) from a pinned
+FairShip checkout using the canonical sliding-window chunker:
+
+- Source repo: `https://github.com/ShipSoft/FairShip.git`
+- `root_ref`: `master`
+- `resolved_commit`: `f18183d02d6aa3f5b31d20ff5b4515fc86c48a78`
+- Chunking params: `window_lines=40`, `overlap_lines=10`
+- File manifest: `configs/benchmark_corpus_files.txt` (one repo-relative FairShip path per line)
+- Build script: `scripts/build_benchmark_corpus.py`
+
+Each row's `chunk_id` is the canonical SHA256-derived id from
+`root_rag.index.schemas.compute_chunk_id` (`root_ref:resolved_commit:file_path:start_line:end_line`,
+truncated to 12 hex chars). `configs/benchmark_qrels.jsonl` references these
+`chunk_id`s directly, so regenerating the corpus from a different FairShip
+commit, ref, or chunking parameters will invalidate the qrels and requires
+regenerating both files together.
+
+To regenerate from a local FairShip checkout pinned at the commit above:
+- `python scripts/build_benchmark_corpus.py --fairship-path <path-to-fairship> --resolved-commit f18183d02d6aa3f5b31d20ff5b4515fc86c48a78`
+
 Benchmark output now includes both:
 - retrieval quality metrics (`summary`, `per_class`, `per_query`)
 - operational metrics (`operational.backend_metrics`, `operational.query_latency_ms`)
