@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import logging
+import math
 import re
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
+from root_rag.retrieval.forest import RetrievalForestBackend
 from root_rag.retrieval.interfaces import BaseRetrievalBackend, OperationalMetrics
 from root_rag.retrieval.models import EvidenceCandidate
-from root_rag.retrieval.forest import RetrievalForestBackend
 from root_rag.retrieval.s1_semantic import (
     LocalEmbedder,
     SemanticFaissSearcher,
@@ -22,11 +21,11 @@ from root_rag.retrieval.s1_semantic import (
     fuse_ranked_results,
     is_symbol_like_query,
 )
+from root_rag.retrieval.text_utils import tokenize
 
 logger = logging.getLogger(__name__)
-TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 IDENTIFIER_PART_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z]|\d|$)|[A-Z]?[a-z]+|\d+")
-SEMANTIC_ALIAS_MAP: Dict[str, tuple[str, ...]] = {
+SEMANTIC_ALIAS_MAP: dict[str, tuple[str, ...]] = {
     "assembly": ("addnode", "volume", "construct"),
     "branch": ("tree", "address", "entry"),
     "declaration": ("class", "struct", "header", "interface"),
@@ -42,7 +41,9 @@ SEMANTIC_ALIAS_MAP: Dict[str, tuple[str, ...]] = {
 
 def _sanitize_fts_query(query: str) -> str:
     """Sanitize query string for FTS5 MATCH operator."""
-    query = re.sub(r"\b(where|what|how|is|are|was|were|the|a|an)\b", " ", query, flags=re.IGNORECASE)
+    query = re.sub(
+        r"\b(where|what|how|is|are|was|were|the|a|an)\b", " ", query, flags=re.IGNORECASE
+    )
     # FTS5 MATCH treats "/" as syntax unless quoted; normalize path separators into token delimiters.
     query = re.sub(r"[?!.,;/\\]", " ", query)
 
@@ -68,19 +69,15 @@ def _sanitize_fts_query(query: str) -> str:
     return " ".join(quoted_words)
 
 
-def _tokenize(text: str) -> List[str]:
-    return [token.lower() for token in TOKEN_RE.findall(text)]
-
-
-def _split_identifier_parts(token: str) -> List[str]:
+def _split_identifier_parts(token: str) -> list[str]:
     normalized = token.replace("::", "_")
     parts = IDENTIFIER_PART_RE.findall(normalized)
     return [part.lower() for part in parts if part]
 
 
-def _expand_semantic_features(text: str) -> List[str]:
-    features: List[str] = []
-    for token in _tokenize(text):
+def _expand_semantic_features(text: str) -> list[str]:
+    features: list[str] = []
+    for token in tokenize(text):
         features.append(token)
 
         for part in _split_identifier_parts(token):
@@ -89,7 +86,7 @@ def _expand_semantic_features(text: str) -> List[str]:
 
         if len(token) >= 5:
             for idx in range(len(token) - 2):
-                features.append(f"tri:{token[idx:idx + 3]}")
+                features.append(f"tri:{token[idx : idx + 3]}")
 
         for alias in SEMANTIC_ALIAS_MAP.get(token, ()):
             features.append(f"alias:{alias}")
@@ -102,7 +99,7 @@ def _stable_u64(text: str) -> int:
     return int.from_bytes(digest, byteorder="big", signed=False)
 
 
-def _build_hashed_dense_vector(tokens: List[str], dim: int) -> List[float]:
+def _build_hashed_dense_vector(tokens: list[str], dim: int) -> list[float]:
     vector = [0.0] * dim
     for token in tokens:
         idx = _stable_u64(token) % dim
@@ -116,11 +113,11 @@ def _build_hashed_dense_vector(tokens: List[str], dim: int) -> List[float]:
     return vector
 
 
-def _dot_product(a: List[float], b: List[float]) -> float:
+def _dot_product(a: list[float], b: list[float]) -> float:
     return sum(left * right for left, right in zip(a, b))
 
 
-def _nonzero_count(vector: List[float]) -> int:
+def _nonzero_count(vector: list[float]) -> int:
     return sum(1 for value in vector if value != 0.0)
 
 
@@ -138,7 +135,7 @@ class FTS5LexicalBackend(BaseRetrievalBackend):
     db_path: Path
     backend_id: str = "lexical_fts5"
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0:
             return []
@@ -213,34 +210,30 @@ class FTS5LexicalBackend(BaseRetrievalBackend):
 class InMemoryBM25LexicalBackend(BaseRetrievalBackend):
     """Deterministic BM25 backend over corpus JSONL rows."""
 
-    corpus_rows: List[dict]
+    corpus_rows: list[dict]
     k1: float = 1.5
     b: float = 0.75
-    corpus_artifact_path: Optional[Path] = None
+    corpus_artifact_path: Path | None = None
     backend_id: str = "lexical_bm25_memory"
-    _doc_chunks: List[str] = field(default_factory=list, init=False, repr=False)
-    _doc_tfs: List[Counter] = field(default_factory=list, init=False, repr=False)
-    _doc_lens: List[int] = field(default_factory=list, init=False, repr=False)
+    _doc_chunks: list[str] = field(default_factory=list, init=False, repr=False)
+    _doc_tfs: list[Counter] = field(default_factory=list, init=False, repr=False)
+    _doc_lens: list[int] = field(default_factory=list, init=False, repr=False)
     _df: Counter = field(default_factory=Counter, init=False, repr=False)
     _doc_count: int = field(default=0, init=False, repr=False)
     _avgdl: float = field(default=0.0, init=False, repr=False)
-    _row_by_chunk: Dict[str, dict] = field(default_factory=dict, init=False, repr=False)
+    _row_by_chunk: dict[str, dict] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self) -> None:
         for row in self.corpus_rows:
-            doc_text = (
-                f"{row['text']} "
-                f"{row['file_path']} "
-                f"{' '.join(row.get('headers_used', []))}"
-            )
-            tokens = _tokenize(doc_text)
+            doc_text = f"{row['text']} {row['file_path']} {' '.join(row.get('headers_used', []))}"
+            tokens = tokenize(doc_text)
             tf = Counter(tokens)
             chunk_id = row["chunk_id"]
             self._doc_chunks.append(chunk_id)
             self._doc_tfs.append(tf)
             self._doc_lens.append(len(tokens))
             self._row_by_chunk[chunk_id] = row
-            for token in tf.keys():
+            for token in tf:
                 self._df[token] += 1
 
         self._doc_count = len(self._doc_chunks)
@@ -252,12 +245,12 @@ class InMemoryBM25LexicalBackend(BaseRetrievalBackend):
             return 0.0
         return math.log(((self._doc_count - n + 0.5) / (n + 0.5)) + 1.0)
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0 or self._doc_count == 0 or self._avgdl <= 0.0:
             return []
 
-        query_tokens = _tokenize(query)
+        query_tokens = tokenize(query)
         if not query_tokens:
             return []
 
@@ -325,13 +318,13 @@ class DenseHashMemoryBackend(BaseRetrievalBackend):
     This is an opt-in dense retrieval scaffold with no external embedding model dependency.
     """
 
-    corpus_rows: List[dict]
+    corpus_rows: list[dict]
     vector_dim: int = 256
-    corpus_artifact_path: Optional[Path] = None
+    corpus_artifact_path: Path | None = None
     backend_id: str = "dense_hash_memory"
-    _doc_chunks: List[str] = field(default_factory=list, init=False, repr=False)
-    _doc_vectors: List[List[float]] = field(default_factory=list, init=False, repr=False)
-    _row_by_chunk: Dict[str, dict] = field(default_factory=dict, init=False, repr=False)
+    _doc_chunks: list[str] = field(default_factory=list, init=False, repr=False)
+    _doc_vectors: list[list[float]] = field(default_factory=list, init=False, repr=False)
+    _row_by_chunk: dict[str, dict] = field(default_factory=dict, init=False, repr=False)
     _doc_count: int = field(default=0, init=False, repr=False)
     _avg_nonzero_dims: float = field(default=0.0, init=False, repr=False)
 
@@ -342,12 +335,8 @@ class DenseHashMemoryBackend(BaseRetrievalBackend):
 
         nonzero_total = 0
         for row in self.corpus_rows:
-            doc_text = (
-                f"{row['text']} "
-                f"{row['file_path']} "
-                f"{' '.join(row.get('headers_used', []))}"
-            )
-            tokens = _tokenize(doc_text)
+            doc_text = f"{row['text']} {row['file_path']} {' '.join(row.get('headers_used', []))}"
+            tokens = tokenize(doc_text)
             chunk_id = row["chunk_id"]
             vector = _build_hashed_dense_vector(tokens, self.vector_dim)
             self._doc_chunks.append(chunk_id)
@@ -358,12 +347,12 @@ class DenseHashMemoryBackend(BaseRetrievalBackend):
         self._doc_count = len(self._doc_chunks)
         self._avg_nonzero_dims = (nonzero_total / self._doc_count) if self._doc_count else 0.0
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0 or self._doc_count == 0:
             return []
 
-        query_tokens = _tokenize(query)
+        query_tokens = tokenize(query)
         if not query_tokens:
             return []
 
@@ -426,13 +415,13 @@ class SemanticHashMemoryBackend(BaseRetrievalBackend):
     expanded identifier parts, alias features, and character trigrams.
     """
 
-    corpus_rows: List[dict]
+    corpus_rows: list[dict]
     vector_dim: int = 512
-    corpus_artifact_path: Optional[Path] = None
+    corpus_artifact_path: Path | None = None
     backend_id: str = "semantic_hash_memory"
-    _doc_chunks: List[str] = field(default_factory=list, init=False, repr=False)
-    _doc_vectors: List[List[float]] = field(default_factory=list, init=False, repr=False)
-    _row_by_chunk: Dict[str, dict] = field(default_factory=dict, init=False, repr=False)
+    _doc_chunks: list[str] = field(default_factory=list, init=False, repr=False)
+    _doc_vectors: list[list[float]] = field(default_factory=list, init=False, repr=False)
+    _row_by_chunk: dict[str, dict] = field(default_factory=dict, init=False, repr=False)
     _doc_count: int = field(default=0, init=False, repr=False)
     _avg_nonzero_dims: float = field(default=0.0, init=False, repr=False)
     _avg_feature_tokens: float = field(default=0.0, init=False, repr=False)
@@ -445,11 +434,7 @@ class SemanticHashMemoryBackend(BaseRetrievalBackend):
         nonzero_total = 0
         feature_total = 0
         for row in self.corpus_rows:
-            doc_text = (
-                f"{row['text']} "
-                f"{row['file_path']} "
-                f"{' '.join(row.get('headers_used', []))}"
-            )
+            doc_text = f"{row['text']} {row['file_path']} {' '.join(row.get('headers_used', []))}"
             features = _expand_semantic_features(doc_text)
             chunk_id = row["chunk_id"]
             vector = _build_hashed_dense_vector(features, self.vector_dim)
@@ -464,7 +449,7 @@ class SemanticHashMemoryBackend(BaseRetrievalBackend):
             self._avg_nonzero_dims = nonzero_total / self._doc_count
             self._avg_feature_tokens = feature_total / self._doc_count
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0 or self._doc_count == 0:
             return []
@@ -534,8 +519,8 @@ class SemanticFaissBackend(BaseRetrievalBackend):
     device: str = "cpu"
     batch_size: int = 16
     local_files_only: bool = True
-    embedder: Optional[LocalEmbedder] = None
-    searcher: Optional[SemanticFaissSearcher] = None
+    embedder: LocalEmbedder | None = None
+    searcher: SemanticFaissSearcher | None = None
     backend_id: str = "semantic_faiss"
 
     def __post_init__(self) -> None:
@@ -552,7 +537,7 @@ class SemanticFaissBackend(BaseRetrievalBackend):
                 embedder=self.embedder,
             )
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0:
             return []
@@ -590,7 +575,7 @@ class HybridS1Backend(BaseRetrievalBackend):
     search_depth: int = 50
     backend_id: str = "hybrid_s1"
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         top_k = self.normalize_top_k(top_k)
         if top_k == 0:
             return []
@@ -645,20 +630,20 @@ class HybridS1Backend(BaseRetrievalBackend):
 def build_retrieval_backend(
     name: str,
     *,
-    db_path: Optional[Path] = None,
-    corpus_rows: Optional[List[dict]] = None,
-    corpus_artifact_path: Optional[Path] = None,
-    semantic_manifest_path: Optional[Path] = None,
+    db_path: Path | None = None,
+    corpus_rows: list[dict] | None = None,
+    corpus_artifact_path: Path | None = None,
+    semantic_manifest_path: Path | None = None,
     semantic_model_name: str = "intfloat/e5-base-v2",
     semantic_device: str = "cpu",
     semantic_batch_size: int = 16,
     semantic_local_files_only: bool = True,
-    semantic_embedder: Optional[LocalEmbedder] = None,
+    semantic_embedder: LocalEmbedder | None = None,
     k1: float = 1.5,
     b: float = 0.75,
     dense_dim: int = 256,
-    forest_db_paths: Optional[List[Path]] = None,
-    forest_profile_names: Optional[List[str]] = None,
+    forest_db_paths: list[Path] | None = None,
+    forest_profile_names: list[str] | None = None,
     fusion_method: str = "rrf",
     dedup_method: str = "line_overlap",
     tie_breaker: str = "stable",
@@ -668,7 +653,9 @@ def build_retrieval_backend(
 
     if normalized in {"forest", "retrieval_forest"}:
         if not forest_db_paths or not forest_profile_names:
-            raise ValueError("forest_db_paths and forest_profile_names are required for forest backend")
+            raise ValueError(
+                "forest_db_paths and forest_profile_names are required for forest backend"
+            )
         profiles = [FTS5LexicalBackend(p) for p in forest_db_paths]
         return RetrievalForestBackend(
             profiles=profiles,

@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import platform
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Protocol, Sequence
+from typing import Protocol
 
 from root_rag.retrieval.models import EvidenceCandidate
+from root_rag.retrieval.text_utils import TOKEN_RE
 
-TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 CAMEL_RE = re.compile(r"[A-Z][a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|\d|$)")
 SYMBOL_HINT_RE = re.compile(r"(::|->|/|\\|[#<>{}\[\]();]|[A-Za-z_][A-Za-z0-9_]*\()")
 CALL_HINT_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_:]*)\s*\(")
@@ -152,9 +152,9 @@ class SentenceTransformerLocalEmbedder:
     device: str = "cpu"
     batch_size: int = 16
     local_files_only: bool = False
-    trust_remote_code: Optional[bool] = None
-    _model: Optional[object] = None
-    _dim: Optional[int] = None
+    trust_remote_code: bool | None = None
+    _model: object | None = None
+    _dim: int | None = None
 
     def _load_model(self):
         if self._model is not None:
@@ -211,10 +211,10 @@ def _normalize_repo_path(file_path: str) -> str:
     return _safe_text(file_path).replace("\\", "/")
 
 
-def _split_identifier_parts(token: str) -> List[str]:
+def _split_identifier_parts(token: str) -> list[str]:
     normalized = token.replace("::", "_")
     parts = TOKEN_RE.findall(normalized)
-    split_parts: List[str] = []
+    split_parts: list[str] = []
     for part in parts:
         split_parts.extend(piece.lower() for piece in CAMEL_RE.findall(part) if piece)
         if "_" in part:
@@ -222,9 +222,9 @@ def _split_identifier_parts(token: str) -> List[str]:
     return [part for part in split_parts if part]
 
 
-def _dedupe_keep_order(values: Sequence[str], *, limit: int) -> List[str]:
+def _dedupe_keep_order(values: Sequence[str], *, limit: int) -> list[str]:
     seen = set()
-    ordered: List[str] = []
+    ordered: list[str] = []
     for value in values:
         cleaned = _safe_text(value)
         if not cleaned:
@@ -239,19 +239,19 @@ def _dedupe_keep_order(values: Sequence[str], *, limit: int) -> List[str]:
     return ordered
 
 
-def _path_tokens(repo_path: str) -> List[str]:
+def _path_tokens(repo_path: str) -> list[str]:
     path = _normalize_repo_path(repo_path)
     parts = [part for part in re.split(r"[/.\\_-]+", path) if part]
-    exploded: List[str] = []
+    exploded: list[str] = []
     for part in parts:
         exploded.append(part.lower())
         exploded.extend(_split_identifier_parts(part))
     return _dedupe_keep_order(exploded, limit=24)
 
 
-def _extract_identifiers(text: str, headers_used: Sequence[str], repo_path: str) -> List[str]:
+def _extract_identifiers(text: str, headers_used: Sequence[str], repo_path: str) -> list[str]:
     raw_tokens = TOKEN_RE.findall(f"{repo_path}\n{' '.join(headers_used)}\n{text}")
-    preferred: List[str] = []
+    preferred: list[str] = []
     for token in raw_tokens:
         if token.isdigit():
             continue
@@ -263,7 +263,7 @@ def _extract_identifiers(text: str, headers_used: Sequence[str], repo_path: str)
     return _dedupe_keep_order(preferred, limit=20)
 
 
-def _extract_call_hints(text: str) -> List[str]:
+def _extract_call_hints(text: str) -> list[str]:
     hints = []
     for match in CALL_HINT_RE.finditer(text):
         token = match.group(1)
@@ -276,8 +276,8 @@ def _extract_call_hints(text: str) -> List[str]:
     return _dedupe_keep_order(hints, limit=16)
 
 
-def _extract_comment_text(text: str) -> List[str]:
-    comments: List[str] = []
+def _extract_comment_text(text: str) -> list[str]:
+    comments: list[str] = []
     for line in text.splitlines():
         if not COMMENT_PREFIX_RE.match(line):
             continue
@@ -292,13 +292,15 @@ def _extract_comment_text(text: str) -> List[str]:
     return _dedupe_keep_order(comments, limit=6)
 
 
-def _extract_relation_hints(call_hints: Sequence[str], identifiers: Sequence[str], title: str) -> List[str]:
-    tokens = {hint for hint in call_hints}
+def _extract_relation_hints(
+    call_hints: Sequence[str], identifiers: Sequence[str], title: str
+) -> list[str]:
+    tokens = set(call_hints)
     tokens.update(identifiers)
     if title:
         tokens.add(title)
 
-    hints: List[str] = []
+    hints: list[str] = []
     for required_tokens, phrase in RELATION_HINT_RULES:
         if required_tokens.issubset(tokens):
             hints.append(phrase)
@@ -517,12 +519,12 @@ class SemanticIndexManifest:
         path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
 
     @classmethod
-    def load(cls, path: Path) -> "SemanticIndexManifest":
+    def load(cls, path: Path) -> SemanticIndexManifest:
         return cls(**json.loads(Path(path).read_text(encoding="utf-8")))
 
 
-def load_semantic_records(records_path: Path) -> Dict[str, dict]:
-    rows: Dict[str, dict] = {}
+def load_semantic_records(records_path: Path) -> dict[str, dict]:
+    rows: dict[str, dict] = {}
     for line in Path(records_path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -531,8 +533,8 @@ def load_semantic_records(records_path: Path) -> Dict[str, dict]:
     return rows
 
 
-def load_corpus_rows(corpus_path: Path) -> List[dict]:
-    rows: List[dict] = []
+def load_corpus_rows(corpus_path: Path) -> list[dict]:
+    rows: list[dict] = []
     for line in Path(corpus_path).read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
@@ -553,7 +555,9 @@ def build_semantic_index_artifacts(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    ordered_rows = sorted((build_semantic_record(row) for row in corpus_rows), key=lambda row: row["chunk_id"])
+    ordered_rows = sorted(
+        (build_semantic_record(row) for row in corpus_rows), key=lambda row: row["chunk_id"]
+    )
     texts = [row["semantic_text"] for row in ordered_rows]
     vectors = embedder.embed(texts)
     vectors = normalize_vectors(np.asarray(vectors, dtype=np.float32))
@@ -603,10 +607,10 @@ class SemanticFaissSearcher:
 
     manifest_path: Path
     embedder: LocalEmbedder
-    _manifest: Optional[SemanticIndexManifest] = None
-    _records: Optional[List[dict]] = None
-    _records_by_chunk_id: Optional[Dict[str, dict]] = None
-    _index: Optional[object] = None
+    _manifest: SemanticIndexManifest | None = None
+    _records: list[dict] | None = None
+    _records_by_chunk_id: dict[str, dict] | None = None
+    _index: object | None = None
 
     @property
     def manifest(self) -> SemanticIndexManifest:
@@ -621,7 +625,7 @@ class SemanticFaissSearcher:
         return self._index
 
     @property
-    def records(self) -> List[dict]:
+    def records(self) -> list[dict]:
         if self._records is None:
             records_by_chunk = load_semantic_records(Path(self.manifest.records_path))
             ordered = sorted(records_by_chunk.values(), key=lambda row: row["chunk_id"])
@@ -630,12 +634,12 @@ class SemanticFaissSearcher:
         return self._records
 
     @property
-    def records_by_chunk_id(self) -> Dict[str, dict]:
+    def records_by_chunk_id(self) -> dict[str, dict]:
         _ = self.records
         assert self._records_by_chunk_id is not None
         return self._records_by_chunk_id
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         np = _import_numpy()
         if top_k <= 0:
             return []
@@ -645,7 +649,7 @@ class SemanticFaissSearcher:
         if search_k <= 0:
             return []
         scores, ids = self._load_index().search(query_vector, search_k)
-        results: List[EvidenceCandidate] = []
+        results: list[EvidenceCandidate] = []
         for score, idx in zip(scores[0].tolist(), ids[0].tolist()):
             if idx < 0:
                 continue
@@ -695,31 +699,40 @@ def fuse_ranked_results(
     semantic_weight: float = 0.55,
     symbol_safe: bool = False,
     lexical_pin_count: int = 3,
-) -> List[EvidenceCandidate]:
+) -> list[EvidenceCandidate]:
     """Fuse lexical and semantic ranked lists using deterministic weighted RRF."""
     if top_k <= 0:
         return []
 
-    by_chunk: Dict[str, EvidenceCandidate] = {}
-    fused_scores: Dict[str, float] = {}
+    by_chunk: dict[str, EvidenceCandidate] = {}
+    fused_scores: dict[str, float] = {}
 
     for rank, row in enumerate(lexical_results, start=1):
         by_chunk.setdefault(row.chunk_id, row)
-        fused_scores[row.chunk_id] = fused_scores.get(row.chunk_id, 0.0) + lexical_weight / (rrf_k + rank)
+        fused_scores[row.chunk_id] = fused_scores.get(row.chunk_id, 0.0) + lexical_weight / (
+            rrf_k + rank
+        )
 
     for rank, row in enumerate(semantic_results, start=1):
         by_chunk.setdefault(row.chunk_id, row)
-        fused_scores[row.chunk_id] = fused_scores.get(row.chunk_id, 0.0) + semantic_weight / (rrf_k + rank)
+        fused_scores[row.chunk_id] = fused_scores.get(row.chunk_id, 0.0) + semantic_weight / (
+            rrf_k + rank
+        )
 
     ordered_chunk_ids = [
         chunk_id
         for chunk_id, _score in sorted(
             fused_scores.items(),
-            key=lambda item: (-item[1], by_chunk[item[0]].file_path, by_chunk[item[0]].start_line, item[0]),
+            key=lambda item: (
+                -item[1],
+                by_chunk[item[0]].file_path,
+                by_chunk[item[0]].start_line,
+                item[0],
+            ),
         )
     ]
 
-    final_chunk_ids: List[str] = []
+    final_chunk_ids: list[str] = []
     if symbol_safe:
         for row in lexical_results[:lexical_pin_count]:
             if row.chunk_id not in final_chunk_ids:
