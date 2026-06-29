@@ -3,8 +3,10 @@
 Tests that core FairShip-relevant ROOT classes can be found via retrieval.
 Acceptance: 5/6 queries should return correct file in top-3 results.
 """
-import pytest
+
 from pathlib import Path
+
+import pytest
 
 # Golden queries with expected results
 GOLDEN_QUERIES = [
@@ -74,21 +76,20 @@ def test_golden_queries_exist():
 
 @pytest.mark.integration
 @pytest.mark.skipif(
-    not Path("data/indexes").exists(),
-    reason="No indexes found - run 'root-rag index' first"
+    not Path("data/indexes").exists(), reason="No indexes found - run 'root-rag index' first"
 )
 def test_golden_queries_retrieval():
     """Test retrieval quality on golden queries.
-    
+
     Requires:
         - ROOT 6.36.08 indexed (run: root-rag index)
-    
+
     Acceptance:
         - At least 5/6 queries return expected file in top-3
     """
-    from root_rag.retrieval import lexical_search
     from root_rag.index.locator import resolve_index
-    
+    from root_rag.retrieval import lexical_search
+
     # Resolve index for v6-36-08
     try:
         manifest = resolve_index(
@@ -98,66 +99,67 @@ def test_golden_queries_retrieval():
         )
     except Exception as e:
         pytest.skip(f"Index not found for v6-36-08: {e}")
-    
+
     db_path = Path(manifest.fts_db_path)
     if not db_path.exists():
         pytest.skip(f"FTS database not found: {db_path}")
-    
+
     # Run queries and check results
     passed = 0
     failures = []
-    
+
     for q in GOLDEN_QUERIES:
         query_str = q["query"]
         expected_files = q["expected_files"]
-        
+
         # Perform search
         results = lexical_search(
             db_path=str(db_path),
             query=query_str,
             top_k=3,
         )
-        
+
         if not results:
-            failures.append({
-                "id": q["id"],
-                "query": query_str,
-                "reason": "no_results",
-                "expected": expected_files,
-            })
+            failures.append(
+                {
+                    "id": q["id"],
+                    "query": query_str,
+                    "reason": "no_results",
+                    "expected": expected_files,
+                }
+            )
             continue
-        
+
         # Check if any expected file is in top-3
         returned_files = [r.file_path for r in results]
-        found = any(
-            any(exp in ret for exp in expected_files)
-            for ret in returned_files
-        )
-        
+        found = any(any(exp in ret for exp in expected_files) for ret in returned_files)
+
         if found:
             passed += 1
         else:
-            failures.append({
-                "id": q["id"],
-                "query": query_str,
-                "reason": "expected_not_in_top3",
-                "expected": expected_files,
-                "returned": returned_files,
-            })
-    
+            failures.append(
+                {
+                    "id": q["id"],
+                    "query": query_str,
+                    "reason": "expected_not_in_top3",
+                    "expected": expected_files,
+                    "returned": returned_files,
+                }
+            )
+
     # Report results
     pass_rate = passed / len(GOLDEN_QUERIES)
-    print(f"\nGolden Query Results:")
+    print("\nGolden Query Results:")
     print(f"  Passed: {passed}/{len(GOLDEN_QUERIES)} ({pass_rate:.1%})")
-    
+
     if failures:
-        print(f"\n  Failures:")
+        print("\n  Failures:")
         for f in failures:
             print(f"    [{f['id']}] {f['query']}: {f['reason']}")
             print(f"      Expected: {f['expected']}")
-            if f['reason'] == 'expected_not_in_top3':
+            if f["reason"] == "expected_not_in_top3":
                 print(f"      Returned: {f['returned']}")
-    
+
     # Acceptance: at least 5/6 queries (83%)
     assert pass_rate >= 0.83, f"Pass rate {pass_rate:.1%} < 83%. Failures: {failures}"
 
@@ -165,9 +167,9 @@ def test_golden_queries_retrieval():
 @pytest.mark.integration
 def test_version_tagging():
     """Verify all retrieval results are tagged with ROOT version."""
-    from root_rag.retrieval import lexical_search
     from root_rag.index.locator import resolve_index
-    
+    from root_rag.retrieval import lexical_search
+
     try:
         manifest = resolve_index(
             indexes_root=Path("data/indexes"),
@@ -176,21 +178,21 @@ def test_version_tagging():
         )
     except Exception:
         pytest.skip("Index not found for v6-36-08")
-    
+
     db_path = Path(manifest.fts_db_path)
     if not db_path.exists():
         pytest.skip(f"FTS database not found: {db_path}")
-    
+
     # Test query
     results = lexical_search(
         db_path=str(db_path),
         query="TTree",
         top_k=5,
     )
-    
+
     if not results:
         pytest.skip("No results for test query")
-    
+
     # Check version tagging
     for r in results:
         assert r.root_ref is not None, "Missing root_ref"
@@ -203,9 +205,9 @@ def test_version_tagging():
 @pytest.mark.integration
 def test_no_hallucinations():
     """Verify retrieval never returns uncited results."""
-    from root_rag.retrieval import lexical_search
     from root_rag.index.locator import resolve_index
-    
+    from root_rag.retrieval import lexical_search
+
     try:
         manifest = resolve_index(
             indexes_root=Path("data/indexes"),
@@ -214,18 +216,18 @@ def test_no_hallucinations():
         )
     except Exception:
         pytest.skip("Index not found for v6-36-08")
-    
+
     db_path = Path(manifest.fts_db_path)
     if not db_path.exists():
         pytest.skip(f"FTS database not found: {db_path}")
-    
+
     # Test with query that should have no results
     results = lexical_search(
         db_path=str(db_path),
         query="ThisClassDefinitelyDoesNotExistInROOT12345",
         top_k=5,
     )
-    
+
     # Should return empty list, not hallucinated results
     assert isinstance(results, list), "Results should be a list"
     # It's OK if FTS5 returns partial matches, but they must have valid citations

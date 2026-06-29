@@ -1,14 +1,13 @@
 """Manifest model for corpus metadata and versioning."""
-from datetime import datetime
+
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Manifest(BaseModel):
     """Corpus manifest with versioning metadata.
-    
+
     This model ensures reproducibility by capturing:
     - What ref was requested (root_ref)
     - What commit was resolved (resolved_commit)
@@ -35,9 +34,7 @@ class Manifest(BaseModel):
                 f"resolved_commit must be 7-40 hex characters; got '{v}' (len={len(v)})"
             )
         if not all(c in "0123456789abcdef" for c in v.lower()):
-            raise ValueError(
-                f"resolved_commit must be hexadecimal; got '{v}'"
-            )
+            raise ValueError(f"resolved_commit must be hexadecimal; got '{v}'")
         return v
 
     model_config = ConfigDict(

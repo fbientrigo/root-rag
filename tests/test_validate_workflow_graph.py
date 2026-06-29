@@ -1,4 +1,5 @@
 """Tests for scripts/validate_workflow_graph.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -64,7 +65,9 @@ def test_confirmed_node_without_source(tmp_path: Path) -> None:
     path = tmp_path / "graph.json"
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     errors = module.validate_workflow_graph(path)
-    assert any("nodes[0] requires at least one source for CONFIRMED status" in error for error in errors)
+    assert any(
+        "nodes[0] requires at least one source for CONFIRMED status" in error for error in errors
+    )
 
 
 def test_confirmed_edge_without_source(tmp_path: Path) -> None:
@@ -74,7 +77,9 @@ def test_confirmed_edge_without_source(tmp_path: Path) -> None:
     path = tmp_path / "graph.json"
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     errors = module.validate_workflow_graph(path)
-    assert any("edges[0] requires at least one source for CONFIRMED status" in error for error in errors)
+    assert any(
+        "edges[0] requires at least one source for CONFIRMED status" in error for error in errors
+    )
 
 
 def test_invalid_enum(tmp_path: Path) -> None:

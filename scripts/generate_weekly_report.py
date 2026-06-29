@@ -1,25 +1,34 @@
 """Generate deterministic weekly Markdown report from query-pack evidence outputs."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any
 
 import yaml
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments for report generation."""
-    parser = argparse.ArgumentParser(description="Generate weekly Markdown report from evidence artifacts.")
-    parser.add_argument("--evidence-dir", required=True, type=Path, help="Evidence run directory containing manifest.json.")
+    parser = argparse.ArgumentParser(
+        description="Generate weekly Markdown report from evidence artifacts."
+    )
+    parser.add_argument(
+        "--evidence-dir",
+        required=True,
+        type=Path,
+        help="Evidence run directory containing manifest.json.",
+    )
     parser.add_argument("--output", required=True, type=Path, help="Output Markdown report path.")
     parser.add_argument("--title", default=None, help="Optional report title override.")
     return parser.parse_args(argv)
 
 
-def load_manifest(evidence_dir: Path) -> Dict[str, Any]:
+def load_manifest(evidence_dir: Path) -> dict[str, Any]:
     """Load and validate evidence manifest.json."""
     manifest_path = evidence_dir / "manifest.json"
     if not manifest_path.exists():
@@ -101,10 +110,7 @@ def _safe_cell(value: str) -> str:
 
 def _resolve_query_output_file(output_ref: str | None, evidence_dir: Path, query_id: str) -> Path:
     """Resolve per-query output path across absolute, repo-relative, and evidence-relative forms."""
-    if output_ref:
-        output_path = Path(str(output_ref))
-    else:
-        output_path = evidence_dir / f"{query_id}.json"
+    output_path = Path(str(output_ref)) if output_ref else evidence_dir / f"{query_id}.json"
 
     if output_path.is_absolute():
         return output_path
@@ -121,7 +127,7 @@ def _resolve_query_output_file(output_ref: str | None, evidence_dir: Path, query
     return output_path
 
 
-def _normalize_hits_from_payload(payload: Any) -> Tuple[str, List[Mapping[str, Any]], str]:
+def _normalize_hits_from_payload(payload: Any) -> tuple[str, list[Mapping[str, Any]], str]:
     """Normalize supported evidence payload shapes into a list of hit mappings."""
     if isinstance(payload, list):
         hits = [hit for hit in payload if isinstance(hit, dict)]
@@ -161,7 +167,7 @@ def _normalize_hits_from_payload(payload: Any) -> Tuple[str, List[Mapping[str, A
     return "ERROR", [], "unsupported-json-type"
 
 
-def _read_query_hits(query_output_file: Path) -> Tuple[str, List[Mapping[str, Any]], str]:
+def _read_query_hits(query_output_file: Path) -> tuple[str, list[Mapping[str, Any]], str]:
     """Read one per-query JSON output and return status, hits, and error info."""
     if not query_output_file.exists():
         return "ERROR", [], f"missing-file:{query_output_file.name}"
@@ -184,21 +190,23 @@ def build_report(markdown_title: str, manifest: Mapping[str, Any], evidence_dir:
     pack_path = _resolve_pack_path(str(manifest["pack_path"]), evidence_dir)
     rq_text = _load_pack_rq(pack_path)
 
-    rows: List[Dict[str, str]] = []
-    candidate_nodes: Dict[str, Dict[str, str]] = {}
-    zero_hit_queries: List[str] = []
-    error_queries: List[str] = []
-    unresolved_lines: List[str] = []
+    rows: list[dict[str, str]] = []
+    candidate_nodes: dict[str, dict[str, str]] = {}
+    zero_hit_queries: list[str] = []
+    error_queries: list[str] = []
+    unresolved_lines: list[str] = []
     hit_query_count = 0
 
     for query_entry in manifest["queries"]:
         query_id = str(query_entry.get("id", "UNKNOWN"))
         query_str = str(query_entry.get("query", ""))
         return_code = int(query_entry.get("return_code", 1))
-        output_file = _resolve_query_output_file(query_entry.get("output_file"), evidence_dir, query_id)
+        output_file = _resolve_query_output_file(
+            query_entry.get("output_file"), evidence_dir, query_id
+        )
 
         status: str
-        hits: List[Mapping[str, Any]]
+        hits: list[Mapping[str, Any]]
         error_info: str
 
         entry_format = query_entry.get("evidence_format", manifest.get("evidence_format"))
@@ -232,7 +240,9 @@ def build_report(markdown_title: str, manifest: Mapping[str, Any], evidence_dir:
                     "query_ids": query_id,
                 }
             else:
-                candidate_nodes[node_key]["query_ids"] = f"{candidate_nodes[node_key]['query_ids']}, {query_id}"
+                candidate_nodes[node_key]["query_ids"] = (
+                    f"{candidate_nodes[node_key]['query_ids']}, {query_id}"
+                )
 
         if status == "HIT_OR_TEXT_EVIDENCE":
             hit_query_count += 1
@@ -260,7 +270,7 @@ def build_report(markdown_title: str, manifest: Mapping[str, Any], evidence_dir:
             }
         )
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(f"# {markdown_title}")
     lines.append("")
 
@@ -282,7 +292,9 @@ def build_report(markdown_title: str, manifest: Mapping[str, Any], evidence_dir:
     lines.append("")
 
     lines.append("## Retrieval Table")
-    lines.append("| query_id | query string | number of hits | top file | top line range | score | status |")
+    lines.append(
+        "| query_id | query string | number of hits | top file | top line range | score | status |"
+    )
     lines.append("|---|---|---:|---|---|---:|---|")
     for row in rows:
         lines.append(
@@ -339,7 +351,9 @@ def build_report(markdown_title: str, manifest: Mapping[str, Any], evidence_dir:
         for query_line in zero_hit_queries:
             query_id = query_line.split("`")[1]
             query_text = query_line.split("`")[-2]
-            lines.append(f"- `{query_id}` seed: `{query_text}` + synonym/abbrev variants (TODO manual curation).")
+            lines.append(
+                f"- `{query_id}` seed: `{query_text}` + synonym/abbrev variants (TODO manual curation)."
+            )
     else:
         lines.append("- TODO: derive new seeds from unresolved findings after analyst review.")
 

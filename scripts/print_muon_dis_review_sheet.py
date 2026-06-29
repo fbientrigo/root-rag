@@ -1,15 +1,16 @@
 """Render human-friendly Muon DIS qrel review sheet from candidate/decision YAML."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import sys
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from typing import Any
 
 import yaml
-
 
 DECISION_VALUES = {"NEEDS_CONTEXT", "APPROVED", "REJECTED"}
 ONLY_VALUES = {"ALL", *DECISION_VALUES}
@@ -50,7 +51,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"YAML file not found: {path}")
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -61,7 +62,9 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _candidate_key(query_id: str, file_path: str, start_line: int, end_line: int) -> Tuple[str, str, int, int]:
+def _candidate_key(
+    query_id: str, file_path: str, start_line: int, end_line: int
+) -> tuple[str, str, int, int]:
     return (query_id, file_path, start_line, end_line)
 
 
@@ -84,15 +87,17 @@ def _suggested_action(decision: str) -> str:
     return "Manual triage required."
 
 
-def _flatten_candidates(payload: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def _flatten_candidates(
+    payload: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     rows = payload.get("candidates")
     if rows is None:
         return [], []
     if not isinstance(rows, list):
         raise ValueError("Candidates payload must contain list field: candidates")
 
-    candidates: List[Dict[str, Any]] = []
-    not_found: List[Dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
+    not_found: list[dict[str, Any]] = []
     for query_row in rows:
         if not isinstance(query_row, dict):
             continue
@@ -107,7 +112,11 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]
         if not isinstance(qrels, list):
             qrels = []
 
-        if review_status == "NOT_FOUND_IN_INDEX" or manifest_status == "ZERO_HIT" or len(qrels) == 0:
+        if (
+            review_status == "NOT_FOUND_IN_INDEX"
+            or manifest_status == "ZERO_HIT"
+            or len(qrels) == 0
+        ):
             not_found.append(
                 {
                     "query_id": query_id,
@@ -123,7 +132,11 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]
             file_path = qrel.get("file_path")
             start_line = qrel.get("start_line")
             end_line = qrel.get("end_line")
-            if not isinstance(file_path, str) or not isinstance(start_line, int) or not isinstance(end_line, int):
+            if (
+                not isinstance(file_path, str)
+                or not isinstance(start_line, int)
+                or not isinstance(end_line, int)
+            ):
                 continue
             candidates.append(
                 {
@@ -142,14 +155,16 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]
     return candidates, not_found
 
 
-def _build_decision_lookup(payload: Mapping[str, Any]) -> Dict[Tuple[str, str, int, int], Dict[str, Any]]:
+def _build_decision_lookup(
+    payload: Mapping[str, Any],
+) -> dict[tuple[str, str, int, int], dict[str, Any]]:
     rows = payload.get("decisions")
     if rows is None:
         return {}
     if not isinstance(rows, list):
         raise ValueError("Decisions payload must contain list field: decisions")
 
-    lookup: Dict[Tuple[str, str, int, int], Dict[str, Any]] = {}
+    lookup: dict[tuple[str, str, int, int], dict[str, Any]] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -165,12 +180,14 @@ def _build_decision_lookup(payload: Mapping[str, Any]) -> Dict[Tuple[str, str, i
     return lookup
 
 
-def _filter_rows(rows: Iterable[Dict[str, Any]], only: str, top_per_query: int) -> List[Dict[str, Any]]:
+def _filter_rows(
+    rows: Iterable[dict[str, Any]], only: str, top_per_query: int
+) -> list[dict[str, Any]]:
     filtered = [row for row in rows if only == "ALL" or row["current_decision"] == only]
     if top_per_query <= 0:
         return filtered
-    output: List[Dict[str, Any]] = []
-    per_query: Dict[str, int] = defaultdict(int)
+    output: list[dict[str, Any]] = []
+    per_query: dict[str, int] = defaultdict(int)
     for row in filtered:
         query_id = str(row["query_id"])
         if per_query[query_id] >= top_per_query:
@@ -186,13 +203,13 @@ def build_review_data(
     decisions_payload: Mapping[str, Any],
     only: str = "ALL",
     top_per_query: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     candidate_rows, not_found_rows = _flatten_candidates(candidates_payload)
     decisions_lookup = _build_decision_lookup(decisions_payload)
     remaining = dict(decisions_lookup)
 
-    review_rows: List[Dict[str, Any]] = []
-    missing_rows: List[Dict[str, Any]] = []
+    review_rows: list[dict[str, Any]] = []
+    missing_rows: list[dict[str, Any]] = []
 
     for candidate in candidate_rows:
         key = candidate["key"]
@@ -224,7 +241,7 @@ def build_review_data(
             }
         )
 
-    orphan_rows: List[Dict[str, Any]] = []
+    orphan_rows: list[dict[str, Any]] = []
     for row in remaining.values():
         orphan_rows.append(
             {
@@ -240,7 +257,7 @@ def build_review_data(
         )
 
     filtered_rows = _filter_rows(review_rows, only=only, top_per_query=top_per_query)
-    decision_counts: Dict[str, int] = defaultdict(int)
+    decision_counts: dict[str, int] = defaultdict(int)
     for row in review_rows:
         decision_counts[str(row["current_decision"])] += 1
 
@@ -256,7 +273,7 @@ def build_review_data(
 
 
 def render_markdown(review_data: Mapping[str, Any], *, only: str, top_per_query: int) -> str:
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Muon DIS Qrel Review Sheet")
     lines.append("")
     lines.append("## Summary")
@@ -349,7 +366,9 @@ def render_markdown(review_data: Mapping[str, Any], *, only: str, top_per_query:
         "4. Audit `ORPHAN_DECISION` rows and fix stale anchors "
         f"({len(review_data['orphan_rows'])})."
     )
-    lines.append("5. Keep wiki/workflow graph claim promotion blocked until manual review complete.")
+    lines.append(
+        "5. Keep wiki/workflow graph claim promotion blocked until manual review complete."
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -389,4 +408,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

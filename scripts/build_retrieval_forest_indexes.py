@@ -4,8 +4,8 @@
 import json
 import logging
 import sys
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -13,16 +13,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from root_rag.corpus.manifest import Manifest
 from root_rag.index.builder import build_index
 from root_rag.index.fts import build_fts_index, check_fts5_available
-from root_rag.index.schemas import IndexManifest, Chunk
+from root_rag.index.schemas import Chunk, IndexManifest
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
 
 def get_fairship_commit(fairship_path: Path) -> str:
     import subprocess
+
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -36,6 +35,7 @@ def get_fairship_commit(fairship_path: Path) -> str:
         logger.error(f"Failed to get commit: {e}")
         return "unknown"
 
+
 def main():
     fairship_path = Path("../FairShip").resolve()
     if not fairship_path.is_dir():
@@ -47,7 +47,7 @@ def main():
         logger.error(f"Config not found: {config_path}")
         sys.exit(1)
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = json.load(f)
 
     if not check_fts5_available():
@@ -73,7 +73,7 @@ def main():
             continue
 
         logger.info(f"Building index for profile: {profile_id}")
-        
+
         index_dir = Path(profile["index_output_path"])
         index_dir.mkdir(parents=True, exist_ok=True)
 
@@ -86,7 +86,7 @@ def main():
         # Looking at builder.py:
         # corpus_id = f"{manifest.root_ref}__{manifest.resolved_commit[:12]}"
         # corpus_output_dir = output_dir / corpus_id
-        
+
         temp_chunks_dir = Path("data/processed/chunks_forest") / profile_id
         temp_chunks_dir.mkdir(parents=True, exist_ok=True)
 
@@ -107,7 +107,7 @@ def main():
 
         # Load chunks
         chunks = []
-        with open(chunks_file, "r", encoding="utf-8") as f:
+        with open(chunks_file, encoding="utf-8") as f:
             for line in f:
                 chunks.append(Chunk.model_validate_json(line))
 
@@ -129,12 +129,13 @@ def main():
             file_count=result["file_count"],
             retrieval_modes=["lexical"],
             fts_db_path="fts.sqlite",
-            chunks_path=str(chunks_file.absolute()), # Using absolute for forest experiments
+            chunks_path=str(chunks_file.absolute()),  # Using absolute for forest experiments
             corpus_config=f"FairShip forest profile: {profile_id}",
             description=f"Experimental retrieval forest index for {profile_id}",
         )
         index_manifest.save(index_dir / "index_manifest.json")
         logger.info(f"Saved manifest for {profile_id}")
+
 
 if __name__ == "__main__":
     main()

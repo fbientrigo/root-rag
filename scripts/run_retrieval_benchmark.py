@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Dict, List, Optional, Tuple
 
 from root_rag.evaluation.metrics import (
     TopKMetrics,
@@ -35,7 +34,7 @@ class QueryEntry:
 
 # Inferred from legacy benchmark metrics (one gain-2 and one gain-1 qrel per query).
 # Mapping: (mrr, recall, ndcg) -> {rank: gain}
-METRIC_PATTERN_TO_BASELINE_HITS: Dict[Tuple[float, float, float], Dict[int, int]] = {
+METRIC_PATTERN_TO_BASELINE_HITS: dict[tuple[float, float, float], dict[int, int]] = {
     (0.0, 0.0, 0.0): {},
     (0.14285714285714285, 0.5, 0.27541155237618664): {7: 2},
     (0.16666666666666666, 0.5, 0.2943107231069255): {6: 2},
@@ -55,7 +54,7 @@ METRIC_PATTERN_TO_BASELINE_HITS: Dict[Tuple[float, float, float], Dict[int, int]
 
 # Force semantically plausible qrels for legacy zero-recall mismatch queries.
 # These are intentionally outside legacy top-10 to preserve historical metrics.
-FORCED_EXTRA_QRELS: Dict[str, List[Tuple[str, int]]] = {
+FORCED_EXTRA_QRELS: dict[str, list[tuple[str, int]]] = {
     "c002": [
         ("muonShieldOptimization_exitHadronAbsorber.cxx_032", 2),
         ("shipgen_GenieGenerator.cxx_037", 1),
@@ -91,7 +90,7 @@ FORCED_EXTRA_QRELS: Dict[str, List[Tuple[str, int]]] = {
 }
 
 
-SYMBOL_HINTS: Dict[str, List[str]] = {
+SYMBOL_HINTS: dict[str, list[str]] = {
     "c001": ["TVector3", "momentum", "position"],
     "c005": ["SetBranchAddress", "TTree"],
     "c008": ["TDatabasePDG"],
@@ -107,15 +106,15 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def load_corpus(corpus_path: Path) -> List[dict]:
-    rows: List[dict] = []
+def load_corpus(corpus_path: Path) -> list[dict]:
+    rows: list[dict] = []
     for line in corpus_path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
     return rows
 
 
-def infer_queries(legacy_benchmark: dict) -> List[QueryEntry]:
+def infer_queries(legacy_benchmark: dict) -> list[QueryEntry]:
     return [
         QueryEntry(
             query_id=row["id"],
@@ -130,14 +129,14 @@ def _pick_symbol_matched_chunk(
     *,
     query_id: str,
     query_text: str,
-    corpus: List[dict],
+    corpus: list[dict],
     excluded_chunk_ids: set[str],
 ) -> str:
     hints = SYMBOL_HINTS.get(query_id, [])
     if not hints:
         hints = [tok for tok in query_text.split() if len(tok) >= 4]
 
-    ranked: List[Tuple[int, str]] = []
+    ranked: list[tuple[int, str]] = []
     for row in corpus:
         chunk_id = row["chunk_id"]
         if chunk_id in excluded_chunk_ids:
@@ -162,8 +161,8 @@ def _pick_symbol_matched_chunk(
     raise RuntimeError("Corpus is empty; cannot infer fallback qrel chunk")
 
 
-def reconstruct_qrels(legacy_benchmark: dict, corpus: List[dict]) -> Dict[str, Dict[str, int]]:
-    qrels: Dict[str, Dict[str, int]] = {}
+def reconstruct_qrels(legacy_benchmark: dict, corpus: list[dict]) -> dict[str, dict[str, int]]:
+    qrels: dict[str, dict[str, int]] = {}
 
     for row in legacy_benchmark["per_query"]:
         query_id = row["id"]
@@ -177,7 +176,7 @@ def reconstruct_qrels(legacy_benchmark: dict, corpus: List[dict]) -> Dict[str, D
         baseline_top10 = [item["chunk_id"] for item in row["baseline_top10"]]
         weighted_top10 = [item["chunk_id"] for item in row["weighted_top10"]]
 
-        rel_map: Dict[str, int] = {}
+        rel_map: dict[str, int] = {}
         for rank, gain in inferred_hits.items():
             rel_map[baseline_top10[rank - 1]] = gain
 
@@ -217,15 +216,21 @@ def reconstruct_qrels(legacy_benchmark: dict, corpus: List[dict]) -> Dict[str, D
     return qrels
 
 
-def _assert_reconstruction_matches_legacy(legacy_benchmark: dict, qrels: Dict[str, Dict[str, int]]) -> None:
+def _assert_reconstruction_matches_legacy(
+    legacy_benchmark: dict, qrels: dict[str, dict[str, int]]
+) -> None:
     for row in legacy_benchmark["per_query"]:
         query_id = row["id"]
         rel_map = qrels[query_id]
         baseline_ranked = [item["chunk_id"] for item in row["baseline_top10"]]
         weighted_ranked = [item["chunk_id"] for item in row["weighted_top10"]]
 
-        baseline_metrics = compute_topk_metrics(baseline_ranked, rel_map, top_k=10, qrels_positive_count=2)
-        weighted_metrics = compute_topk_metrics(weighted_ranked, rel_map, top_k=10, qrels_positive_count=2)
+        baseline_metrics = compute_topk_metrics(
+            baseline_ranked, rel_map, top_k=10, qrels_positive_count=2
+        )
+        weighted_metrics = compute_topk_metrics(
+            weighted_ranked, rel_map, top_k=10, qrels_positive_count=2
+        )
 
         if (
             abs(baseline_metrics.mrr_at_k - row["baseline"]["mrr_at_k"]) > 1e-12
@@ -238,11 +243,11 @@ def _assert_reconstruction_matches_legacy(legacy_benchmark: dict, qrels: Dict[st
             raise RuntimeError(f"Qrel reconstruction drift for query {query_id}")
 
 
-def _tokenize(text: str) -> List[str]:
+def _tokenize(text: str) -> list[str]:
     return [token.lower() for token in TOKEN_RE.findall(text)]
 
 
-def _compute_latency_summary_ms(samples_s: List[float]) -> dict:
+def _compute_latency_summary_ms(samples_s: list[float]) -> dict:
     if not samples_s:
         return {"count": 0, "mean": 0.0, "p50": 0.0, "p95": 0.0, "min": 0.0, "max": 0.0}
 
@@ -273,14 +278,14 @@ def _compute_latency_summary_ms(samples_s: List[float]) -> dict:
 def run_benchmark(
     *,
     backend_name: str,
-    corpus: List[dict],
+    corpus: list[dict],
     corpus_path: Path,
-    queries: List[QueryEntry],
-    qrels: Dict[str, Dict[str, int]],
+    queries: list[QueryEntry],
+    qrels: dict[str, dict[str, int]],
     top_k: int,
     query_mode: str,
     dense_dim: int,
-    semantic_manifest_path: Optional[Path],
+    semantic_manifest_path: Path | None,
     semantic_model_name: str,
 ) -> dict:
     backend = build_retrieval_backend(
@@ -300,8 +305,8 @@ def run_benchmark(
     )
 
     per_query_rows = []
-    metric_rows: List[TopKMetrics] = []
-    latency_samples_s: List[float] = []
+    metric_rows: list[TopKMetrics] = []
+    latency_samples_s: list[float] = []
 
     for query_entry in queries:
         transformed_query = transformer.transform(query_entry.query)
@@ -338,7 +343,7 @@ def run_benchmark(
 
     summary = aggregate_topk_metrics(metric_rows)
 
-    by_class: Dict[str, List[dict]] = defaultdict(list)
+    by_class: dict[str, list[dict]] = defaultdict(list)
     for row in per_query_rows:
         by_class[row["query_class"]].append(row)
 
@@ -376,9 +381,9 @@ def compare_runs(before: dict, after: dict) -> dict:
     after_by_id = {row["id"]: row for row in after["per_query"]}
 
     per_query = []
-    helped: List[str] = []
-    hurt: List[str] = []
-    unchanged: List[str] = []
+    helped: list[str] = []
+    hurt: list[str] = []
+    unchanged: list[str] = []
 
     for query_id, after_row in after_by_id.items():
         before_row = before_by_id[query_id]
@@ -426,15 +431,28 @@ def compare_runs(before: dict, after: dict) -> dict:
             "before": before_class["metrics"],
             "after": after_class["metrics"],
             "delta": {
-                "mrr_at_k": after_class["metrics"]["mrr_at_k"] - before_class["metrics"]["mrr_at_k"],
-                "recall_at_k": after_class["metrics"]["recall_at_k"] - before_class["metrics"]["recall_at_k"],
-                "ndcg_at_k": after_class["metrics"]["ndcg_at_k"] - before_class["metrics"]["ndcg_at_k"],
+                "mrr_at_k": after_class["metrics"]["mrr_at_k"]
+                - before_class["metrics"]["mrr_at_k"],
+                "recall_at_k": after_class["metrics"]["recall_at_k"]
+                - before_class["metrics"]["recall_at_k"],
+                "ndcg_at_k": after_class["metrics"]["ndcg_at_k"]
+                - before_class["metrics"]["ndcg_at_k"],
             },
             "effects": {
-                "helped": sum(1 for row in per_query if row["query_class"] == query_class and row["effect"] == "helped"),
-                "hurt": sum(1 for row in per_query if row["query_class"] == query_class and row["effect"] == "hurt"),
+                "helped": sum(
+                    1
+                    for row in per_query
+                    if row["query_class"] == query_class and row["effect"] == "helped"
+                ),
+                "hurt": sum(
+                    1
+                    for row in per_query
+                    if row["query_class"] == query_class and row["effect"] == "hurt"
+                ),
                 "unchanged": sum(
-                    1 for row in per_query if row["query_class"] == query_class and row["effect"] == "unchanged"
+                    1
+                    for row in per_query
+                    if row["query_class"] == query_class and row["effect"] == "unchanged"
                 ),
             },
         }
@@ -462,7 +480,9 @@ def compare_runs(before: dict, after: dict) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run retrieval benchmark with reconstructed frozen qrels.")
+    parser = argparse.ArgumentParser(
+        description="Run retrieval benchmark with reconstructed frozen qrels."
+    )
     parser.add_argument(
         "--legacy-benchmark",
         type=Path,
@@ -484,7 +504,13 @@ def main() -> int:
     parser.add_argument(
         "--backend",
         default="lexical_bm25_memory",
-        choices=["lexical_bm25_memory", "dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"],
+        choices=[
+            "lexical_bm25_memory",
+            "dense_hash_memory",
+            "semantic_hash_memory",
+            "semantic_faiss",
+            "hybrid_s1",
+        ],
         help="Retrieval backend implementation.",
     )
     parser.add_argument(
@@ -554,7 +580,9 @@ def main() -> int:
         lines = []
         for query_id in sorted(qrels.keys()):
             for chunk_id, gain in sorted(qrels[query_id].items(), key=lambda kv: (-kv[1], kv[0])):
-                lines.append(json.dumps({"query_id": query_id, "chunk_id": chunk_id, "relevance": gain}))
+                lines.append(
+                    json.dumps({"query_id": query_id, "chunk_id": chunk_id, "relevance": gain})
+                )
         args.qrels_output.write_text("\n".join(lines), encoding="utf-8")
 
     if args.queries_output:
@@ -589,18 +617,27 @@ def main() -> int:
             "k1": backend_metrics.get("k1", 1.5),
             "b": backend_metrics.get("b", 0.75),
             "avgdl": backend_metrics.get("avgdl"),
-            "docs": int(backend_metrics["docs"]) if backend_metrics.get("docs") is not None else None,
+            "docs": int(backend_metrics["docs"])
+            if backend_metrics.get("docs") is not None
+            else None,
         }
     else:
         bm25_meta = {
             "k1": None,
             "b": None,
             "avgdl": None,
-            "docs": int(backend_metrics["docs"]) if backend_metrics.get("docs") is not None else None,
+            "docs": int(backend_metrics["docs"])
+            if backend_metrics.get("docs") is not None
+            else None,
         }
 
     dense_meta = None
-    if run["operational"]["backend_id"] in {"dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"}:
+    if run["operational"]["backend_id"] in {
+        "dense_hash_memory",
+        "semantic_hash_memory",
+        "semantic_faiss",
+        "hybrid_s1",
+    }:
         dense_meta = {
             "vector_dim": backend_metrics.get("vector_dim"),
             "similarity": backend_metrics.get("similarity"),

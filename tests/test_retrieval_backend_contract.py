@@ -1,9 +1,9 @@
 """Contract tests for retrieval backend interface behavior."""
 
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-import sqlite3
-from typing import Dict, List, Optional
+from typing import Optional
 
 from root_rag.index.fts import create_fts5_db, insert_chunks_into_fts
 from root_rag.index.schemas import Chunk
@@ -64,7 +64,7 @@ class OverReturningBackend:
     last_top_k: Optional[int] = None
     last_query: Optional[str] = None
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         self.call_count += 1
         self.last_top_k = top_k
         self.last_query = query
@@ -74,7 +74,7 @@ class OverReturningBackend:
             _evidence("chunk_3", 0.5),
         ]
 
-    def operational_metrics(self) -> Dict[str, float]:
+    def operational_metrics(self) -> dict[str, float]:
         return {}
 
 
@@ -358,8 +358,7 @@ def test_operational_metrics_values_are_json_scalars(tmp_path):
         metrics = backend.operational_metrics()
         assert all(isinstance(key, str) for key in metrics.keys())
         assert all(
-            value is None or isinstance(value, (int, float, str))
-            for value in metrics.values()
+            value is None or isinstance(value, (int, float, str)) for value in metrics.values()
         )
 
 

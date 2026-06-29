@@ -7,7 +7,9 @@ from pathlib import Path
 
 
 def _load_module():
-    script_path = Path(__file__).resolve().parents[1] / "scripts" / "ingest_lxplus_muondis_result.py"
+    script_path = (
+        Path(__file__).resolve().parents[1] / "scripts" / "ingest_lxplus_muondis_result.py"
+    )
     spec = importlib.util.spec_from_file_location("ingest_lxplus_muondis_result", script_path)
     module = importlib.util.module_from_spec(spec)
     assert spec is not None

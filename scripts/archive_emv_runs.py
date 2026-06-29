@@ -1,15 +1,16 @@
 """Conservative archiver for stale EMV run artifacts."""
+
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
-
+from typing import Any
 
 REPORTS_DIR = Path("reports")
 EVIDENCE_DIR = Path("evidence")
@@ -39,23 +40,40 @@ class RunSummary:
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Archive stale EMV run artifacts.")
-    parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=True, help="List archival plan without moving files.")
-    parser.add_argument("--execute", dest="dry_run", action="store_false", help="Move files to archive folders.")
-    parser.add_argument("--keep-latest-pass", action="store_true", default=True, help="Always preserve latest PASS run.")
-    parser.add_argument("--include-failed", action="store_true", help="Include FAILED runs in archive candidates.")
-    parser.add_argument("--older-than-days", type=int, default=None, help="Only archive runs older than N days.")
+    parser.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        default=True,
+        help="List archival plan without moving files.",
+    )
+    parser.add_argument(
+        "--execute", dest="dry_run", action="store_false", help="Move files to archive folders."
+    )
+    parser.add_argument(
+        "--keep-latest-pass",
+        action="store_true",
+        default=True,
+        help="Always preserve latest PASS run.",
+    )
+    parser.add_argument(
+        "--include-failed", action="store_true", help="Include FAILED runs in archive candidates."
+    )
+    parser.add_argument(
+        "--older-than-days", type=int, default=None, help="Only archive runs older than N days."
+    )
     return parser.parse_args(argv)
 
 
-def _load_json_object(path: Path) -> Dict[str, Any]:
+def _load_json_object(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"JSON root must be object: {path}")
     return payload
 
 
-def _iter_run_summaries() -> List[RunSummary]:
-    rows: List[RunSummary] = []
+def _iter_run_summaries() -> list[RunSummary]:
+    rows: list[RunSummary] = []
     if not REPORTS_DIR.exists():
         return rows
     for summary_path in REPORTS_DIR.glob("*_vertical_slice_summary.json"):
@@ -68,11 +86,15 @@ def _iter_run_summaries() -> List[RunSummary]:
             continue
         status = str(payload.get("acceptance_gate_status", "FAIL")).strip().upper()
         modified = datetime.fromtimestamp(summary_path.stat().st_mtime, tz=timezone.utc)
-        rows.append(RunSummary(run_id=run_id, status=status, summary_path=summary_path, modified_at=modified))
+        rows.append(
+            RunSummary(
+                run_id=run_id, status=status, summary_path=summary_path, modified_at=modified
+            )
+        )
     return sorted(rows, key=lambda row: row.modified_at, reverse=True)
 
 
-def _latest_pass_from_status_module() -> Optional[str]:
+def _latest_pass_from_status_module() -> str | None:
     module_path = Path(__file__).with_name("emv_status.py")
     try:
         spec = importlib.util.spec_from_file_location("emv_status_for_archive", module_path)
@@ -89,14 +111,14 @@ def _latest_pass_from_status_module() -> Optional[str]:
     return None
 
 
-def _latest_pass_from_summaries(rows: Sequence[RunSummary]) -> Optional[str]:
+def _latest_pass_from_summaries(rows: Sequence[RunSummary]) -> str | None:
     for row in rows:
         if row.status == "PASS":
             return row.run_id
     return None
 
 
-def _should_skip_by_age(row: RunSummary, older_than_days: Optional[int]) -> bool:
+def _should_skip_by_age(row: RunSummary, older_than_days: int | None) -> bool:
     if older_than_days is None:
         return False
     cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
@@ -115,15 +137,15 @@ def _run_id_matches_candidate(candidate: Path, run_id: str) -> bool:
     return run_id in candidate_text or run_id in candidate.name
 
 
-def _resolve_owner_run_id(candidate: Path, run_ids: Sequence[str]) -> Optional[str]:
+def _resolve_owner_run_id(candidate: Path, run_ids: Sequence[str]) -> str | None:
     matches = [run_id for run_id in run_ids if _run_id_matches_candidate(candidate, run_id)]
     if not matches:
         return None
     return max(matches, key=len)
 
 
-def _select_report_paths(run_id: str, run_ids: Sequence[str]) -> List[Path]:
-    selected: List[Path] = []
+def _select_report_paths(run_id: str, run_ids: Sequence[str]) -> list[Path]:
+    selected: list[Path] = []
     if not REPORTS_DIR.exists():
         return selected
     for candidate in REPORTS_DIR.iterdir():
@@ -139,8 +161,8 @@ def _select_report_paths(run_id: str, run_ids: Sequence[str]) -> List[Path]:
     return sorted(selected)
 
 
-def _select_evidence_paths(run_id: str, run_ids: Sequence[str]) -> List[Path]:
-    selected: List[Path] = []
+def _select_evidence_paths(run_id: str, run_ids: Sequence[str]) -> list[Path]:
+    selected: list[Path] = []
     candidate = EVIDENCE_DIR / run_id
     if _resolve_owner_run_id(candidate, run_ids) != run_id:
         return selected
@@ -155,8 +177,8 @@ def _is_protected_artifact(path: Path) -> bool:
     return bool(parts & PROTECTED_ARTIFACT_PATH_PARTS)
 
 
-def _select_artifact_paths(run_id: str, run_ids: Sequence[str]) -> List[Path]:
-    selected: List[Path] = []
+def _select_artifact_paths(run_id: str, run_ids: Sequence[str]) -> list[Path]:
+    selected: list[Path] = []
     if not ARTIFACTS_DIR.exists():
         return selected
     for candidate in ARTIFACTS_DIR.rglob("*"):
@@ -181,12 +203,12 @@ def _move_to_archive(path: Path, destination_root: Path, source_root: Path) -> P
 def _build_manifest(
     *,
     execute: bool,
-    latest_pass_run_id: Optional[str],
+    latest_pass_run_id: str | None,
     kept_runs: Sequence[str],
     archived_runs: Sequence[str],
-    plans: Sequence[Dict[str, Any]],
-    moved: Sequence[Dict[str, Any]],
-) -> Dict[str, Any]:
+    plans: Sequence[dict[str, Any]],
+    moved: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "execute": execute,
@@ -203,16 +225,16 @@ def archive_runs(
     execute: bool,
     keep_latest_pass: bool,
     include_failed: bool,
-    older_than_days: Optional[int],
-) -> Dict[str, Any]:
+    older_than_days: int | None,
+) -> dict[str, Any]:
     rows = _iter_run_summaries()
     run_ids = [row.run_id for row in rows]
     latest_pass = _latest_pass_from_status_module() or _latest_pass_from_summaries(rows)
 
-    kept_runs: List[str] = []
-    archived_runs: List[str] = []
-    plans: List[Dict[str, Any]] = []
-    moved: List[Dict[str, Any]] = []
+    kept_runs: list[str] = []
+    archived_runs: list[str] = []
+    plans: list[dict[str, Any]] = []
+    moved: list[dict[str, Any]] = []
 
     for row in rows:
         if keep_latest_pass and latest_pass and row.run_id == latest_pass:

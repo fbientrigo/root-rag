@@ -1,7 +1,7 @@
 """Chunk and IndexManifest schemas with validation."""
+
 import hashlib
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class Chunk(BaseModel):
     """Canonical chunk schema for indexed ROOT evidence.
-    
+
     All chunks MUST comply with invariants in docs/spec/index_schema.md:
     - line ranges are 1-indexed and inclusive
     - file_path is repo-relative with POSIX (/) separators
@@ -35,7 +35,9 @@ class Chunk(BaseModel):
     index_schema_version: str = Field(default="1.0.0", description="Chunk schema version")
 
     # === Strongly recommended (MVP includes these) ===
-    symbol_path: Optional[str] = Field(default=None, description="Symbol path if known, e.g., TTree::Draw")
+    symbol_path: Optional[str] = Field(
+        default=None, description="Symbol path if known, e.g., TTree::Draw"
+    )
     has_doxygen: bool = Field(default=False, description="Whether chunk has Doxygen markers")
 
     @field_validator("end_line")
@@ -60,11 +62,11 @@ class Chunk(BaseModel):
     @classmethod
     def validate_file_path_relative_posix(cls, v: str) -> str:
         """Ensure file_path is relative and uses POSIX separators."""
-        if v.startswith("/") or v.startswith("\\"):
+        if v.startswith(("/", "\\")):
             raise ValueError(f"file_path must be relative, got: {v}")
         if "\\" in v:
             raise ValueError(f"file_path must use POSIX separators (/), got: {v}")
-        if "." == v or v.startswith("../"):
+        if v == "." or v.startswith("../"):
             raise ValueError(f"file_path must not escape repo root, got: {v}")
         return v
 
@@ -80,9 +82,7 @@ class Chunk(BaseModel):
             "tutorial_doc",
         }
         if v not in valid_origins:
-            raise ValueError(
-                f"doc_origin must be one of {valid_origins}, got: {v}"
-            )
+            raise ValueError(f"doc_origin must be one of {valid_origins}, got: {v}")
         return v
 
     @field_validator("language")
@@ -122,7 +122,7 @@ class Chunk(BaseModel):
         end_line: int,
     ) -> str:
         """Compute deterministic chunk ID from provenance tuple.
-        
+
         Uses SHA256 of a canonical string representation, takes first 12 chars.
         This ensures identical inputs always produce identical IDs.
         """
@@ -167,14 +167,18 @@ class Chunk(BaseModel):
 
 class IndexManifest(BaseModel):
     """Index metadata schema following versioning and determinism contracts.
-    
+
     Records the provenance of an FTS5 lexical index and its configuration.
     Enables reproducible index rebuilds and version integrity validation.
     """
 
     # === Index identification ===
-    index_id: str = Field(..., description="Unique index identifier (deterministic from corpus + timestamp)")
-    corpus_id: str = Field(..., description="Deterministic corpus identifier (root_ref + commit SHA[:12])")
+    index_id: str = Field(
+        ..., description="Unique index identifier (deterministic from corpus + timestamp)"
+    )
+    corpus_id: str = Field(
+        ..., description="Deterministic corpus identifier (root_ref + commit SHA[:12])"
+    )
 
     # === Corpus and versioning ===
     root_ref: str = Field(..., description="User-requested ROOT reference (tag/branch/commit)")
@@ -191,12 +195,16 @@ class IndexManifest(BaseModel):
 
     # === Versions and configuration ===
     schema_version: str = Field(default="1.0.0", description="Index manifest schema version")
-    index_schema_version: str = Field(default="1.0.0", description="Chunk schema version (from chunks)")
+    index_schema_version: str = Field(
+        default="1.0.0", description="Chunk schema version (from chunks)"
+    )
 
     # === Statistics ===
     chunk_count: int = Field(..., ge=0, description="Total chunks in index")
     file_count: int = Field(..., ge=0, description="Total unique source files indexed")
-    retrieval_modes: list = Field(default_factory=lambda: ["lexical"], description="Available retrieval modes")
+    retrieval_modes: list = Field(
+        default_factory=lambda: ["lexical"], description="Available retrieval modes"
+    )
 
     # === Metadata ===
     created_at: str = Field(..., description="Index creation timestamp (ISO8601)")
@@ -239,7 +247,7 @@ class IndexManifest(BaseModel):
     def load(cls, path: Path) -> "IndexManifest":
         """Load manifest from JSON file."""
         path = Path(path)
-        with open(path, "r") as f:
+        with open(path) as f:
             data = json.load(f)
         return cls(**data)
 

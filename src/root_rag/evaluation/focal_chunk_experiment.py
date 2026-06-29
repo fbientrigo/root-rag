@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Sequence
 
 from root_rag.retrieval.backends import build_retrieval_backend
 from root_rag.retrieval.pipeline import RetrievalPipeline
@@ -24,9 +24,9 @@ def _line_range(row: Mapping[str, object]) -> tuple[int, int]:
     return start, end
 
 
-def _dedupe_keep_order(values: Iterable[str]) -> List[str]:
+def _dedupe_keep_order(values: Iterable[str]) -> list[str]:
     seen: set[str] = set()
-    ordered: List[str] = []
+    ordered: list[str] = []
     for value in values:
         cleaned = str(value).strip()
         if not cleaned:
@@ -75,7 +75,8 @@ def _make_shadow_row(
         provenance = "shadow_adjacent_pair"
 
     headers_used = _dedupe_keep_order(
-        list(left.get("headers_used", [])) + (list(right.get("headers_used", [])) if right is not None else [])
+        list(left.get("headers_used", []))
+        + (list(right.get("headers_used", [])) if right is not None else [])
     )
 
     return {
@@ -86,17 +87,22 @@ def _make_shadow_row(
         "headers_used": headers_used,
         "tier": "shadow",
         "provenance": provenance,
-        "usage_count": int(left.get("usage_count", 0)) + (int(right.get("usage_count", 0)) if right is not None else 0),
+        "usage_count": int(left.get("usage_count", 0))
+        + (int(right.get("usage_count", 0)) if right is not None else 0),
         "source_chunk_ids": member_chunk_ids,
         "composition_rule": "same_file_adjacent_pair",
-        "root_ref": left.get("root_ref") if left.get("root_ref") is not None else (right.get("root_ref") if right is not None else None),
+        "root_ref": left.get("root_ref")
+        if left.get("root_ref") is not None
+        else (right.get("root_ref") if right is not None else None),
         "resolved_commit": left.get("resolved_commit")
         if left.get("resolved_commit") is not None
         else (right.get("resolved_commit") if right is not None else None),
     }
 
 
-def build_shadow_corpus_rows(corpus_rows: Sequence[dict]) -> tuple[List[dict], Dict[str, List[str]]]:
+def build_shadow_corpus_rows(
+    corpus_rows: Sequence[dict],
+) -> tuple[list[dict], dict[str, list[str]]]:
     """Build a local shadow corpus from same-file adjacent chunk pairs.
 
     Each file is sorted by line range. Adjacent rows are merged into a shadow
@@ -107,12 +113,12 @@ def build_shadow_corpus_rows(corpus_rows: Sequence[dict]) -> tuple[List[dict], D
         shadow_rows: corpus rows for retrieval
         membership: map of original chunk_id -> shadow chunk_ids containing it
     """
-    by_file: Dict[str, List[dict]] = defaultdict(list)
+    by_file: dict[str, list[dict]] = defaultdict(list)
     for row in corpus_rows:
         by_file[str(row["file_path"])].append(dict(row))
 
-    shadow_rows: List[dict] = []
-    membership: Dict[str, List[str]] = defaultdict(list)
+    shadow_rows: list[dict] = []
+    membership: dict[str, list[str]] = defaultdict(list)
 
     for file_path, rows in sorted(by_file.items()):
         ordered = sorted(rows, key=lambda row: (*_line_range(row), str(row["chunk_id"])))
@@ -138,9 +144,9 @@ def build_shadow_qrels_rows(
     *,
     qrels_map: Mapping[str, Mapping[str, int]],
     shadow_membership: Mapping[str, Sequence[str]],
-) -> List[dict]:
+) -> list[dict]:
     """Derive a shadow qrels snapshot for the local experiment."""
-    merged: Dict[tuple[str, str], int] = {}
+    merged: dict[tuple[str, str], int] = {}
     for query_id, gold_map in qrels_map.items():
         for gold_chunk_id, relevance in gold_map.items():
             shadow_ids = shadow_membership.get(gold_chunk_id, [gold_chunk_id])
@@ -168,11 +174,13 @@ def compute_gold_coverage(
     ranked_shadow_chunk_ids: Sequence[str],
     gold_chunk_ids: Sequence[str],
     shadow_membership: Mapping[str, Sequence[str]],
-) -> tuple[Dict[str, GoldCoverage], int, int | None]:
+) -> tuple[dict[str, GoldCoverage], int, int | None]:
     """Map ranked shadow results back onto original gold chunk ids."""
-    rank_by_shadow_chunk = {chunk_id: idx + 1 for idx, chunk_id in enumerate(ranked_shadow_chunk_ids)}
-    per_gold: Dict[str, GoldCoverage] = {}
-    gold_ranks: List[int] = []
+    rank_by_shadow_chunk = {
+        chunk_id: idx + 1 for idx, chunk_id in enumerate(ranked_shadow_chunk_ids)
+    }
+    per_gold: dict[str, GoldCoverage] = {}
+    gold_ranks: list[int] = []
 
     for gold_chunk_id in gold_chunk_ids:
         shadow_ids = shadow_membership.get(gold_chunk_id, [gold_chunk_id])
@@ -207,9 +215,9 @@ def build_mode_pipelines(
     semantic_manifest_path: Path,
     semantic_model_name: str,
     semantic_embedder: LocalEmbedder,
-) -> Dict[str, RetrievalPipeline]:
+) -> dict[str, RetrievalPipeline]:
     """Build frozen benchmark pipelines for the three retrieval modes."""
-    pipelines: Dict[str, RetrievalPipeline] = {}
+    pipelines: dict[str, RetrievalPipeline] = {}
     for mode in ("bm25_only", "semantic_only", "hybrid"):
         backend = build_retrieval_backend(
             mode,
@@ -234,9 +242,9 @@ def search_pipelines(
     pipelines: Mapping[str, RetrievalPipeline],
     queries: Sequence[dict],
     top_k: int,
-) -> Dict[str, Dict[str, List[str]]]:
+) -> dict[str, dict[str, list[str]]]:
     """Return ranked chunk ids per query for each retrieval mode."""
-    runs: Dict[str, Dict[str, List[str]]] = {mode: {} for mode in pipelines}
+    runs: dict[str, dict[str, list[str]]] = {mode: {} for mode in pipelines}
     for query_row in queries:
         query_id = str(query_row["id"])
         query_text = str(query_row["query"])
@@ -255,9 +263,9 @@ def summarize_query(
     runs: Mapping[str, Mapping[str, Sequence[str]]],
 ) -> dict:
     """Summarize one query across modes using original gold ids."""
-    mode_rows: Dict[str, dict] = {}
-    mode_gold_counts: Dict[str, int] = {}
-    mode_best_ranks: Dict[str, int | None] = {}
+    mode_rows: dict[str, dict] = {}
+    mode_gold_counts: dict[str, int] = {}
+    mode_best_ranks: dict[str, int | None] = {}
 
     for mode, mode_run in runs.items():
         ranked_shadow_ids = list(mode_run.get(str(query_row["id"]), []))

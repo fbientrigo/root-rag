@@ -65,9 +65,13 @@ def test_agent_review_writes_yaml_and_markdown_with_snippet(tmp_path: Path) -> N
         _write_decisions(decisions)
         (fairship / "muonDIS").mkdir(parents=True, exist_ok=True)
         (fairship / "macro").mkdir(parents=True, exist_ok=True)
-        (fairship / "muonDIS/makeMuonDIS.py").write_text("a\nmakeMuonDIS()\nmakeMuonDIS\nz\n", encoding="utf-8")
+        (fairship / "muonDIS/makeMuonDIS.py").write_text(
+            "a\nmakeMuonDIS()\nmakeMuonDIS\nz\n", encoding="utf-8"
+        )
         (fairship / "macro/run_simScript.py").write_text("run_simScript\nx\n", encoding="utf-8")
-        (Path("benchmarks/muon_dis/qrels.yaml")).write_text("confirmed_qrels: []\n", encoding="utf-8")
+        (Path("benchmarks/muon_dis/qrels.yaml")).write_text(
+            "confirmed_qrels: []\n", encoding="utf-8"
+        )
         before_qrels = Path("benchmarks/muon_dis/qrels.yaml").read_text(encoding="utf-8")
 
         rc = module.main(

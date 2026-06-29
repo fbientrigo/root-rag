@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import math
-from typing import Dict, List, Protocol, Union
+from abc import ABC, abstractmethod
+from typing import Protocol, Union
 
 from root_rag.retrieval.models import EvidenceCandidate
 
 OperationalMetricValue = Union[int, float, str, None]
-OperationalMetrics = Dict[str, OperationalMetricValue]
+OperationalMetrics = dict[str, OperationalMetricValue]
 
 
 class QueryTransformer(Protocol):
@@ -31,7 +31,7 @@ class RetrievalBackend(Protocol):
 
     backend_id: str
 
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         """Return ranked evidence candidates for transformed query text."""
 
     def operational_metrics(self) -> OperationalMetrics:
@@ -44,7 +44,7 @@ class BaseRetrievalBackend(ABC):
     backend_id = "unknown"
 
     @abstractmethod
-    def search(self, query: str, top_k: int) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int) -> list[EvidenceCandidate]:
         """Return ranked evidence candidates for transformed query text."""
 
     @staticmethod
@@ -67,7 +67,9 @@ class BaseRetrievalBackend(ABC):
                 normalized[key] = None
                 continue
             if value is not None and not isinstance(value, (int, float, str)):
-                raise TypeError(f"operational metric '{key}' has unsupported type: {type(value).__name__}")
+                raise TypeError(
+                    f"operational metric '{key}' has unsupported type: {type(value).__name__}"
+                )
             normalized[key] = value
         return normalized
 

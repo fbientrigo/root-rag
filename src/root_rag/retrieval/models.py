@@ -1,4 +1,5 @@
 """Data models for retrieval module."""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -20,11 +21,15 @@ def classify_source_type(file_path: str) -> str:
     filename = Path(normalized_lower).name
 
     # 1) Artifacts override all other categories.
-    if normalized_lower.startswith("data/indexes_") or normalized_lower.startswith("data/processed/"):
+    if normalized_lower.startswith(("data/indexes_", "data/processed/")):
         return "artifact"
     if suffix in {".sqlite", ".jsonl"}:
         return "artifact"
-    if filename == "manifest.json" or filename.endswith("_manifest.json") or filename == "semantic_manifest.json":
+    if (
+        filename == "manifest.json"
+        or filename.endswith("_manifest.json")
+        or filename == "semantic_manifest.json"
+    ):
         return "artifact"
 
     # 2) Documentation.
@@ -50,7 +55,7 @@ def classify_source_type(file_path: str) -> str:
 @dataclass
 class EvidenceCandidate:
     """A single piece of evidence (chunk) returned from retrieval."""
-    
+
     chunk_id: str
     file_path: str
     start_line: int

@@ -1,4 +1,5 @@
 """Smoke tests for root-rag CLI."""
+
 import subprocess
 
 

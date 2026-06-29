@@ -1,15 +1,16 @@
 """Interactive/manual review CLI for Muon DIS qrel candidates."""
+
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any
 
 import yaml
-
 
 DEFAULT_CANDIDATES = Path("benchmarks/muon_dis/qrels_candidates.yaml")
 DEFAULT_DECISIONS = Path("benchmarks/muon_dis/qrels_review_decisions.yaml")
@@ -32,15 +33,29 @@ PRESET_CRITICAL_PATH = [
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Review Muon DIS qrel candidates.")
-    parser.add_argument("--candidates", type=Path, default=DEFAULT_CANDIDATES, help="Qrel candidates YAML path.")
-    parser.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS, help="Qrel decisions YAML path.")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Output decisions YAML path.")
+    parser.add_argument(
+        "--candidates", type=Path, default=DEFAULT_CANDIDATES, help="Qrel candidates YAML path."
+    )
+    parser.add_argument(
+        "--decisions", type=Path, default=DEFAULT_DECISIONS, help="Qrel decisions YAML path."
+    )
+    parser.add_argument(
+        "--output", type=Path, default=DEFAULT_OUTPUT, help="Output decisions YAML path."
+    )
     parser.add_argument("--interactive", action="store_true", help="Run prompt-driven review mode.")
-    parser.add_argument("--dry-run", action="store_true", help="Print proposed changes without writing files.")
-    parser.add_argument("--list", action="store_true", help="List filtered review rows without editing.")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print proposed changes without writing files."
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List filtered review rows without editing."
+    )
     parser.add_argument("--query-id", default=None, help="Filter rows by one query id.")
-    parser.add_argument("--only", default="ALL", choices=ALLOWED_ONLY, help="Filter by current decision status.")
-    parser.add_argument("--preset", choices=("critical-path",), default=None, help="Apply built-in review ordering.")
+    parser.add_argument(
+        "--only", default="ALL", choices=ALLOWED_ONLY, help="Filter by current decision status."
+    )
+    parser.add_argument(
+        "--preset", choices=("critical-path",), default=None, help="Apply built-in review ordering."
+    )
     parser.add_argument(
         "--top-per-area",
         type=int,
@@ -55,12 +70,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Apply one decision to all selected rows (non-interactive mode).",
     )
     parser.add_argument("--reason", default="", help="Reason text used with --set-decision.")
-    parser.add_argument("--reviewer-notes", default="", help="Reviewer notes used with --set-decision.")
-    parser.add_argument("--relevance", type=int, default=1, help="Relevance value used with --set-decision.")
+    parser.add_argument(
+        "--reviewer-notes", default="", help="Reviewer notes used with --set-decision."
+    )
+    parser.add_argument(
+        "--relevance", type=int, default=1, help="Relevance value used with --set-decision."
+    )
     return parser.parse_args(argv)
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"YAML file not found: {path}")
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -71,17 +90,21 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _candidate_key(query_id: str, file_path: str, start_line: int, end_line: int) -> Tuple[str, str, int, int]:
+def _candidate_key(
+    query_id: str, file_path: str, start_line: int, end_line: int
+) -> tuple[str, str, int, int]:
     return (query_id, file_path, start_line, end_line)
 
 
-def _build_decisions_lookup(decisions_payload: Mapping[str, Any]) -> Dict[Tuple[str, str, int, int], Dict[str, Any]]:
+def _build_decisions_lookup(
+    decisions_payload: Mapping[str, Any],
+) -> dict[tuple[str, str, int, int], dict[str, Any]]:
     rows = decisions_payload.get("decisions")
     if rows is None:
         return {}
     if not isinstance(rows, list):
         raise ValueError("Decision payload must contain list field: decisions")
-    lookup: Dict[Tuple[str, str, int, int], Dict[str, Any]] = {}
+    lookup: dict[tuple[str, str, int, int], dict[str, Any]] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -99,13 +122,13 @@ def _build_decisions_lookup(decisions_payload: Mapping[str, Any]) -> Dict[Tuple[
 
 def _flatten_rows(
     candidates_payload: Mapping[str, Any],
-    decisions_lookup: Mapping[Tuple[str, str, int, int], Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    decisions_lookup: Mapping[tuple[str, str, int, int], dict[str, Any]],
+) -> list[dict[str, Any]]:
     candidates = candidates_payload.get("candidates")
     if not isinstance(candidates, list):
         raise ValueError("Candidates payload must contain list field: candidates")
 
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     for query in candidates:
         if not isinstance(query, dict):
             continue
@@ -144,7 +167,11 @@ def _flatten_rows(
             file_path = entry.get("file_path")
             start_line = entry.get("start_line")
             end_line = entry.get("end_line")
-            if not isinstance(file_path, str) or not isinstance(start_line, int) or not isinstance(end_line, int):
+            if (
+                not isinstance(file_path, str)
+                or not isinstance(start_line, int)
+                or not isinstance(end_line, int)
+            ):
                 continue
 
             key = _candidate_key(query_id, file_path, start_line, end_line)
@@ -158,7 +185,9 @@ def _flatten_rows(
                     "start_line": start_line,
                     "end_line": end_line,
                     "current_decision": str(decision.get("decision", "MISSING_DECISION")),
-                    "current_relevance": decision.get("relevance", entry.get("relevance_candidate", "")),
+                    "current_relevance": decision.get(
+                        "relevance", entry.get("relevance_candidate", "")
+                    ),
                     "reason": str(decision.get("reason", "")),
                     "reviewer_notes": str(decision.get("reviewer_notes", "")),
                     "key": key,
@@ -187,11 +216,11 @@ def _flatten_rows(
 
 
 def _apply_ordering(
-    rows: List[Dict[str, Any]],
-    preset: Optional[str],
+    rows: list[dict[str, Any]],
+    preset: str | None,
     *,
-    top_per_area: Optional[int] = None,
-) -> List[Dict[str, Any]]:
+    top_per_area: int | None = None,
+) -> list[dict[str, Any]]:
     if preset != "critical-path":
         return sorted(rows, key=lambda row: (row["query_id"], row["rank"], row["file_path"]))
     index = {query_id: idx for idx, query_id in enumerate(PRESET_CRITICAL_PATH)}
@@ -203,7 +232,7 @@ def _apply_ordering(
             row["file_path"],
         ),
     )
-    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    grouped: dict[str, list[dict[str, Any]]] = {}
     for row in ordered:
         grouped.setdefault(row["query_id"], []).append(row)
 
@@ -211,7 +240,7 @@ def _apply_ordering(
     if isinstance(top_per_area, int) and top_per_area > 0:
         cap = top_per_area
 
-    output: List[Dict[str, Any]] = []
+    output: list[dict[str, Any]] = []
     for query_id in PRESET_CRITICAL_PATH:
         queue = grouped.get(query_id, [])
         if not queue:
@@ -238,13 +267,13 @@ def _apply_ordering(
 
 
 def _filter_rows(
-    rows: Iterable[Dict[str, Any]],
+    rows: Iterable[dict[str, Any]],
     *,
-    query_id: Optional[str],
+    query_id: str | None,
     only: str,
-    limit: Optional[int],
-) -> List[Dict[str, Any]]:
-    filtered: List[Dict[str, Any]] = []
+    limit: int | None,
+) -> list[dict[str, Any]]:
+    filtered: list[dict[str, Any]] = []
     for row in rows:
         if query_id and row["query_id"] != query_id:
             continue
@@ -296,7 +325,7 @@ def _decision_entry(
     relevance: int,
     reason: str,
     reviewer_notes: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     key = row.get("key")
     if not isinstance(key, tuple) or len(key) != 4:
         raise ValueError(f"Cannot write decision without file/range anchor: {row.get('query_id')}")
@@ -333,7 +362,7 @@ def _merge_decisions(
     if not isinstance(existing, list):
         raise ValueError("Decision payload must contain list field: decisions")
 
-    lookup: Dict[Tuple[str, str, int, int], int] = {}
+    lookup: dict[tuple[str, str, int, int], int] = {}
     for idx, row in enumerate(existing):
         if not isinstance(row, dict):
             continue
@@ -341,7 +370,12 @@ def _merge_decisions(
         file_path = row.get("file_path")
         start_line = row.get("start_line")
         end_line = row.get("end_line")
-        if isinstance(query_id, str) and isinstance(file_path, str) and isinstance(start_line, int) and isinstance(end_line, int):
+        if (
+            isinstance(query_id, str)
+            and isinstance(file_path, str)
+            and isinstance(start_line, int)
+            and isinstance(end_line, int)
+        ):
             lookup[_candidate_key(query_id, file_path, start_line, end_line)] = idx
 
     for update in updates:
@@ -360,8 +394,8 @@ def _merge_decisions(
     return decisions_payload
 
 
-def _interactive_updates(rows: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
-    updates: List[Dict[str, Any]] = []
+def _interactive_updates(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    updates: list[dict[str, Any]] = []
     print("Interactive mode: enter to skip, a=APPROVED, r=REJECTED, n=NEEDS_CONTEXT, q=quit.")
     for row in rows:
         print("")
@@ -398,10 +432,7 @@ def _interactive_updates(rows: Sequence[Mapping[str, Any]]) -> List[Dict[str, An
             continue
 
         raw_relevance = input(f"relevance [0-3, default {row['current_relevance'] or 1}]: ").strip()
-        if raw_relevance:
-            relevance = int(raw_relevance)
-        else:
-            relevance = int(row["current_relevance"] or 1)
+        relevance = int(raw_relevance) if raw_relevance else int(row["current_relevance"] or 1)
 
         reason_default = str(row.get("reason", ""))
         notes_default = str(row.get("reviewer_notes", ""))
@@ -431,9 +462,9 @@ def _bulk_updates(
     reason: str,
     reviewer_notes: str,
     relevance: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     _validate_reason_notes(decision, reason, reviewer_notes)
-    updates: List[Dict[str, Any]] = []
+    updates: list[dict[str, Any]] = []
     for row in rows:
         _validate_update_target(row, decision)
         if row.get("key") is None:
@@ -485,7 +516,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 0
 
-    updates: List[Dict[str, Any]] = []
+    updates: list[dict[str, Any]] = []
     if args.interactive:
         updates = _interactive_updates(selected)
     elif args.set_decision:
@@ -498,7 +529,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if not updates:
-        print(json.dumps({"updated_count": 0, "write_performed": False, "output": str(args.output)}, indent=2))
+        print(
+            json.dumps(
+                {"updated_count": 0, "write_performed": False, "output": str(args.output)}, indent=2
+            )
+        )
         return 0
 
     merged = _merge_decisions(deepcopy(decisions_payload), updates)

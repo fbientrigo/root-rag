@@ -16,7 +16,6 @@ from root_rag.retrieval.s1_semantic import (
     normalize_vectors,
 )
 
-
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
@@ -152,7 +151,7 @@ def test_semantic_search_returns_benchmark_compatible_chunk_ids(tmp_path):
     corpus_path = tmp_path / "corpus.jsonl"
     _write_corpus(corpus_path, corpus_rows)
 
-    manifest = build_semantic_index_artifacts(
+    build_semantic_index_artifacts(
         corpus_rows=corpus_rows,
         corpus_path=corpus_path,
         output_dir=tmp_path / "semantic",
@@ -169,7 +168,9 @@ def test_semantic_search_returns_benchmark_compatible_chunk_ids(tmp_path):
     assert results
     assert {row.chunk_id for row in results}.issubset({row["chunk_id"] for row in corpus_rows})
     assert results[0].chunk_id == "field_ShipFieldMaker.cxx_007"
-    assert SemanticIndexManifest.load(tmp_path / "semantic" / "semantic_manifest.json").row_count == 3
+    assert (
+        SemanticIndexManifest.load(tmp_path / "semantic" / "semantic_manifest.json").row_count == 3
+    )
 
 
 def test_semantic_v1_benchmark_runs_all_three_modes(tmp_path):
@@ -204,4 +205,7 @@ def test_semantic_v1_benchmark_runs_all_three_modes(tmp_path):
     assert "lexical-control" in results["modes"]["bm25_only"]["per_category"]
     assert "semantic" in results["modes"]["semantic_only"]["per_category"]
     assert "bridge-light" in results["modes"]["hybrid"]["per_category"]
-    assert results["comparisons"]["hybrid_vs_bm25_only"]["summary"]["after"] == results["modes"]["hybrid"]["summary"]
+    assert (
+        results["comparisons"]["hybrid_vs_bm25_only"]["summary"]["after"]
+        == results["modes"]["hybrid"]["summary"]
+    )

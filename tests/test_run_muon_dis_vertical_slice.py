@@ -1,4 +1,5 @@
 """Tests for scripts/run_muon_dis_vertical_slice.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -50,7 +51,14 @@ def test_vertical_slice_passes_acceptance_when_artifacts_exist(tmp_path: Path, m
                 eval_path = tmp_path / "reports" / "run_pass_eval.json"
                 eval_path.parent.mkdir(parents=True, exist_ok=True)
                 eval_path.write_text(
-                    json.dumps({"summary": {"qrels_state": "NO_CONFIRMED_QRELS", "text_evidence_unsupported_count": 0}}),
+                    json.dumps(
+                        {
+                            "summary": {
+                                "qrels_state": "NO_CONFIRMED_QRELS",
+                                "text_evidence_unsupported_count": 0,
+                            }
+                        }
+                    ),
                     encoding="utf-8",
                 )
                 return module.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
@@ -106,7 +114,14 @@ def test_vertical_slice_fails_when_all_queries_are_error(tmp_path: Path, monkeyp
                 eval_path = tmp_path / "reports" / "run_fail_eval.json"
                 eval_path.parent.mkdir(parents=True, exist_ok=True)
                 eval_path.write_text(
-                    json.dumps({"summary": {"qrels_state": "NO_CONFIRMED_QRELS", "text_evidence_unsupported_count": 0}}),
+                    json.dumps(
+                        {
+                            "summary": {
+                                "qrels_state": "NO_CONFIRMED_QRELS",
+                                "text_evidence_unsupported_count": 0,
+                            }
+                        }
+                    ),
                     encoding="utf-8",
                 )
                 return module.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
@@ -137,7 +152,9 @@ def test_valid_index_child_detected(tmp_path: Path) -> None:
     valid.mkdir(parents=True)
     (valid / "fts.sqlite").write_text("", encoding="utf-8")
 
-    config = module.VerticalSliceConfig(index_id=None, index_dir=root, run_id="x", top_k=10, skip_tests=True)
+    config = module.VerticalSliceConfig(
+        index_id=None, index_dir=root, run_id="x", top_k=10, skip_tests=True
+    )
     resolved_dir, index_id, notes = module._resolve_index_target(config)
     assert resolved_dir == root
     assert index_id == "valid_idx"
@@ -150,7 +167,9 @@ def test_invalid_parent_child_without_markers_ignored(tmp_path: Path) -> None:
     invalid = root / "invalid_idx"
     invalid.mkdir(parents=True)
 
-    config = module.VerticalSliceConfig(index_id=None, index_dir=root, run_id="x", top_k=10, skip_tests=True)
+    config = module.VerticalSliceConfig(
+        index_id=None, index_dir=root, run_id="x", top_k=10, skip_tests=True
+    )
     resolved_dir, index_id, _ = module._resolve_index_target(config)
     assert resolved_dir is None
     assert index_id is None
@@ -161,7 +180,9 @@ def test_data_alone_does_not_pick_indexes_fairship_as_index_id(tmp_path: Path) -
     # Simulate data/indexes_fairship existing as parent folder only (no marker files in child).
     (tmp_path / "data" / "indexes_fairship").mkdir(parents=True)
 
-    config = module.VerticalSliceConfig(index_id=None, index_dir=tmp_path / "data", run_id="x", top_k=10, skip_tests=True)
+    config = module.VerticalSliceConfig(
+        index_id=None, index_dir=tmp_path / "data", run_id="x", top_k=10, skip_tests=True
+    )
     resolved_dir, index_id, _ = module._resolve_index_target(config)
     assert resolved_dir is None
     assert index_id is None
@@ -173,7 +194,9 @@ def test_missing_valid_index_fails_clearly(tmp_path: Path) -> None:
     os.chdir(tmp_path)
     try:
         (tmp_path / "data").mkdir(parents=True)
-        config = module.VerticalSliceConfig(index_id=None, index_dir=Path("data"), run_id="missing_idx", top_k=10, skip_tests=True)
+        config = module.VerticalSliceConfig(
+            index_id=None, index_dir=Path("data"), run_id="missing_idx", top_k=10, skip_tests=True
+        )
         summary = module.run_vertical_slice(config)
         assert summary["acceptance_gate_status"] == "FAIL_MISSING_VALID_INDEX"
     finally:

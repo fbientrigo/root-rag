@@ -1,4 +1,5 @@
 """Phase 2 Muon DIS scaffold and evaluation tests."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -22,7 +23,9 @@ def _load_eval_module():
 
 def test_muon_dis_scaffold_keeps_pending_qrels_and_consistent_ids() -> None:
     pack = yaml.safe_load(Path("query_packs/muon_dis_workflow.yaml").read_text(encoding="utf-8"))
-    golden = yaml.safe_load(Path("benchmarks/muon_dis/golden_queries.yaml").read_text(encoding="utf-8"))
+    golden = yaml.safe_load(
+        Path("benchmarks/muon_dis/golden_queries.yaml").read_text(encoding="utf-8")
+    )
     qrels = yaml.safe_load(Path("benchmarks/muon_dis/qrels.yaml").read_text(encoding="utf-8"))
 
     pack_ids = {row["id"] for row in pack["queries"]}
@@ -68,7 +71,9 @@ def test_evaluate_muon_dis_marks_pending_without_fabricating_metrics(tmp_path: P
         encoding="utf-8",
     )
     (evidence_dir / "q1.json").write_text(
-        json.dumps([{"file_path": "macro/make_nTuple.py", "start_line": 10, "end_line": 20, "score": 1.0}]),
+        json.dumps(
+            [{"file_path": "macro/make_nTuple.py", "start_line": 10, "end_line": 20, "score": 1.0}]
+        ),
         encoding="utf-8",
     )
 
@@ -154,7 +159,12 @@ def test_evaluate_muon_dis_scores_confirmed_qrels(tmp_path: Path) -> None:
     (evidence_dir / "q2.json").write_text(
         json.dumps(
             [
-                {"file_path": "muonDIS/makeMuonDIS.py", "start_line": 5, "end_line": 11, "score": 0.9},
+                {
+                    "file_path": "muonDIS/makeMuonDIS.py",
+                    "start_line": 5,
+                    "end_line": 11,
+                    "score": 0.9,
+                },
                 {"file_path": "muonDIS/other.py", "start_line": 1, "end_line": 3, "score": 0.2},
             ]
         ),
@@ -259,7 +269,9 @@ def test_evaluate_muon_dis_text_wrapper_scores_when_hits_are_parsed(tmp_path: Pa
                 "return_code": 0,
                 "stdout": "Evidence (ROOT v6-36-08):\n[1] macro/make_nTuple.py:10-20\n",
                 "stderr": "",
-                "hits": [{"rank": 1, "file": "macro/make_nTuple.py", "start_line": 10, "end_line": 20}],
+                "hits": [
+                    {"rank": 1, "file": "macro/make_nTuple.py", "start_line": 10, "end_line": 20}
+                ],
                 "notes": "Raw CLI text output; not structured JSON.",
             }
         ),

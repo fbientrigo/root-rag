@@ -1,15 +1,16 @@
 """Small helper to update EMV heartbeat state.json deterministically."""
+
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, Sequence
-
+from typing import Any
 
 ALLOWED_VERDICTS = {"ACCEPT", "ACCEPT WITH NOTES", "BLOCKED"}
-PRESETS: Dict[str, Dict[str, Any]] = {
+PRESETS: dict[str, dict[str, Any]] = {
     "qrel_review_pending": {
         "verdict": "ACCEPT WITH NOTES",
         "run_summary": "EMV harness operational; manual qrel review remains pending.",
@@ -31,16 +32,29 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         help="Heartbeat state JSON file path.",
     )
-    parser.add_argument("--from-json", type=Path, default=None, help="Read update payload from JSON file.")
-    parser.add_argument("--preset", choices=sorted(PRESETS.keys()), default=None, help="Apply named heartbeat preset.")
+    parser.add_argument(
+        "--from-json", type=Path, default=None, help="Read update payload from JSON file."
+    )
+    parser.add_argument(
+        "--preset",
+        choices=sorted(PRESETS.keys()),
+        default=None,
+        help="Apply named heartbeat preset.",
+    )
     parser.add_argument("--verdict", choices=sorted(ALLOWED_VERDICTS))
-    parser.add_argument("--run-summary", default=None, help="One-line summary for last_run_summary.")
-    parser.add_argument("--open-item", action="append", default=[], help="Open item entry (repeatable).")
-    parser.add_argument("--next-prompt-file", default=None, help="Required for ACCEPT WITH NOTES/BLOCKED.")
+    parser.add_argument(
+        "--run-summary", default=None, help="One-line summary for last_run_summary."
+    )
+    parser.add_argument(
+        "--open-item", action="append", default=[], help="Open item entry (repeatable)."
+    )
+    parser.add_argument(
+        "--next-prompt-file", default=None, help="Required for ACCEPT WITH NOTES/BLOCKED."
+    )
     return parser.parse_args(argv)
 
 
-def _load_state(path: Path) -> Dict[str, Any]:
+def _load_state(path: Path) -> dict[str, Any]:
     if path.exists():
         payload = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(payload, dict):
@@ -48,7 +62,7 @@ def _load_state(path: Path) -> Dict[str, Any]:
     return {}
 
 
-def _load_update_payload(path: Path) -> Dict[str, Any]:
+def _load_update_payload(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"JSON root must be object: {path}")
@@ -76,7 +90,7 @@ def _load_update_payload(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _resolve_update_fields(args: argparse.Namespace) -> Dict[str, Any]:
+def _resolve_update_fields(args: argparse.Namespace) -> dict[str, Any]:
     if args.from_json is not None:
         return _load_update_payload(args.from_json)
 
@@ -103,7 +117,7 @@ def update_state(
     run_summary: str,
     open_items: list[str],
     next_prompt_file: str | None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if verdict in {"ACCEPT WITH NOTES", "BLOCKED"} and not next_prompt_file:
         raise ValueError("--next-prompt-file is required for ACCEPT WITH NOTES or BLOCKED")
 
@@ -128,7 +142,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         verdict=str(fields["verdict"]),
         run_summary=str(fields["run_summary"]),
         open_items=list(fields["open_items"]),
-        next_prompt_file=str(fields["next_prompt_file"]) if fields["next_prompt_file"] is not None else None,
+        next_prompt_file=str(fields["next_prompt_file"])
+        if fields["next_prompt_file"] is not None
+        else None,
     )
     return 0
 

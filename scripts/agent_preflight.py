@@ -1,14 +1,16 @@
 """Non-mutating preflight checks for Codex EMV sessions."""
+
 from __future__ import annotations
 
 import json
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, Sequence
+from typing import Any
 
 
-def _check_pyyaml() -> Dict[str, Any]:
+def _check_pyyaml() -> dict[str, Any]:
     try:
         import yaml  # type: ignore
     except Exception as exc:  # pragma: no cover - exact import failure depends on environment
@@ -16,7 +18,7 @@ def _check_pyyaml() -> Dict[str, Any]:
     return {"ok": True, "version": getattr(yaml, "__version__", "unknown")}
 
 
-def _check_root_rag_help() -> Dict[str, Any]:
+def _check_root_rag_help() -> dict[str, Any]:
     try:
         completed = subprocess.run(
             ["root-rag", "ask", "--help"],
@@ -33,7 +35,7 @@ def _check_root_rag_help() -> Dict[str, Any]:
     }
 
 
-def _list_index_dirs(index_root: Path) -> Dict[str, Any]:
+def _list_index_dirs(index_root: Path) -> dict[str, Any]:
     if not index_root.exists():
         return {"exists": False, "latest_index_id": None, "dirs": []}
 
@@ -49,7 +51,7 @@ def _list_index_dirs(index_root: Path) -> Dict[str, Any]:
     }
 
 
-def collect_preflight(index_root: Path = Path("data/indexes_fairship")) -> Dict[str, Any]:
+def collect_preflight(index_root: Path = Path("data/indexes_fairship")) -> dict[str, Any]:
     """Collect preflight facts without modifying files or requiring network."""
     return {
         "python_executable": sys.executable,

@@ -1,17 +1,27 @@
 """Validate lightweight workflow graph JSON artifacts."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import re
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
-
+from typing import Any
 
 ALLOWED_KINDS = {"script", "function", "class", "config", "data", "stage", "unknown"}
 ALLOWED_STATUS = {"CONFIRMED", "PROVISIONAL", "UNRESOLVED"}
-ALLOWED_RELATIONS = {"calls", "reads", "writes", "configures", "produces", "consumes", "precedes", "unknown"}
+ALLOWED_RELATIONS = {
+    "calls",
+    "reads",
+    "writes",
+    "configures",
+    "produces",
+    "consumes",
+    "precedes",
+    "unknown",
+}
 SOURCE_FORMAT_RE = re.compile(r"^[A-Za-z0-9_.\-/]+:[0-9]+-[0-9]+$")
 
 
@@ -21,17 +31,17 @@ def _is_non_empty_string(value: Any) -> bool:
 
 def _validate_sources(
     *,
-    container: Dict[str, Any],
+    container: dict[str, Any],
     path_prefix: str,
-    errors: List[str],
+    errors: list[str],
     require_non_empty: bool,
-) -> List[str]:
+) -> list[str]:
     sources = container.get("sources")
     if not isinstance(sources, list):
         errors.append(f"{path_prefix}.sources must be a list")
         return []
 
-    normalized: List[str] = []
+    normalized: list[str] = []
     for idx, source in enumerate(sources):
         if not isinstance(source, str):
             errors.append(f"{path_prefix}.sources[{idx}] must be a string")
@@ -48,8 +58,8 @@ def _validate_sources(
     return normalized
 
 
-def validate_graph_payload(payload: Dict[str, Any]) -> List[str]:
-    errors: List[str] = []
+def validate_graph_payload(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
 
     for field in ("graph_id", "created", "scope", "nodes", "edges"):
         if field not in payload:
@@ -141,7 +151,7 @@ def validate_graph_payload(payload: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def validate_workflow_graph(graph_path: Path) -> List[str]:
+def validate_workflow_graph(graph_path: Path) -> list[str]:
     if not graph_path.exists():
         return [f"{graph_path}: file does not exist"]
     try:

@@ -14,9 +14,8 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Set
 
-from root_rag.evaluation.metrics import TopKMetrics, compute_topk_metrics
+from root_rag.evaluation.metrics import compute_topk_metrics
 from root_rag.retrieval.backends import build_retrieval_backend
 from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.transformers import build_query_transformer
@@ -41,7 +40,7 @@ class QrelDiagnostic:
     rank: int | None  # None if not in top-k, else 1-indexed rank
     bm25_score: float | None
     token_overlap_count: int
-    query_tokens_matched: List[str]
+    query_tokens_matched: list[str]
     chunk_preview: str  # First 100 chars
 
 
@@ -53,7 +52,7 @@ class QueryAudit:
     query_text: str
     query_class: str
     qrels_positive_count: int
-    qrels_diagnostics: List[QrelDiagnostic]
+    qrels_diagnostics: list[QrelDiagnostic]
 
     # Metrics
     mrr_at_k: float
@@ -62,22 +61,22 @@ class QueryAudit:
     retrieved_positive_count: int
 
     # Top-k diagnostics
-    top_k_chunk_ids: List[str]
-    top_k_scores: List[float]
+    top_k_chunk_ids: list[str]
+    top_k_scores: list[float]
     best_positive_rank: int | None  # None if zero-recall
     best_positive_score: float | None
     worst_top_k_score: float
     score_gap_vs_best_positive: float | None  # Gap between best positive and rank 1
 
     # Failure classification heuristics
-    failure_modes: List[str] = field(default_factory=list)
+    failure_modes: list[str] = field(default_factory=list)
     header_source_bias: str | None = None  # "header_dominated" | "source_dominated" | None
     declaration_vs_impl_bias: str | None = None
     qrel_mismatch_suspected: bool = False
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
 
-def load_corpus(corpus_path: Path) -> tuple[Dict[str, dict], List[dict]]:
+def load_corpus(corpus_path: Path) -> tuple[dict[str, dict], list[dict]]:
     """Load corpus.jsonl into memory by chunk_id and as list of rows."""
     corpus_by_id = {}
     corpus_rows = []
@@ -95,13 +94,13 @@ def load_corpus(corpus_path: Path) -> tuple[Dict[str, dict], List[dict]]:
     return corpus_by_id, corpus_rows
 
 
-def load_benchmark_queries(queries_path: Path) -> List[dict]:
+def load_benchmark_queries(queries_path: Path) -> list[dict]:
     """Load benchmark_queries.json."""
     with queries_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_benchmark_qrels(qrels_path: Path) -> Dict[str, List[tuple[str, int]]]:
+def load_benchmark_qrels(qrels_path: Path) -> dict[str, list[tuple[str, int]]]:
     """Load benchmark_qrels.jsonl into {query_id: [(chunk_id, relevance), ...]}."""
     qrels = defaultdict(list)
     with qrels_path.open("r", encoding="utf-8") as f:
@@ -114,19 +113,19 @@ def load_benchmark_qrels(qrels_path: Path) -> Dict[str, List[tuple[str, int]]]:
     return dict(qrels)
 
 
-def extract_tokens(text: str) -> Set[str]:
+def extract_tokens(text: str) -> set[str]:
     """Extract lowercase alphanumeric tokens."""
     return {t.lower() for t in TOKEN_RE.findall(text)}
 
 
-def compute_token_overlap(query_tokens: Set[str], chunk_text: str) -> tuple[int, List[str]]:
+def compute_token_overlap(query_tokens: set[str], chunk_text: str) -> tuple[int, list[str]]:
     """Return (overlap_count, matched_tokens)."""
     chunk_tokens = extract_tokens(chunk_text)
     matched = sorted(query_tokens & chunk_tokens)
     return len(matched), matched
 
 
-def classify_header_source_bias(top_k_chunk_ids: List[str], corpus: Dict[str, dict]) -> str | None:
+def classify_header_source_bias(top_k_chunk_ids: list[str], corpus: dict[str, dict]) -> str | None:
     """Classify header/source bias in top-k results."""
     header_count = sum(
         1 for cid in top_k_chunk_ids if cid in corpus and corpus[cid]["file_path"].endswith(".h")
@@ -144,9 +143,9 @@ def classify_header_source_bias(top_k_chunk_ids: List[str], corpus: Dict[str, di
     return None
 
 
-def infer_failure_modes(audit: QueryAudit, corpus: Dict[str, dict]) -> List[str]:
+def infer_failure_modes(audit: QueryAudit, corpus: dict[str, dict]) -> list[str]:
     """Infer likely failure modes based on heuristics."""
-    modes: List[str] = []
+    modes: list[str] = []
 
     # Coverage miss: positive qrels not in corpus
     missing_qrels = [qd for qd in audit.qrels_diagnostics if not qd.exists_in_corpus]
@@ -161,9 +160,7 @@ def infer_failure_modes(audit: QueryAudit, corpus: Dict[str, dict]) -> List[str]
 
     # Qrel mismatch: qrels exist in corpus but have extremely low token overlap
     low_overlap = [
-        qd
-        for qd in audit.qrels_diagnostics
-        if qd.exists_in_corpus and qd.token_overlap_count < 2
+        qd for qd in audit.qrels_diagnostics if qd.exists_in_corpus and qd.token_overlap_count < 2
     ]
     if len(low_overlap) >= audit.qrels_positive_count:
         modes.append("qrel_mismatch_suspected")
@@ -179,16 +176,16 @@ def infer_failure_modes(audit: QueryAudit, corpus: Dict[str, dict]) -> List[str]
 
     # Keep classification deterministic for reproducible audit artifacts.
     deduped = sorted(set(modes))
-    ordered: List[str] = [mode for mode in FAILURE_MODE_ORDER if mode in deduped]
+    ordered: list[str] = [mode for mode in FAILURE_MODE_ORDER if mode in deduped]
     ordered.extend(mode for mode in deduped if mode not in FAILURE_MODE_ORDER)
     return ordered
 
 
 def audit_query(
     query_entry: dict,
-    qrels: List[tuple[str, int]],
-    corpus: Dict[str, dict],
-    retrieval_results: List[tuple[str, float]],
+    qrels: list[tuple[str, int]],
+    corpus: dict[str, dict],
+    retrieval_results: list[tuple[str, float]],
     top_k: int = 10,
 ) -> QueryAudit:
     """Build comprehensive audit for one query."""
@@ -201,14 +198,14 @@ def audit_query(
     qrels_diagnostics = []
 
     ranked_chunk_ids = [cid for cid, _ in retrieval_results[:top_k]]
-    ranked_scores = {cid: score for cid, score in retrieval_results[:top_k]}
+    ranked_scores = dict(retrieval_results[:top_k])
     rank_map = {cid: idx + 1 for idx, cid in enumerate(ranked_chunk_ids)}
 
     for chunk_id, relevance in qrels:
         exists = chunk_id in corpus
         rank = rank_map.get(chunk_id)
         score = ranked_scores.get(chunk_id)
-        
+
         if exists:
             chunk_text = corpus[chunk_id].get("text", corpus[chunk_id].get("content", ""))
             overlap_count, matched_tokens = compute_token_overlap(query_tokens, chunk_text)
@@ -231,7 +228,7 @@ def audit_query(
         )
 
     # Compute metrics
-    relevance_map = {cid: rel for cid, rel in qrels}
+    relevance_map = dict(qrels)
     metrics = compute_topk_metrics(
         ranked_chunk_ids=ranked_chunk_ids,
         relevance_by_chunk=relevance_map,
@@ -283,7 +280,7 @@ def audit_query(
     # Check if top results are declarations vs implementations
     top_5_chunk_ids = ranked_chunk_ids[:5]
     top_5_chunks = [corpus.get(cid) for cid in top_5_chunk_ids if cid in corpus]
-    
+
     # Heuristic: count chunks with class/struct declarations
     declaration_keywords = ["class ", "struct ", "namespace ", "typedef "]
     decl_count = sum(
@@ -293,7 +290,7 @@ def audit_query(
     )
     if decl_count > 3:
         audit.declaration_vs_impl_bias = "declaration_dominated"
-    
+
     # Add contextual notes
     if audit.recall_at_k == 0.0:
         audit.notes.append("ZERO RECALL: No positive qrels found in top-k")
@@ -306,7 +303,7 @@ def audit_query(
     return audit
 
 
-def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> None:
+def generate_markdown_report(audits: list[QueryAudit], output_path: Path) -> None:
     """Generate human-readable markdown diagnostic report."""
     lines = [
         "# Benchmark Failure Audit Report",
@@ -332,16 +329,18 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
     partial_recall_queries = [a for a in audits if 0.0 < a.recall_at_k < 1.0]
     perfect_recall_queries = [a for a in audits if a.recall_at_k == 1.0]
 
-    lines.extend([
-        "## Summary Statistics",
-        "",
-        f"- **Zero Recall Queries:** {len(zero_recall_queries)} / {len(audits)}",
-        f"- **Partial Recall Queries:** {len(partial_recall_queries)} / {len(audits)}",
-        f"- **Perfect Recall Queries:** {len(perfect_recall_queries)} / {len(audits)}",
-        "",
-        "### Failure Mode Distribution",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Summary Statistics",
+            "",
+            f"- **Zero Recall Queries:** {len(zero_recall_queries)} / {len(audits)}",
+            f"- **Partial Recall Queries:** {len(partial_recall_queries)} / {len(audits)}",
+            f"- **Perfect Recall Queries:** {len(perfect_recall_queries)} / {len(audits)}",
+            "",
+            "### Failure Mode Distribution",
+            "",
+        ]
+    )
 
     # Count failure modes
     failure_mode_counter = Counter()
@@ -361,16 +360,18 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
     sorted_audits = sorted(audits, key=lambda a: (a.recall_at_k, a.mrr_at_k))
 
     for audit in sorted_audits:
-        lines.extend([
-            f"### {audit.query_id}: {audit.query_text}",
-            "",
-            f"- **Query Class:** `{audit.query_class}`",
-            f"- **MRR@10:** {audit.mrr_at_k:.4f}",
-            f"- **Recall@10:** {audit.recall_at_k:.4f}",
-            f"- **nDCG@10:** {audit.ndcg_at_k:.4f}",
-            f"- **Retrieved Positives:** {audit.retrieved_positive_count} / {audit.qrels_positive_count}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"### {audit.query_id}: {audit.query_text}",
+                "",
+                f"- **Query Class:** `{audit.query_class}`",
+                f"- **MRR@10:** {audit.mrr_at_k:.4f}",
+                f"- **Recall@10:** {audit.recall_at_k:.4f}",
+                f"- **nDCG@10:** {audit.ndcg_at_k:.4f}",
+                f"- **Retrieved Positives:** {audit.retrieved_positive_count} / {audit.qrels_positive_count}",
+                "",
+            ]
+        )
 
         if audit.failure_modes:
             lines.append(f"**Failure Modes:** {', '.join(audit.failure_modes)}")
@@ -392,7 +393,7 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
                 lines.append(f"  - Rank: {qd.rank}")
                 lines.append(f"  - BM25 Score: {qd.bm25_score:.4f}")
             else:
-                lines.append(f"  - Rank: NOT IN TOP-10")
+                lines.append("  - Rank: NOT IN TOP-10")
             lines.append(f"  - Token overlap: {qd.token_overlap_count}")
             if qd.query_tokens_matched:
                 lines.append(f"  - Matched tokens: {', '.join(qd.query_tokens_matched[:10])}")
@@ -401,12 +402,16 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
 
         # Top-k analysis
         if audit.best_positive_rank:
-            lines.append(f"**Best Positive:** Rank {audit.best_positive_rank}, Score {audit.best_positive_score:.4f}")
+            lines.append(
+                f"**Best Positive:** Rank {audit.best_positive_rank}, Score {audit.best_positive_score:.4f}"
+            )
             if audit.score_gap_vs_best_positive is not None:
-                lines.append(f"**Score Gap (Top-1 vs Best Positive):** {audit.score_gap_vs_best_positive:.4f}")
+                lines.append(
+                    f"**Score Gap (Top-1 vs Best Positive):** {audit.score_gap_vs_best_positive:.4f}"
+                )
         else:
             lines.append("**Best Positive:** None in top-10")
-        
+
         lines.append(f"**Worst Top-10 Score:** {audit.worst_top_k_score:.4f}")
 
         if audit.header_source_bias:
@@ -431,13 +436,19 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
 
     # Zero-recall query analysis
     if zero_recall_queries:
-        lines.extend([
-            f"### Zero-Recall Queries ({len(zero_recall_queries)} total)",
-            "",
-        ])
+        lines.extend(
+            [
+                f"### Zero-Recall Queries ({len(zero_recall_queries)} total)",
+                "",
+            ]
+        )
         for audit in zero_recall_queries:
             lines.append(f"- **{audit.query_id}** ({audit.query_class}): {audit.query_text}")
-            failure_summary = ", ".join(audit.failure_modes) if audit.failure_modes else "no specific failure mode"
+            failure_summary = (
+                ", ".join(audit.failure_modes)
+                if audit.failure_modes
+                else "no specific failure mode"
+            )
             lines.append(f"  - Failure modes: {failure_summary}")
         lines.append("")
 
@@ -458,7 +469,7 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
         )
 
     lines.extend(["", "### Common Failure Patterns", ""])
-    
+
     # Header/source bias analysis
     header_biased = [a for a in audits if a.header_source_bias == "header_dominated"]
     source_biased = [a for a in audits if a.header_source_bias == "source_dominated"]
@@ -472,45 +483,66 @@ def generate_markdown_report(audits: List[QueryAudit], output_path: Path) -> Non
     # Low token overlap pattern
     low_overlap_queries = []
     for audit in audits:
-        avg_overlap = sum(qd.token_overlap_count for qd in audit.qrels_diagnostics) / len(audit.qrels_diagnostics)
+        avg_overlap = sum(qd.token_overlap_count for qd in audit.qrels_diagnostics) / len(
+            audit.qrels_diagnostics
+        )
         if avg_overlap < 2.0:
             low_overlap_queries.append((audit.query_id, avg_overlap))
-    
+
     if low_overlap_queries:
-        lines.append(f"- **Low token overlap (< 2 tokens avg):** {len(low_overlap_queries)} queries")
+        lines.append(
+            f"- **Low token overlap (< 2 tokens avg):** {len(low_overlap_queries)} queries"
+        )
         lines.append(f"  - Query IDs: {', '.join(qid for qid, _ in low_overlap_queries)}")
 
     lines.extend(["", "---", ""])
 
     # Recommendations
-    lines.extend([
-        "## Diagnostic Recommendations",
-        "",
-        "Based on the failure patterns observed:",
-        "",
-    ])
+    lines.extend(
+        [
+            "## Diagnostic Recommendations",
+            "",
+            "Based on the failure patterns observed:",
+            "",
+        ]
+    )
 
     if len(zero_recall_queries) > 0:
         lines.append(f"1. **Coverage Issues:** {len(zero_recall_queries)} queries have zero recall")
-        ranking_miss_count = sum(1 for a in zero_recall_queries if "ranking_miss" in a.failure_modes)
+        ranking_miss_count = sum(
+            1 for a in zero_recall_queries if "ranking_miss" in a.failure_modes
+        )
         if ranking_miss_count > 0:
-            lines.append(f"   - {ranking_miss_count} are ranking misses (qrels exist but not retrieved)")
+            lines.append(
+                f"   - {ranking_miss_count} are ranking misses (qrels exist but not retrieved)"
+            )
             lines.append("   - Consider: query expansion, term weighting, or BM25 parameter tuning")
 
     if len(low_overlap_queries) > len(zero_recall_queries):
-        lines.append(f"2. **Query-Qrel Mismatch:** {len(low_overlap_queries)} queries have low token overlap")
-        lines.append("   - Consider: reviewing qrel relevance, query reformulation, or semantic retrieval")
+        lines.append(
+            f"2. **Query-Qrel Mismatch:** {len(low_overlap_queries)} queries have low token overlap"
+        )
+        lines.append(
+            "   - Consider: reviewing qrel relevance, query reformulation, or semantic retrieval"
+        )
 
     if header_biased or source_biased:
         lines.append("3. **File Type Bias:** Header/source bias detected in top-k results")
         lines.append("   - Consider: file-type boosting or separate header/source indices")
 
-    avg_partial_rank = sum(
-        a.best_positive_rank for a in partial_recall_queries if a.best_positive_rank
-    ) / len(partial_recall_queries) if partial_recall_queries else 0
+    avg_partial_rank = (
+        sum(a.best_positive_rank for a in partial_recall_queries if a.best_positive_rank)
+        / len(partial_recall_queries)
+        if partial_recall_queries
+        else 0
+    )
     if avg_partial_rank > 5:
-        lines.append(f"4. **Ranking Quality:** Partial-recall queries have avg best-positive rank {avg_partial_rank:.1f}")
-        lines.append("   - Consider: improving lexical scoring, query processing, or adding dense retrieval")
+        lines.append(
+            f"4. **Ranking Quality:** Partial-recall queries have avg best-positive rank {avg_partial_rank:.1f}"
+        )
+        lines.append(
+            "   - Consider: improving lexical scoring, query processing, or adding dense retrieval"
+        )
 
     output_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Markdown report written to: {output_path}")
@@ -626,7 +658,7 @@ def main() -> None:
         results_candidates = pipeline.search(query_text, top_k=100)  # Retrieve more to check ranks
         # Convert to (chunk_id, score) tuples
         results = [(cand.chunk_id, cand.score) for cand in results_candidates]
-        
+
         # Audit
         audit = audit_query(
             query_entry=query_entry,
@@ -636,7 +668,9 @@ def main() -> None:
             top_k=args.top_k,
         )
         audits.append(audit)
-        print(f"  [{query_id}] Recall@{args.top_k}={audit.recall_at_k:.2f}, MRR@{args.top_k}={audit.mrr_at_k:.2f}")
+        print(
+            f"  [{query_id}] Recall@{args.top_k}={audit.recall_at_k:.2f}, MRR@{args.top_k}={audit.mrr_at_k:.2f}"
+        )
 
     print(f"\nAudited {len(audits)} queries")
 

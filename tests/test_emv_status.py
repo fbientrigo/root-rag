@@ -1,4 +1,5 @@
 """Tests for scripts/emv_status.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -8,7 +9,6 @@ import sys
 from pathlib import Path
 
 import yaml
-
 
 MANDATORY = [
     "q02_make_muon_dis",
@@ -53,7 +53,13 @@ def _write_summary(root: Path, run_id: str = "run_pass") -> None:
     summary_path = root / "reports" / f"{run_id}_vertical_slice_summary.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
-        json.dumps({"run_id": run_id, "acceptance_gate_status": "PASS", "qrels_state": "NO_CONFIRMED_QRELS"}),
+        json.dumps(
+            {
+                "run_id": run_id,
+                "acceptance_gate_status": "PASS",
+                "qrels_state": "NO_CONFIRMED_QRELS",
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -113,10 +119,21 @@ def _write_qrels(path: Path, confirmed_queries: list[str]) -> None:
         confirmed_rows.append(
             {
                 "query_id": query_id,
-                "qrels": [{"file_path": f"{query_id}.py", "start_line": 10, "end_line": 20, "relevance": 1}],
+                "qrels": [
+                    {
+                        "file_path": f"{query_id}.py",
+                        "start_line": 10,
+                        "end_line": 20,
+                        "relevance": 1,
+                    }
+                ],
             }
         )
-    payload = {"pack_id": "muon_dis_workflow_v1", "confirmed_qrels": confirmed_rows, "pending_qrels": []}
+    payload = {
+        "pack_id": "muon_dis_workflow_v1",
+        "confirmed_qrels": confirmed_rows,
+        "pending_qrels": [],
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
@@ -155,12 +172,26 @@ def _write_agent_adjudicated(path: Path, *, approved_count: int) -> None:
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
-def _prepare(root: Path, *, approved_queries: list[str], confirmed_queries: list[str], include_not_found: bool) -> None:
+def _prepare(
+    root: Path,
+    *,
+    approved_queries: list[str],
+    confirmed_queries: list[str],
+    include_not_found: bool,
+) -> None:
     _write_state(root)
     _write_summary(root)
-    _write_candidates(root / "benchmarks" / "muon_dis" / "qrels_candidates.yaml", include_not_found=include_not_found)
-    _write_decisions(root / "benchmarks" / "muon_dis" / "qrels_review_decisions.yaml", approved_queries=approved_queries)
-    _write_qrels(root / "benchmarks" / "muon_dis" / "qrels.yaml", confirmed_queries=confirmed_queries)
+    _write_candidates(
+        root / "benchmarks" / "muon_dis" / "qrels_candidates.yaml",
+        include_not_found=include_not_found,
+    )
+    _write_decisions(
+        root / "benchmarks" / "muon_dis" / "qrels_review_decisions.yaml",
+        approved_queries=approved_queries,
+    )
+    _write_qrels(
+        root / "benchmarks" / "muon_dis" / "qrels.yaml", confirmed_queries=confirmed_queries
+    )
 
 
 def test_no_approved_qrels_gives_no_qrels_confirmed_state(tmp_path: Path) -> None:
@@ -201,7 +232,9 @@ def test_missing_inactivate_review_blocks_coverage(tmp_path: Path) -> None:
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
     try:
-        _prepare(tmp_path, approved_queries=MANDATORY, confirmed_queries=[], include_not_found=False)
+        _prepare(
+            tmp_path, approved_queries=MANDATORY, confirmed_queries=[], include_not_found=False
+        )
         summary = module.collect_status()
         assert summary["v0_coverage_ready"] is False
         assert "InactivateMuonProcesses" in summary["missing_v0_coverage_areas"]
@@ -240,7 +273,9 @@ def test_markdown_mode_prints_v0_fields(tmp_path: Path, capsys) -> None:
         os.chdir(cwd_before)
 
 
-def test_emv_status_reports_agent_adjudication_counts_and_scientific_state_gate(tmp_path: Path) -> None:
+def test_emv_status_reports_agent_adjudication_counts_and_scientific_state_gate(
+    tmp_path: Path,
+) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)

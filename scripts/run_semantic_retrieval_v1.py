@@ -7,16 +7,16 @@ import argparse
 import json
 import sys
 from datetime import datetime, timezone
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
 
 from root_rag.evaluation.semantic_v1 import (
+    _pick_recommendation,
     compare_mode_runs,
     evaluate_mode,
     load_corpus,
     load_qrels,
     load_queries,
-    _pick_recommendation,
     render_semantic_v1_markdown,
 )
 from root_rag.retrieval.s1_semantic import SemanticIndexManifest, SentenceTransformerLocalEmbedder

@@ -1,4 +1,5 @@
 """Inspect existing ROOT outputs and emit a conservative MuonDIS oracle JSON record."""
+
 from __future__ import annotations
 
 import argparse
@@ -6,7 +7,6 @@ import importlib
 import json
 from pathlib import Path
 from typing import Any
-
 
 SCHEMA_VERSION = "muondis_oracle_probe_v1"
 TOP_LEVEL_FIELDS = [
@@ -95,8 +95,10 @@ def _select_event_index(entries: int, requested: int) -> int | None:
     return requested
 
 
-def _extract_tree_counts(tree: Any, event_index: int, branch_map: dict[str, str]) -> dict[str, int | None]:
-    out: dict[str, int | None] = {k: None for k in branch_map}
+def _extract_tree_counts(
+    tree: Any, event_index: int, branch_map: dict[str, str]
+) -> dict[str, int | None]:
+    out: dict[str, int | None] = dict.fromkeys(branch_map)
     if tree is None:
         return out
     entries = int(tree.GetEntries()) if hasattr(tree, "GetEntries") else 0
@@ -180,11 +182,17 @@ def probe_file(input_path: Path, event_index: int = 0) -> dict[str, Any]:
     # Conservative boolean extraction: only explicit same-name branches are accepted.
     record["fiducial_fail"] = _extract_explicit_bool_branch(dis_tree, event_index, "fiducial_fail")
     if record["fiducial_fail"] is None:
-        record["fiducial_fail"] = _extract_explicit_bool_branch(cbmsim_tree, event_index, "fiducial_fail")
+        record["fiducial_fail"] = _extract_explicit_bool_branch(
+            cbmsim_tree, event_index, "fiducial_fail"
+        )
 
-    record["wall_like_fail"] = _extract_explicit_bool_branch(dis_tree, event_index, "wall_like_fail")
+    record["wall_like_fail"] = _extract_explicit_bool_branch(
+        dis_tree, event_index, "wall_like_fail"
+    )
     if record["wall_like_fail"] is None:
-        record["wall_like_fail"] = _extract_explicit_bool_branch(cbmsim_tree, event_index, "wall_like_fail")
+        record["wall_like_fail"] = _extract_explicit_bool_branch(
+            cbmsim_tree, event_index, "wall_like_fail"
+        )
 
     if dis_tree is not None and cbmsim_tree is not None:
         record["transport_status"] = "DIS_AND_CBMSIM_FOUND"
@@ -204,10 +212,14 @@ def probe_file(input_path: Path, event_index: int = 0) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Inspect existing ROOT file and emit MuonDIS oracle JSON.")
+    parser = argparse.ArgumentParser(
+        description="Inspect existing ROOT file and emit MuonDIS oracle JSON."
+    )
     parser.add_argument("--input", required=True, type=Path, help="Input ROOT file to inspect")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON output file path")
-    parser.add_argument("--event-index", type=int, default=0, help="Event index for branch-length inspection")
+    parser.add_argument(
+        "--event-index", type=int, default=0, help="Event index for branch-length inspection"
+    )
     return parser.parse_args()
 
 

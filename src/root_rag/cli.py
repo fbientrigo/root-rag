@@ -1,15 +1,16 @@
 """Root RAG CLI - Command line interface for root-rag."""
+
 import json as json_module
 import logging
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import click
 
-from root_rag.corpus import fetch_corpus, InvalidRefError
 from root_rag.core.errors import IndexNotFoundError
+from root_rag.corpus import InvalidRefError, fetch_corpus
 from root_rag.index import build_full_index, check_fts5_available
 from root_rag.index.locator import resolve_index
 from root_rag.index.schemas import IndexManifest
@@ -30,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger("root_rag")
 
 
-INDEX_PROFILES: Dict[str, Path] = {
+INDEX_PROFILES: dict[str, Path] = {
     "root": Path("data/indexes"),
     "fairship": Path("data/indexes_fairship"),
     "project_docs": Path("data/indexes_project_docs"),
@@ -54,25 +55,29 @@ def _select_indexes_root(index_dir: Optional[Path], profile: str, index_id: Opti
     return profile_root
 
 
-def _parse_file_range(raw: str) -> Tuple[str, int, int]:
+def _parse_file_range(raw: str) -> tuple[str, int, int]:
     match = re.fullmatch(r"(.+):(\d+)-(\d+)", raw.strip())
     if match is None:
-        raise click.UsageError("Range must be formatted as <file:start-end>, e.g. shipgen/MuDISGenerator.cxx:71-150")
+        raise click.UsageError(
+            "Range must be formatted as <file:start-end>, e.g. shipgen/MuDISGenerator.cxx:71-150"
+        )
 
     file_path = match.group(1)
     start_line = int(match.group(2))
     end_line = int(match.group(3))
     if start_line < 1 or end_line < 1 or end_line < start_line:
-        raise click.UsageError("Invalid line range: start and end must be positive and end >= start")
+        raise click.UsageError(
+            "Invalid line range: start and end must be positive and end >= start"
+        )
     return file_path, start_line, end_line
 
 
-def _load_indexed_file_lines(chunks_path: Path, file_path: str) -> Tuple[bool, Dict[int, str]]:
+def _load_indexed_file_lines(chunks_path: Path, file_path: str) -> tuple[bool, dict[int, str]]:
     """Reconstruct line text from indexed chunk content only (no source checkout dependency)."""
     found_file = False
-    line_map: Dict[int, str] = {}
+    line_map: dict[int, str] = {}
 
-    with open(chunks_path, "r", encoding="utf-8") as handle:
+    with open(chunks_path, encoding="utf-8") as handle:
         for raw in handle:
             row = json_module.loads(raw)
             if row.get("file_path") != file_path:
@@ -119,7 +124,9 @@ def _resolve_chunks_path(manifest: IndexManifest, indexes_root: Path) -> Path:
     return chunks_path
 
 
-def _resolve_semantic_manifest_path(index_manifest: IndexManifest, explicit_path: Optional[Path]) -> Optional[Path]:
+def _resolve_semantic_manifest_path(
+    index_manifest: IndexManifest, explicit_path: Optional[Path]
+) -> Optional[Path]:
     if explicit_path:
         return explicit_path
     if index_manifest.semantic_manifest_path:
@@ -140,7 +147,7 @@ def _resolve_backend_and_results(
     profile: str = "root",
     semantic_manifest: Optional[Path] = None,
     semantic_model: str = "",
-) -> Tuple[List[EvidenceCandidate], str, Optional[str]]:
+) -> tuple[list[EvidenceCandidate], str, Optional[str]]:
     """Internal helper to resolve backend and execute search with fallbacks.
 
     Returns (results, actual_backend_name, fallback_reason).
@@ -169,7 +176,7 @@ def _resolve_backend_and_results(
             fallback_reason = "configs/retrieval_forest_profiles.json missing"
             requested_backend = "lexical"
         else:
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config = json_module.load(f)
 
             forest_profiles = retrieval_forest or ",".join(config.get("default_profiles", []))
@@ -196,7 +203,9 @@ def _resolve_backend_and_results(
                             target_commit = manifest.resolved_commit[:12]
                             entry_commit = (p_entry.get("source_commit") or "")[:12]
                             if entry_commit and entry_commit != target_commit:
-                                commit_mismatch.append(f"{p_name} (needs {entry_commit}, got {target_commit})")
+                                commit_mismatch.append(
+                                    f"{p_name} (needs {entry_commit}, got {target_commit})"
+                                )
                                 continue
 
                             db_path_entry = Path(p_entry["index_output_path"]) / "fts.sqlite"
@@ -228,25 +237,36 @@ def _resolve_backend_and_results(
                         tie_breaker=tie_breaker,
                     )
                     return backend.search(query, top_k=top_k), "forest", None
-                else:
-                    fallback_reason = "; ".join(error_msgs)
-                    if not is_auto_forest:
-                        raise click.UsageError(f"Forest backend requested but unavailable: {fallback_reason}")
-                    requested_backend = "lexical"
+                fallback_reason = "; ".join(error_msgs)
+                if not is_auto_forest:
+                    raise click.UsageError(
+                        f"Forest backend requested but unavailable: {fallback_reason}"
+                    )
+                requested_backend = "lexical"
 
     if requested_backend == "lexical":
-        return lexical_search(
-            db_path=str(db_path),
-            query=query,
-            top_k=top_k,
-        ), "lexical", fallback_reason
+        return (
+            lexical_search(
+                db_path=str(db_path),
+                query=query,
+                top_k=top_k,
+            ),
+            "lexical",
+            fallback_reason,
+        )
 
     # Semantic / Hybrid
     semantic_manifest_path = _resolve_semantic_manifest_path(manifest, semantic_manifest)
     if semantic_manifest_path is None or not semantic_manifest_path.exists():
         if requested_backend in {"semantic", "hybrid"}:
-            raise click.UsageError("S1 semantic manifest not found. Build semantic artifacts first or pass --semantic-manifest.")
-        return lexical_search(db_path=str(db_path), query=query, top_k=top_k), "lexical (fallback)", fallback_reason
+            raise click.UsageError(
+                "S1 semantic manifest not found. Build semantic artifacts first or pass --semantic-manifest."
+            )
+        return (
+            lexical_search(db_path=str(db_path), query=query, top_k=top_k),
+            "lexical (fallback)",
+            fallback_reason,
+        )
 
     actual_name = "semantic" if requested_backend == "semantic" else "hybrid"
     backend = build_retrieval_backend(
@@ -261,7 +281,6 @@ def _resolve_backend_and_results(
 @click.group()
 def main():
     """Root RAG - A hybrid retrieval-based RAG system."""
-    pass
 
 
 @main.command()
@@ -288,11 +307,11 @@ def main():
 )
 def fetch(root_ref: str, repo_url: str, cache_dir: Path, force_refresh: bool):
     """Fetch a ROOT corpus revision and write manifest.
-    
+
     Examples:
         root-rag fetch --root-ref v6-32-00
         root-rag fetch --root-ref master --cache-dir ~/.cache/root-rag
-    
+
     Exit codes:
         0: Success
         1: Generic runtime failure
@@ -306,17 +325,19 @@ def fetch(root_ref: str, repo_url: str, cache_dir: Path, force_refresh: bool):
             cache_dir=cache_dir,
             force_refresh=force_refresh,
         )
-        
+
         click.echo(f"[OK] Corpus fetched: {root_ref}")
         click.echo(f"  Commit: {manifest.resolved_commit[:12]}")
         click.echo(f"  Path: {manifest.local_path}")
-        click.echo(f"  Manifest: {cache_dir / f'{root_ref}__{manifest.resolved_commit[:12]}' / 'manifest.json'}")
+        click.echo(
+            f"  Manifest: {cache_dir / f'{root_ref}__{manifest.resolved_commit[:12]}' / 'manifest.json'}"
+        )
         sys.exit(0)
-    
+
     except InvalidRefError as e:
         logger.error(f"Invalid reference: {str(e)}")
         sys.exit(3)
-    
+
     except Exception as e:
         logger.error(f"Fetch failed: {str(e)}")
         sys.exit(1)
@@ -379,17 +400,17 @@ def index(
     full_corpus: bool,
 ):
     """Build FTS5 lexical search index for ROOT corpus.
-    
+
     Creates SQLite FTS5 index for fast full-text search over ROOT code.
     Automatically fetches corpus if not cached.
-    
+
     For ROOT 6.36.08 (FairShip anchor), uses seed corpus by default.
-    
+
     Examples:
         root-rag index                    # Index v6-36-08 with seed corpus
         root-rag index --full-corpus      # Index v6-36-08 fully
         root-rag index --root-ref master  # Index different version
-    
+
     Exit codes:
         0: Success
         1: Generic runtime failure
@@ -398,25 +419,24 @@ def index(
         7: Configuration file error
         8: FTS5 not available on this system
     """
-    
+
     # Auto-detect seed corpus config for v6-36-08
-    if not full_corpus and not seed_corpus:
-        if root_ref == "v6-36-08":
-            default_seed = Path("configs/seed_corpus_root_636.yaml")
-            if default_seed.exists():
-                seed_corpus = default_seed
-                logger.info(f"Using seed corpus config: {seed_corpus}")
-                click.echo(f"[INFO] Using FairShip-focused seed corpus for {root_ref}")
-                click.echo(f"       Config: {seed_corpus}")
-                click.echo(f"       (Use --full-corpus to index all files)")
-            else:
-                logger.warning(f"Seed corpus config not found: {default_seed}")
-    
+    if not full_corpus and not seed_corpus and root_ref == "v6-36-08":
+        default_seed = Path("configs/seed_corpus_root_636.yaml")
+        if default_seed.exists():
+            seed_corpus = default_seed
+            logger.info(f"Using seed corpus config: {seed_corpus}")
+            click.echo(f"[INFO] Using FairShip-focused seed corpus for {root_ref}")
+            click.echo(f"       Config: {seed_corpus}")
+            click.echo("       (Use --full-corpus to index all files)")
+        else:
+            logger.warning(f"Seed corpus config not found: {default_seed}")
+
     # Ensure FTS5 is available
     if not check_fts5_available():
         logger.error("FTS5 is not available on this system")
         sys.exit(8)
-    
+
     try:
         # Ensure corpus is fetched
         logger.info(f"Checking corpus cache for {root_ref}...")
@@ -427,14 +447,14 @@ def index(
             force_refresh=False,
         )
         logger.info(f"Using corpus at {manifest.local_path}")
-        
+
         # Build full index
         logger.info(f"Building index for {root_ref}...")
         if seed_corpus:
             click.echo(f"[INFO] Indexing seed corpus only ({seed_corpus.name})")
         else:
-            click.echo(f"[INFO] Indexing full corpus")
-        
+            click.echo("[INFO] Indexing full corpus")
+
         result = build_full_index(
             manifest=manifest,
             output_dir=output_dir,
@@ -442,7 +462,7 @@ def index(
             overlap_lines=overlap_lines,
             seed_corpus_config=seed_corpus,
         )
-        
+
         if result.get("status") != "success":
             error = result.get("error", "unknown")
             logger.error(f"Index build failed: {error}")
@@ -450,7 +470,7 @@ def index(
                 sys.exit(8)
             else:
                 sys.exit(1)
-        
+
         # Print results
         click.echo(f"\n[OK] Index created: {result['index_id']}")
         click.echo(f"  Corpus ID: {result['corpus_id']}")
@@ -459,27 +479,28 @@ def index(
         if seed_corpus:
             click.echo(f"  Scope: Seed corpus ({seed_corpus.name})")
         else:
-            click.echo(f"  Scope: Full corpus")
+            click.echo("  Scope: Full corpus")
         click.echo(f"  Chunks: {result['chunk_count']:,}")
         click.echo(f"  Files: {result['file_count']:,}")
         click.echo(f"  Retrieval Modes: {', '.join(result['retrieval_modes'])}")
         click.echo(f"  FTS DB: {result['fts_db_path']}")
         click.echo(f"  Manifest: {result['index_manifest_path']}")
-        
+
         logger.info(
             f"Index ready: {result['index_id']}, "
             f"{result['chunk_count']} chunks, "
             f"{result['file_count']} files"
         )
         sys.exit(0)
-    
+
     except InvalidRefError as e:
         logger.error(f"Invalid reference: {str(e)}")
         sys.exit(3)
-    
+
     except Exception as e:
         logger.error(f"Index build failed: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -596,21 +617,21 @@ def search(
     verbose: bool,
 ):
     """Search indexed ROOT corpus for evidence.
-    
+
     Performs lexical search by default, with opt-in S1 semantic or hybrid retrieval.
     Results are evidence candidates (file, line range, score) without answer generation.
-    
+
     Examples:
         root-rag search "TTree::Draw" --root-ref v6-32-00
         root-rag search "RDataFrame" --index-id idx_abc123 --top-k 20
         root-rag search "Fill" --root-ref master --json
-    
+
     Exit codes:
         0: Success with evidence found
         4: Index not found or not resolvable
         5: No evidence found for query
     """
-    
+
     if verbose:
         logger.setLevel(logging.DEBUG)
 
@@ -621,7 +642,9 @@ def search(
         raise click.UsageError("Missing query text. Pass QUERY or --literal <text>")
 
     try:
-        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+        indexes_root = _select_indexes_root(
+            index_dir=index_dir, profile=profile.lower(), index_id=index_id
+        )
 
         # Resolve index
         logger.debug(f"Resolving index: root_ref={root_ref}, index_id={index_id}")
@@ -631,7 +654,7 @@ def search(
             index_id=index_id,
         )
         logger.debug(f"Resolved to index {manifest.index_id}")
-        
+
         # Load FTS5 database path
         db_path = manifest.fts_db_path
         if not db_path or not Path(db_path).exists():
@@ -679,7 +702,7 @@ def search(
             if fallback_reason:
                 click.echo(f"Fallback reason: {fallback_reason}")
             click.echo("")
-            
+
             for i, result in enumerate(results, 1):
                 click.echo(
                     f"[{i}] [{result.source_type}] {result.file_path}:{result.start_line}-{result.end_line} "
@@ -689,7 +712,7 @@ def search(
                     click.echo(f"    Symbol: {result.symbol_path}")
                 click.echo(f"    Doc: {result.doc_origin}")
                 click.echo(f"    Commit: {result.resolved_commit[:12]}")
-        
+
         logger.info(f"Found {len(results)} evidence candidates")
         logger.debug(f"Actual backend: {actual_backend}, fallback reason: {fallback_reason}")
         if not results:
@@ -699,11 +722,12 @@ def search(
     except IndexNotFoundError as e:
         logger.error(f"Index not found: {str(e)}")
         sys.exit(4)
-    
+
     except Exception as e:
         logger.error(f"Search failed: {str(e)}")
         if verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 
@@ -766,7 +790,9 @@ def build_semantic_index(
 ):
     """Build opt-in S1 semantic artifacts from an existing lexical index."""
     try:
-        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+        indexes_root = _select_indexes_root(
+            index_dir=index_dir, profile=profile.lower(), index_id=index_id
+        )
         manifest = resolve_index(
             indexes_root=indexes_root,
             root_ref=root_ref,
@@ -779,7 +805,12 @@ def build_semantic_index(
 
         output_dir = semantic_output_dir
         if output_dir is None:
-            output_dir = Path(indexes_root) / manifest.index_id / "semantic" / _slugify_model_name(model_name)
+            output_dir = (
+                Path(indexes_root)
+                / manifest.index_id
+                / "semantic"
+                / _slugify_model_name(model_name)
+            )
 
         corpus_rows = load_corpus_rows(chunks_path)
         embedder = SentenceTransformerLocalEmbedder(
@@ -817,6 +848,7 @@ def build_semantic_index(
     except Exception as e:
         logger.error(f"S1 semantic index build failed: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -885,46 +917,60 @@ def build_semantic_index(
     default="stable",
     help="Tie-breaking logic for fused results.",
 )
-def ask(query: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str, top_k: int,
-        retrieval_backend: str, baseline: bool, retrieval_forest: Optional[str], fusion: str, dedup: str, tie_breaker: str):
+def ask(
+    query: str,
+    root_ref: str,
+    index_id: str,
+    index_dir: Optional[Path],
+    profile: str,
+    top_k: int,
+    retrieval_backend: str,
+    baseline: bool,
+    retrieval_forest: Optional[str],
+    fusion: str,
+    dedup: str,
+    tie_breaker: str,
+):
     """Ask a question and get evidence-based answers.
-    
+
     Evidence-first retrieval: returns file paths and line ranges with ROOT version.
     Does not synthesize answers without evidence.
-    
+
     Query syntax: Use keywords, not natural language.
     - Good: "TTree::Fill", "TGeoManager MakeBox", "TVector3 magnitude"
     - Avoid: "How do I fill a TTree?", "Where is the definition of?"
     - Stop words (filtered): where, what, how, is, are, the, definition, usage, etc.
     - Order doesn't matter: "TTree Fill" = "Fill TTree"
-    
+
     For detailed query guide: See docs/QUERY_SYNTAX_GUIDE.md
-    
+
     Examples:
         root-rag ask "TTree::Fill"
         root-rag ask "TH1F histogram"
         root-rag ask "TVector3 magnitude"
-    
+
     Exit codes:
         0: Success with evidence found
         4: Index not found
         5: No evidence found
     """
     try:
-        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+        indexes_root = _select_indexes_root(
+            index_dir=index_dir, profile=profile.lower(), index_id=index_id
+        )
         # Resolve index
         manifest = resolve_index(
             indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
-        
+
         # Load FTS5 database
         db_path = manifest.fts_db_path
         if not db_path or not Path(db_path).exists():
             click.echo(f"Error: Index database not found for {root_ref}", err=True)
             sys.exit(4)
-        
+
         # Resolve backend and results
         results, actual_backend, fallback_reason = _resolve_backend_and_results(
             query=query,
@@ -944,31 +990,31 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Optional[Path], pro
             if fallback_reason:
                 click.echo(f"Fallback reason: {fallback_reason}")
             click.echo(f"No evidence found in ROOT {manifest.root_ref}")
-            click.echo(f"Try broader search terms or check if the class is in the indexed corpus.")
+            click.echo("Try broader search terms or check if the class is in the indexed corpus.")
             sys.exit(5)
-        
+
         # Output evidence
         click.echo(f"Actual backend: {actual_backend}")
         if fallback_reason:
             click.echo(f"Fallback reason: {fallback_reason}")
-        
+
         click.echo(f"Evidence (ROOT {manifest.root_ref}, commit {manifest.resolved_commit[:12]}):")
         # Logic to detect if forest was actually used
         if actual_backend == "forest":
-             click.echo(f"Mode: Forest, Fusion: {fusion}, Dedup: {dedup}")
+            click.echo(f"Mode: Forest, Fusion: {fusion}, Dedup: {dedup}")
         elif actual_backend != "lexical":
-             click.echo(f"Mode: {actual_backend}")
+            click.echo(f"Mode: {actual_backend}")
         click.echo("")
-        
+
         for i, r in enumerate(results, 1):
             provenance = f" [{r.source_profile} rank {r.original_rank}]" if r.source_profile else ""
             click.echo(f"[{i}]{provenance} {r.file_path}:{r.start_line}-{r.end_line}")
             if r.symbol_path:
                 click.echo(f"    Symbol: {r.symbol_path}")
-        
+
         sys.exit(0)
-        
-    except IndexNotFoundError as e:
+
+    except IndexNotFoundError:
         click.echo(f"Error: No index found for {root_ref}", err=True)
         click.echo(f"Run: root-rag index --root-ref {root_ref}", err=True)
         sys.exit(4)
@@ -1004,56 +1050,58 @@ def ask(query: str, root_ref: str, index_id: str, index_dir: Optional[Path], pro
 )
 def grep(pattern: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str):
     """Grep for symbol/pattern in indexed ROOT corpus.
-    
+
     Fast exact-match search for symbols, methods, or code patterns.
-    
+
     Examples:
         root-rag grep "TTree::Fill"
         root-rag grep "TGeoManager"
         root-rag grep "Draw"
-    
+
     Exit codes:
         0: Success with matches found
         4: Index not found
         5: No matches found
     """
     try:
-        indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+        indexes_root = _select_indexes_root(
+            index_dir=index_dir, profile=profile.lower(), index_id=index_id
+        )
         # Resolve index
         manifest = resolve_index(
             indexes_root=indexes_root,
             root_ref=root_ref,
             index_id=index_id,
         )
-        
+
         # Load FTS5 database
         db_path = manifest.fts_db_path
         if not db_path or not Path(db_path).exists():
             click.echo(f"Error: Index database not found for {root_ref}", err=True)
             sys.exit(4)
-        
+
         # Perform exact match search
         results = lexical_search(
             db_path=str(db_path),
             query=pattern,
             top_k=20,  # More results for grep
         )
-        
+
         if not results:
             click.echo(f"No matches found for '{pattern}' in ROOT {manifest.root_ref}")
             sys.exit(5)
-        
+
         # Output matches (grep-like format)
         click.echo(f"Matches in ROOT {manifest.root_ref} (commit {manifest.resolved_commit[:12]}):")
         click.echo("")
-        
+
         for r in results:
             click.echo(f"{r.file_path}:{r.start_line}-{r.end_line}")
-        
+
         click.echo(f"\n{len(results)} matches found")
         sys.exit(0)
-        
-    except IndexNotFoundError as e:
+
+    except IndexNotFoundError:
         click.echo(f"Error: No index found for {root_ref}", err=True)
         click.echo(f"Run: root-rag index --root-ref {root_ref}", err=True)
         sys.exit(4)
@@ -1078,18 +1126,18 @@ def grep(pattern: str, root_ref: str, index_id: str, index_dir: Optional[Path], 
 )
 def versions(index_dir: Optional[Path], profile: str):
     """List indexed ROOT versions.
-    
+
     Shows all ROOT versions currently indexed and available for retrieval.
-    
+
     Example:
         root-rag versions
     """
     index_dir = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=None)
-    
+
     if not index_dir.exists():
         click.echo("No indexes found. Run 'root-rag index' to create one.")
         sys.exit(0)
-    
+
     # Find all index manifests
     manifests = []
     for manifest_file in index_dir.rglob("index_manifest.json"):
@@ -1098,21 +1146,21 @@ def versions(index_dir: Optional[Path], profile: str):
             manifests.append(manifest)
         except Exception as e:
             logger.warning(f"Failed to load manifest {manifest_file}: {e}")
-    
+
     if not manifests:
         click.echo("No indexes found. Run 'root-rag index --root-ref v6-36-08' to create one.")
         sys.exit(0)
-    
+
     # Group by root_ref
     by_ref = {}
     for m in manifests:
         if m.root_ref not in by_ref:
             by_ref[m.root_ref] = []
         by_ref[m.root_ref].append(m)
-    
+
     click.echo("Indexed ROOT versions:")
     click.echo("")
-    
+
     for ref in sorted(by_ref.keys()):
         indexes = by_ref[ref]
         latest = max(indexes, key=lambda x: x.created_at)
@@ -1123,7 +1171,7 @@ def versions(index_dir: Optional[Path], profile: str):
         click.echo(f"    Created: {latest.created_at}")
         click.echo(f"    Index ID: {latest.index_id}")
         click.echo("")
-    
+
     sys.exit(0)
 
 
@@ -1159,13 +1207,17 @@ def versions(index_dir: Optional[Path], profile: str):
     show_default=True,
     help="Extra context lines before/after requested range.",
 )
-def show(target: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str, context: int):
+def show(
+    target: str, root_ref: str, index_id: str, index_dir: Optional[Path], profile: str, context: int
+):
     """Show indexed source lines for <file:start-end> from chunk text."""
     if context < 0:
         raise click.UsageError("--context must be >= 0")
 
     file_path, start_line, end_line = _parse_file_range(target)
-    indexes_root = _select_indexes_root(index_dir=index_dir, profile=profile.lower(), index_id=index_id)
+    indexes_root = _select_indexes_root(
+        index_dir=index_dir, profile=profile.lower(), index_id=index_id
+    )
 
     try:
         manifest = resolve_index(
@@ -1212,8 +1264,5 @@ def show(target: str, root_ref: str, index_id: str, index_dir: Optional[Path], p
     sys.exit(0)
 
 
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

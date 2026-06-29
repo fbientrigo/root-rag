@@ -35,6 +35,13 @@ def test_aggregate_topk_metrics_macro_averages_rows():
 def test_classify_effect_flags_helped_hurt_and_unchanged():
     before = {"mrr_at_k": 0.2, "recall_at_k": 0.3, "ndcg_at_k": 0.4}
 
-    assert classify_effect(before, {"mrr_at_k": 0.3, "recall_at_k": 0.3, "ndcg_at_k": 0.4}) == "helped"
-    assert classify_effect(before, {"mrr_at_k": 0.1, "recall_at_k": 0.3, "ndcg_at_k": 0.4}) == "hurt"
-    assert classify_effect(before, {"mrr_at_k": 0.2, "recall_at_k": 0.3, "ndcg_at_k": 0.4}) == "unchanged"
+    assert (
+        classify_effect(before, {"mrr_at_k": 0.3, "recall_at_k": 0.3, "ndcg_at_k": 0.4}) == "helped"
+    )
+    assert (
+        classify_effect(before, {"mrr_at_k": 0.1, "recall_at_k": 0.3, "ndcg_at_k": 0.4}) == "hurt"
+    )
+    assert (
+        classify_effect(before, {"mrr_at_k": 0.2, "recall_at_k": 0.3, "ndcg_at_k": 0.4})
+        == "unchanged"
+    )

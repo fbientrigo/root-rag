@@ -1,4 +1,5 @@
 """Tests for scripts/emv_preflight.py."""
+
 from __future__ import annotations
 
 import importlib.util

@@ -1,14 +1,15 @@
 """Promote manually approved Muon DIS qrel decisions into confirmed qrels."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any
 
 import yaml
-
 
 DEFAULT_DECISIONS_PATH = Path("benchmarks/muon_dis/qrels_review_decisions.yaml")
 DEFAULT_QRELS_PATH = Path("benchmarks/muon_dis/qrels.yaml")
@@ -17,10 +18,16 @@ ALLOWED_DECISIONS = {"APPROVED", "REJECTED", "NEEDS_CONTEXT"}
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Promote reviewed Muon DIS qrels with manual approval gates.")
-    parser.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS_PATH, help="Review decisions YAML file.")
+    parser = argparse.ArgumentParser(
+        description="Promote reviewed Muon DIS qrels with manual approval gates."
+    )
+    parser.add_argument(
+        "--decisions", type=Path, default=DEFAULT_DECISIONS_PATH, help="Review decisions YAML file."
+    )
     parser.add_argument("--qrels", type=Path, default=DEFAULT_QRELS_PATH, help="Qrels YAML file.")
-    parser.add_argument("--dry-run", action="store_true", help="Show promotions without modifying qrels.")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show promotions without modifying qrels."
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -30,7 +37,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"YAML file not found: {path}")
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -39,15 +46,19 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _candidate_key(query_id: str, file_path: str, start_line: int, end_line: int) -> Tuple[str, str, int, int]:
+def _candidate_key(
+    query_id: str, file_path: str, start_line: int, end_line: int
+) -> tuple[str, str, int, int]:
     return (query_id, file_path, start_line, end_line)
 
 
-def _build_candidate_lookup(candidates_payload: Mapping[str, Any]) -> set[Tuple[str, str, int, int]]:
+def _build_candidate_lookup(
+    candidates_payload: Mapping[str, Any],
+) -> set[tuple[str, str, int, int]]:
     rows = candidates_payload.get("candidates")
     if not isinstance(rows, list):
         raise ValueError("qrels_candidates.yaml must contain candidates list.")
-    allowed: set[Tuple[str, str, int, int]] = set()
+    allowed: set[tuple[str, str, int, int]] = set()
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -61,16 +72,20 @@ def _build_candidate_lookup(candidates_payload: Mapping[str, Any]) -> set[Tuple[
             file_path = qrel.get("file_path")
             start_line = qrel.get("start_line")
             end_line = qrel.get("end_line")
-            if isinstance(file_path, str) and isinstance(start_line, int) and isinstance(end_line, int):
+            if (
+                isinstance(file_path, str)
+                and isinstance(start_line, int)
+                and isinstance(end_line, int)
+            ):
                 allowed.add(_candidate_key(query_id, file_path, start_line, end_line))
     return allowed
 
 
-def _normalize_decisions(decisions_payload: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _normalize_decisions(decisions_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     rows = decisions_payload.get("decisions")
     if not isinstance(rows, list):
         raise ValueError("qrels_review_decisions.yaml must contain decisions list.")
-    normalized: List[Dict[str, Any]] = []
+    normalized: list[dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, dict):
             raise ValueError("Each decision row must be a mapping.")
@@ -78,7 +93,7 @@ def _normalize_decisions(decisions_payload: Mapping[str, Any]) -> List[Dict[str,
     return normalized
 
 
-def _canonical_anchor(entry: Mapping[str, Any]) -> Tuple[str, int, int] | None:
+def _canonical_anchor(entry: Mapping[str, Any]) -> tuple[str, int, int] | None:
     file_path = entry.get("file_path")
     start_line = entry.get("start_line")
     end_line = entry.get("end_line")
@@ -90,12 +105,12 @@ def _canonical_anchor(entry: Mapping[str, Any]) -> Tuple[str, int, int] | None:
 def _validate_and_collect_promotions(
     *,
     decision_rows: Sequence[Mapping[str, Any]],
-    allowed_candidates: set[Tuple[str, str, int, int]],
-) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    allowed_candidates: set[tuple[str, str, int, int]],
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     approved_count = 0
     rejected_count = 0
     needs_context_count = 0
-    promotions: List[Dict[str, Any]] = []
+    promotions: list[dict[str, Any]] = []
 
     for row in decision_rows:
         query_id = row.get("query_id")
@@ -110,7 +125,9 @@ def _validate_and_collect_promotions(
         if not isinstance(file_path, str):
             raise ValueError(f"Decision row for {query_id} missing string file_path.")
         if not isinstance(start_line, int) or not isinstance(end_line, int):
-            raise ValueError(f"Decision row for {query_id} must include integer start_line/end_line.")
+            raise ValueError(
+                f"Decision row for {query_id} must include integer start_line/end_line."
+            )
         if not isinstance(decision, str) or decision not in ALLOWED_DECISIONS:
             raise ValueError(f"Decision row for {query_id} has invalid decision: {decision}")
         if not isinstance(relevance, int) or relevance < 0 or relevance > 3:
@@ -163,8 +180,8 @@ def _validate_and_collect_promotions(
 def _merge_promotions_into_qrels(
     qrels_payload: Mapping[str, Any],
     promotions: Sequence[Mapping[str, Any]],
-) -> Dict[str, Any]:
-    result: Dict[str, Any] = dict(qrels_payload)
+) -> dict[str, Any]:
+    result: dict[str, Any] = dict(qrels_payload)
     confirmed_rows = qrels_payload.get("confirmed_qrels")
     pending_rows = qrels_payload.get("pending_qrels")
     if not isinstance(confirmed_rows, list):
@@ -172,8 +189,8 @@ def _merge_promotions_into_qrels(
     if not isinstance(pending_rows, list):
         pending_rows = []
 
-    normalized_confirmed: List[Dict[str, Any]] = []
-    query_to_index: Dict[str, int] = {}
+    normalized_confirmed: list[dict[str, Any]] = []
+    query_to_index: dict[str, int] = {}
     for row in confirmed_rows:
         if not isinstance(row, dict):
             continue
@@ -240,7 +257,7 @@ def promote_qrels(
     dry_run: bool = False,
     output_path: Path | None = None,
     candidates_path: Path = DEFAULT_CANDIDATES_PATH,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     decisions_payload = _load_yaml_mapping(decisions_path)
     qrels_payload = _load_yaml_mapping(qrels_path)
     candidates_payload = _load_yaml_mapping(candidates_path)
@@ -253,7 +270,7 @@ def promote_qrels(
     )
 
     final_output = output_path if output_path is not None else qrels_path
-    summary: Dict[str, Any] = {
+    summary: dict[str, Any] = {
         "approved_count": counts["approved_count"],
         "rejected_count": counts["rejected_count"],
         "needs_context_count": counts["needs_context_count"],

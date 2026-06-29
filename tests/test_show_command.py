@@ -1,4 +1,5 @@
 """Tests for root-rag show command."""
+
 import json
 import os
 from pathlib import Path
@@ -9,7 +10,9 @@ from root_rag.cli import main
 from root_rag.index.schemas import IndexManifest
 
 
-def _write_show_fixture(indexes_root, *, index_id="fairship__master__abc123def456__20260504T120000Z"):
+def _write_show_fixture(
+    indexes_root, *, index_id="fairship__master__abc123def456__20260504T120000Z"
+):
     index_dir = indexes_root / index_id
     index_dir.mkdir(parents=True)
 
@@ -136,7 +139,9 @@ def test_show_resolves_legacy_processed_chunks_path_under_data(tmp_path):
     artifact_dir = index_dir / index_id
     artifact_dir.mkdir(parents=True)
 
-    chunks_path = tmp_path / "data" / "processed" / "chunks" / "master__abc123def456" / "chunks.jsonl"
+    chunks_path = (
+        tmp_path / "data" / "processed" / "chunks" / "master__abc123def456" / "chunks.jsonl"
+    )
     chunks_path.parent.mkdir(parents=True)
     row = {
         "chunk_id": "c1",

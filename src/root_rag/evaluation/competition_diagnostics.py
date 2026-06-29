@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Dict, List, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from root_rag.retrieval.models import EvidenceCandidate
 
@@ -15,12 +15,12 @@ DIAGNOSIS_LABELS = {
 }
 
 
-def build_rank_map(results: Sequence[EvidenceCandidate]) -> Dict[str, int]:
+def build_rank_map(results: Sequence[EvidenceCandidate]) -> dict[str, int]:
     """Map chunk_id -> 1-indexed rank from scored results."""
     return {row.chunk_id: idx + 1 for idx, row in enumerate(results)}
 
 
-def build_score_map(results: Sequence[EvidenceCandidate]) -> Dict[str, float]:
+def build_score_map(results: Sequence[EvidenceCandidate]) -> dict[str, float]:
     """Map chunk_id -> score from scored results."""
     return {row.chunk_id: float(row.score) for row in results}
 
@@ -31,7 +31,7 @@ def analyze_split_gold_same_file(
     corpus_by_id: Mapping[str, dict],
 ) -> dict:
     """Return whether multiple gold chunks belong to the same file."""
-    file_by_gold: Dict[str, str | None] = {}
+    file_by_gold: dict[str, str | None] = {}
     for chunk_id in gold_chunk_ids:
         row = corpus_by_id.get(chunk_id)
         file_by_gold[chunk_id] = row.get("file_path") if row else None
@@ -58,7 +58,7 @@ def extract_competitors_above_gold(
     score_map = build_score_map(mode_results)
     gold_ranks = {chunk_id: rank_map.get(chunk_id) for chunk_id in gold_chunk_ids}
     gold_scores = {chunk_id: score_map.get(chunk_id) for chunk_id in gold_chunk_ids}
-    gold_presence: Dict[str, dict] = {}
+    gold_presence: dict[str, dict] = {}
 
     for chunk_id in gold_chunk_ids:
         rank = gold_ranks.get(chunk_id)
@@ -108,12 +108,9 @@ def extract_competitors_above_gold(
         if chunk_id in corpus_by_id and corpus_by_id[chunk_id].get("file_path")
     }
 
-    if best_gold_rank is None:
-        pool = mode_results
-    else:
-        pool = mode_results[: max(0, best_gold_rank - 1)]
+    pool = mode_results if best_gold_rank is None else mode_results[: max(0, best_gold_rank - 1)]
 
-    competitors: List[dict] = []
+    competitors: list[dict] = []
     for idx, row in enumerate(pool, start=1):
         if row.chunk_id in gold_set:
             continue
@@ -142,7 +139,9 @@ def extract_competitors_above_gold(
         "best_gold_rank": best_gold_rank,
         "best_gold_score": best_gold_score,
         "top_score": top_score,
-        "top_minus_best_gold": None if top_score is None or best_gold_score is None else top_score - best_gold_score,
+        "top_minus_best_gold": None
+        if top_score is None or best_gold_score is None
+        else top_score - best_gold_score,
         "all_gold_found_in_depth": all(rank is not None for rank in gold_ranks.values()),
         "competitors_above_gold": competitors,
     }

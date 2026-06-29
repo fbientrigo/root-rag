@@ -1,11 +1,12 @@
 """Ingest saved LXPLUS MuonDIS preflight/probe artifacts into a reproducible Markdown report."""
+
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
-
+from typing import Any
 
 RUNTIME_STATES = {
     "PREFLIGHT_FAILED",
@@ -89,9 +90,23 @@ def load_oracle_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
 
 def summarize_command_log(path: Path | None) -> dict[str, Any]:
     if path is None:
-        return {"path": None, "exists": False, "line_count": 0, "fail_lines": [], "warn_lines": [], "pass_lines": []}
+        return {
+            "path": None,
+            "exists": False,
+            "line_count": 0,
+            "fail_lines": [],
+            "warn_lines": [],
+            "pass_lines": [],
+        }
     if not path.exists():
-        return {"path": str(path), "exists": False, "line_count": 0, "fail_lines": [], "warn_lines": [], "pass_lines": []}
+        return {
+            "path": str(path),
+            "exists": False,
+            "line_count": 0,
+            "fail_lines": [],
+            "warn_lines": [],
+            "pass_lines": [],
+        }
     lines = _read_lines(path)
     return {
         "path": str(path),
@@ -103,7 +118,9 @@ def summarize_command_log(path: Path | None) -> dict[str, Any]:
     }
 
 
-def classify_runtime_status(preflight: dict[str, Any], oracle: dict[str, Any] | None, oracle_error: str | None) -> str:
+def classify_runtime_status(
+    preflight: dict[str, Any], oracle: dict[str, Any] | None, oracle_error: str | None
+) -> str:
     if preflight["fail_lines"]:
         return "PREFLIGHT_FAILED"
 
@@ -133,7 +150,7 @@ def classify_runtime_status(preflight: dict[str, Any], oracle: dict[str, Any] | 
 def _format_oracle_summary(oracle: dict[str, Any] | None, oracle_error: str | None) -> list[str]:
     rows: list[str] = []
     if oracle is None:
-        rows.append(f"- oracle_status: `MISSING_OR_INVALID`")
+        rows.append("- oracle_status: `MISSING_OR_INVALID`")
         rows.append(f"- oracle_error: `{oracle_error}`")
         return rows
     for key in ORACLE_FIELDS:
@@ -255,10 +272,18 @@ def build_report(
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Ingest LXPLUS MuonDIS preflight/probe artifacts into Markdown.")
-    parser.add_argument("--preflight-log", required=True, type=Path, help="Path to preflight log file.")
-    parser.add_argument("--oracle-json", required=True, type=Path, help="Path to oracle probe JSON file.")
-    parser.add_argument("--command-log", default=None, type=Path, help="Optional path to command log file.")
+    parser = argparse.ArgumentParser(
+        description="Ingest LXPLUS MuonDIS preflight/probe artifacts into Markdown."
+    )
+    parser.add_argument(
+        "--preflight-log", required=True, type=Path, help="Path to preflight log file."
+    )
+    parser.add_argument(
+        "--oracle-json", required=True, type=Path, help="Path to oracle probe JSON file."
+    )
+    parser.add_argument(
+        "--command-log", default=None, type=Path, help="Optional path to command log file."
+    )
     parser.add_argument("--output", required=True, type=Path, help="Output Markdown report path.")
     return parser.parse_args(argv)
 
