@@ -1,5 +1,8 @@
 # FairShip Muon DIS Workflow
 
+> Need a working FairShip install first? See
+> [FairShip Build Methods](../wiki/guides/FairShip_build_methods.md) (pixi vs CVMFS + aliBuild).
+
 ## Overview
 The Muon DIS workflow in FairShip handles the generation and simulation of Muon Deep Inelastic Scattering (DIS) backgrounds, typically originating from muons after the muon shield.
 

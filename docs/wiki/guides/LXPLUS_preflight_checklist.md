@@ -3,6 +3,9 @@
 **STATUS: PROVISIONAL**
 *This document lists prerequisites for runtime validation. It does NOT claim that execution has occurred or will succeed.*
 
+> For how to obtain/build FairShip in the first place (pixi vs CVMFS + aliBuild),
+> see [FairShip Build Methods](FairShip_build_methods.md).
+
 ## 1. Environment Prerequisites
 - [ ] **FairShip Commit/Index**: Verify local `fairship` version matches the target LXPLUS environment.
 - [ ] **Setup Command**: `source /cvmfs/ship.cern.ch/SHiP-202X/setup.sh` (or equivalent).
