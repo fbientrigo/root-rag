@@ -1,12 +1,11 @@
 """Pytest fixtures for root-rag tests."""
-import subprocess
-import shutil
+
 import re
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Dict
 
 import pytest
-
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _LOCAL_TMP_ROOT = _REPO_ROOT / "artifacts" / "pytest_runtime"
@@ -29,6 +28,7 @@ def tmp_path(request) -> Path:
                 break
             except (PermissionError, OSError):
                 import time
+
                 time.sleep(0.1)
         else:
             # If still can't delete, try ignoring errors
@@ -38,9 +38,9 @@ def tmp_path(request) -> Path:
 
 
 @pytest.fixture
-def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
+def git_repo_fixture(tmp_path: Path) -> dict[str, any]:
     """Create a minimal git repository with tag and branch.
-    
+
     Returns dict with:
         - path: Path to repo
         - tag_sha: SHA of v0.1 tag
@@ -52,7 +52,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
     if repo_path.exists():
         shutil.rmtree(repo_path, ignore_errors=True)
     repo_path.mkdir(parents=True, exist_ok=True)
-    
+
     # Initialize repo
     subprocess.run(
         ["git", "init"],
@@ -60,7 +60,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Configure git user
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
@@ -74,7 +74,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Create initial file and commit
     (repo_path / "A.h").write_text("#include <iostream>\n")
     subprocess.run(
@@ -89,7 +89,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Get main branch SHA
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -99,7 +99,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         check=True,
     )
     main_sha = result.stdout.strip()
-    
+
     # Create tag v0.1
     subprocess.run(
         ["git", "tag", "v0.1"],
@@ -108,7 +108,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         check=True,
     )
     tag_sha = main_sha  # Same as main
-    
+
     # Create dev branch
     subprocess.run(
         ["git", "checkout", "-b", "dev"],
@@ -116,7 +116,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Add another file on dev
     (repo_path / "B.h").write_text("#include <vector>\n")
     subprocess.run(
@@ -131,7 +131,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Get dev branch SHA
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -141,7 +141,7 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         check=True,
     )
     dev_sha = result.stdout.strip()
-    
+
     return {
         "path": repo_path,
         "tag_sha": tag_sha,
@@ -151,9 +151,9 @@ def git_repo_fixture(tmp_path: Path) -> Dict[str, any]:
 
 
 @pytest.fixture
-def cpp_repo_fixture(tmp_path: Path) -> Dict[str, any]:
+def cpp_repo_fixture(tmp_path: Path) -> dict[str, any]:
     """Create a git repository with C++ header and implementation files.
-    
+
     Returns dict with:
         - path: Path to repo
         - resolved_commit: SHA of HEAD commit
@@ -165,7 +165,7 @@ def cpp_repo_fixture(tmp_path: Path) -> Dict[str, any]:
     if repo_path.exists():
         shutil.rmtree(repo_path, ignore_errors=True)
     repo_path.mkdir(parents=True, exist_ok=True)
-    
+
     # Initialize repo
     subprocess.run(
         ["git", "init"],
@@ -173,7 +173,7 @@ def cpp_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Configure git user
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
@@ -187,15 +187,15 @@ def cpp_repo_fixture(tmp_path: Path) -> Dict[str, any]:
         capture_output=True,
         check=True,
     )
-    
+
     # Create directory structure
     inc_dir = repo_path / "tree" / "inc"
     inc_dir.mkdir(parents=True)
     src_dir = repo_path / "tree" / "src"
     src_dir.mkdir(parents=True)
-    
+
     # Create header file with Doxygen comment
-    header_content = '''/**
+    header_content = """/**
  * @brief TTree class for ROOT
  * @file TTree.h
  * @author ROOT Team
@@ -217,12 +217,12 @@ public:
 };
 
 #endif
-'''
+"""
     tree_h = inc_dir / "TTree.h"
     tree_h.write_text(header_content)
-    
+
     # Create implementation file
-    impl_content = '''#include "TTree.h"
+    impl_content = """#include "TTree.h"
 
 Long64_t TTree::Draw(const char* expression, const char* selection) {
     // Implementation of Draw
@@ -233,10 +233,10 @@ Long64_t TTree::Draw(const char* expression, const char* selection) {
 TTree::~TTree() {
     // Cleanup
 }
-'''
+"""
     tree_cxx = src_dir / "TTree.cxx"
     tree_cxx.write_text(impl_content)
-    
+
     # Commit files
     subprocess.run(
         ["git", "add", "tree"],
@@ -250,7 +250,7 @@ TTree::~TTree() {
         capture_output=True,
         check=True,
     )
-    
+
     # Get commit SHA
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -260,7 +260,7 @@ TTree::~TTree() {
         check=True,
     )
     resolved_commit = result.stdout.strip()
-    
+
     return {
         "path": repo_path,
         "resolved_commit": resolved_commit,
@@ -270,3 +270,32 @@ TTree::~TTree() {
             "tree.cxx": tree_cxx,
         },
     }
+
+
+# Tests that require fixtures built outside a bare clone (pre-built indices under
+# data/, or benchmark artifacts). They are skipped automatically when the fixture
+# is absent so the suite stays green on a fresh checkout / CI, and run normally
+# once the index or benchmark has been built locally. Keyed by node-id substring.
+_FIXTURE_REQUIREMENTS = {
+    "test_fairship_corpus": _REPO_ROOT / "data" / "indexes_fairship",
+    "test_fairship_golden_queries": _REPO_ROOT / "data" / "indexes_fairship",
+    "test_benchmark_metadata": _REPO_ROOT / "artifacts" / "benchmark_eval_results_B0.json",
+    "test_cross_index_search_resolves_indices": _REPO_ROOT / "data" / "indexes_fairship",
+    "test_cross_index_search_tgeomanager": _REPO_ROOT / "data" / "indexes_fairship",
+    "test_cross_index_search_fairship_specific": _REPO_ROOT / "data" / "indexes_fairship",
+    "test_cross_index_search_ttree": _REPO_ROOT / "data" / "indexes_fairship",
+}
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip fixture-dependent integration tests when their data is not present."""
+    for item in items:
+        for key, required in _FIXTURE_REQUIREMENTS.items():
+            if key in item.nodeid and not required.exists():
+                rel = required.relative_to(_REPO_ROOT)
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason=f"requires fixture '{rel}' (build the index / run benchmark tracks)"
+                    )
+                )
+                break

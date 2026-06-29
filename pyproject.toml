@@ -20,6 +20,7 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=3.0",
+    "ruff>=0.6",
 ]
 s1 = [
     "numpy>=1.26",
@@ -44,3 +45,31 @@ where = ["src"]
 cache_dir = "artifacts/pytest_cache"
 testpaths = ["tests"]
 norecursedirs = ["data", "artifacts", ".venv", ".git"]
+markers = [
+    "integration: marks tests that require pre-built indices or external fixtures",
+]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+src = ["src", "scripts", "tests"]
+extend-exclude = ["data", "artifacts", "evidence", "benchmarks"]
+
+[tool.ruff.lint]
+# Pragmatic catch-all: pycodestyle/pyflakes (E,F,W), import sorting (I),
+# pyupgrade (UP), bugbear (B), comprehensions (C4), flake8-simplify (SIM),
+# flake8-pie (PIE), and flake8-return (RET).
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "PIE", "RET"]
+ignore = [
+    "E501",    # line-too-long: handled by the formatter; long strings/URLs remain
+    "B008",    # function call in default arg: common, intentional (e.g. click)
+    "RET504",  # unnecessary-assign: assignment-before-return often aids readability
+    "W293",    # blank-line-with-whitespace: real cases caught by `ruff format`;
+               # remaining hits are inside string/code templates and test docstrings
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests favor explicit, repetitive assertions over refactor-style lint rules.
+"tests/**" = ["B", "SIM", "RET"]
+# One-off analysis/maintenance scripts: relax purely-stylistic rules.
+"scripts/**" = ["SIM102", "E731"]
