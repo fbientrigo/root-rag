@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Sequence
 
 from root_rag.evaluation.semantic_v1 import load_corpus, load_qrels, load_queries
 
@@ -57,12 +57,12 @@ class GeometryAuditRow:
     note: str
 
 
-def _index_corpus(rows: Sequence[dict]) -> tuple[Dict[str, dict], Dict[str, List[dict]]]:
+def _index_corpus(rows: Sequence[dict]) -> tuple[dict[str, dict], dict[str, list[dict]]]:
     by_id = {row["chunk_id"]: row for row in rows}
-    by_file: Dict[str, List[dict]] = defaultdict(list)
+    by_file: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
         by_file[str(row["file_path"])].append(row)
-    for file_path, file_rows in by_file.items():
+    for _file_path, file_rows in by_file.items():
         file_rows.sort(key=lambda row: (tuple(row.get("line_range", [0, 0])), row["chunk_id"]))
     return by_id, dict(by_file)
 
@@ -71,7 +71,9 @@ def _file_positions(file_rows: Sequence[dict]) -> dict[str, int]:
     return {row["chunk_id"]: idx + 1 for idx, row in enumerate(file_rows)}
 
 
-def _same_file_gold_ids(*, query_id: str, qrels_map: Mapping[str, Mapping[str, int]], corpus_by_id: Mapping[str, dict]) -> list[str]:
+def _same_file_gold_ids(
+    *, query_id: str, qrels_map: Mapping[str, Mapping[str, int]], corpus_by_id: Mapping[str, dict]
+) -> list[str]:
     gold_ids = sorted(qrels_map[query_id].keys())
     gold_files = {
         str(corpus_by_id[chunk_id]["file_path"])
@@ -106,7 +108,7 @@ def load_bridge_light_geometry_audit(
     corpus_by_id, corpus_by_file = _index_corpus(corpus_rows)
 
     bridge_light_queries = [row for row in queries if row.query_class == "bridge-light"]
-    per_query: List[GeometryAuditRow] = []
+    per_query: list[GeometryAuditRow] = []
 
     for query_row in bridge_light_queries:
         gold_ids = _same_file_gold_ids(

@@ -12,36 +12,36 @@ from pathlib import Path
 
 def create_mock_fairship():
     """Create a mock FairShip directory structure."""
-    
+
     tmpdir = Path(tempfile.mkdtemp(prefix="mock_fairship_"))
     print(f"Creating mock FairShip at: {tmpdir}")
-    
+
     # Create module structure
     modules = {
-        'veto': [
-            'vetoPoint.cxx',
-            'vetoHit.h',
+        "veto": [
+            "vetoPoint.cxx",
+            "vetoHit.h",
         ],
-        'ecal': [
-            'ecalCell.cxx',
-            'ecalReconstruction.h',
+        "ecal": [
+            "ecalCell.cxx",
+            "ecalReconstruction.h",
         ],
-        'python': [
-            'analysis.py',
+        "python": [
+            "analysis.py",
         ],
     }
-    
+
     for module, files in modules.items():
         module_dir = tmpdir / module
         module_dir.mkdir()
-        
+
         for filename in files:
             file_path = module_dir / filename
-            
+
             # Generate appropriate content
-            if filename.endswith('.cxx'):
+            if filename.endswith(".cxx"):
                 content = f'''
-#include "{filename.replace('.cxx', '.h')}"
+#include "{filename.replace(".cxx", ".h")}"
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector3.h"
@@ -68,8 +68,8 @@ void {module}_process() {{
     outputFile->Close();
 }}
 '''
-            elif filename.endswith('.h'):
-                content = f'''
+            elif filename.endswith(".h"):
+                content = f"""
 #ifndef {module.upper()}_H
 #define {module.upper()}_H
 
@@ -96,8 +96,8 @@ public:
 }};
 
 #endif
-'''
-            elif filename.endswith('.py'):
+"""
+            elif filename.endswith(".py"):
                 content = f'''
 import ROOT
 from ROOT import TFile, TTree, TH1F, TCanvas
@@ -129,14 +129,16 @@ if __name__ == "__main__":
 '''
             else:
                 content = "// Empty file"
-            
+
             file_path.write_text(content)
-    
-    print(f"Created {sum(len(files) for files in modules.values())} files in {len(modules)} modules")
-    print(f"\nTo test the extraction script, run:")
+
+    print(
+        f"Created {sum(len(files) for files in modules.values())} files in {len(modules)} modules"
+    )
+    print("\nTo test the extraction script, run:")
     print(f"python scripts/extract_fairship_root_usage.py --fairship-path {tmpdir}")
     print(f"\nMock FairShip will be at: {tmpdir}")
-    
+
     return tmpdir
 
 

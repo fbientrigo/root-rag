@@ -19,12 +19,17 @@ def test_safe_shortlist_requires_proposal_redteam_agreement() -> None:
         for r in props["proposals"]
     }
     r_index = {
-        (r["query_id"], r["file_path"], r["start_line"], r["end_line"]): r
-        for r in red["reviews"]
+        (r["query_id"], r["file_path"], r["start_line"], r["end_line"]): r for r in red["reviews"]
     }
 
     for row in safe["safe_to_review"]:
-        k_prop = (row["query_id"], row["file_path"], row["start_line"], row["end_line"], row["rank"])
+        k_prop = (
+            row["query_id"],
+            row["file_path"],
+            row["start_line"],
+            row["end_line"],
+            row["rank"],
+        )
         k_red = (row["query_id"], row["file_path"], row["start_line"], row["end_line"])
         assert k_prop in p_index
         assert k_red in r_index
@@ -43,10 +48,15 @@ def test_safe_shortlist_requires_proposal_redteam_agreement() -> None:
 def test_downgraded_proposal_excluded() -> None:
     safe = _load_yaml("benchmarks/muon_dis/qrels_safe_to_review.yaml")
     excluded = {
-        (r["query_id"], r["file_path"], r["start_line"], r["end_line"], r["rank"]): r["exclusion_reason"]
+        (r["query_id"], r["file_path"], r["start_line"], r["end_line"], r["rank"]): r[
+            "exclusion_reason"
+        ]
         for r in safe["excluded"]
     }
-    assert excluded[("q03_run_simscript", "muonShieldOptimization/run_prod.py", 1, 80, 1)] == "downgraded by red-team"
+    assert (
+        excluded[("q03_run_simscript", "muonShieldOptimization/run_prod.py", 1, 80, 1)]
+        == "downgraded by red-team"
+    )
 
 
 def test_not_found_excluded() -> None:

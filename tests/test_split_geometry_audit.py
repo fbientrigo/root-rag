@@ -34,4 +34,3 @@ def test_bridge_light_split_geometry_audit_labels_and_distances():
     assert rows["br008"]["label"] == "far_same_file_split"
     assert rows["br008"]["self_sufficient"] is False
     assert rows["br008"]["chunk_distance"] == 7
-

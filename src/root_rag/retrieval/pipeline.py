@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from root_rag.retrieval.interfaces import BaseRetrievalBackend, QueryTransformer, RetrievalBackend
 from root_rag.retrieval.models import EvidenceCandidate
@@ -16,7 +15,7 @@ class RetrievalPipeline:
     backend: RetrievalBackend
     query_transformer: QueryTransformer
 
-    def search(self, query: str, top_k: int = 10) -> List[EvidenceCandidate]:
+    def search(self, query: str, top_k: int = 10) -> list[EvidenceCandidate]:
         top_k = BaseRetrievalBackend.normalize_top_k(top_k)
         if top_k == 0:
             return []

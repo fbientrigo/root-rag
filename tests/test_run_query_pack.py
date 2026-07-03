@@ -1,4 +1,5 @@
 """Tests for scripts/run_query_pack.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -32,7 +33,7 @@ def _write_pack(path: Path) -> None:
                 "  - test",
                 "queries:",
                 "  - id: q1",
-                "    natural_language: \"first\"",
+                '    natural_language: "first"',
                 "    bm25_tokens:",
                 "      - alpha",
                 "      - beta",
@@ -40,7 +41,7 @@ def _write_pack(path: Path) -> None:
                 "    tier: mvp",
                 "    golden: true",
                 "  - id: q2",
-                "    natural_language: \"second\"",
+                '    natural_language: "second"',
                 "    bm25_tokens:",
                 "      - gamma",
                 "    expected_files: []",
@@ -64,7 +65,9 @@ def test_load_query_pack_parses_yaml(tmp_path: Path) -> None:
     assert len(payload["queries"]) == 2
 
 
-def test_run_query_pack_writes_manifest_and_outputs_with_mocked_subprocess(tmp_path: Path, monkeypatch) -> None:
+def test_run_query_pack_writes_manifest_and_outputs_with_mocked_subprocess(
+    tmp_path: Path, monkeypatch
+) -> None:
     """Runner should save per-query outputs and manifest metadata."""
     module = _load_run_query_pack_module()
     pack_path = tmp_path / "pack.yaml"
@@ -72,7 +75,9 @@ def test_run_query_pack_writes_manifest_and_outputs_with_mocked_subprocess(tmp_p
     _write_pack(pack_path)
 
     calls = []
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def fake_run(command, capture_output, text, check):
         calls.append(command)
@@ -130,7 +135,9 @@ def test_run_query_pack_dry_run_skips_subprocess(tmp_path: Path, monkeypatch) ->
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "dry"
     _write_pack(pack_path)
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def raise_if_called(*args, **kwargs):
         raise AssertionError("subprocess.run should not be called in dry-run mode")
@@ -169,7 +176,9 @@ def test_run_query_pack_passes_explicit_index_options(tmp_path: Path, monkeypatc
     _write_pack(pack_path)
 
     calls = []
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def fake_run(command, capture_output, text, check):
         calls.append(command)
@@ -216,7 +225,9 @@ def test_run_query_pack_fail_fast_stops_after_first_error(tmp_path: Path, monkey
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "fail_fast"
     _write_pack(pack_path)
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     call_count = {"count": 0}
 
@@ -254,7 +265,9 @@ def test_run_query_pack_return_code_5_writes_zero_hit_wrapper(tmp_path: Path, mo
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "zero"
     _write_pack(pack_path)
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def fake_run(command, capture_output, text, check):
         return subprocess.CompletedProcess(command, 5, stdout="No evidence found", stderr="")
@@ -291,10 +304,14 @@ def test_run_query_pack_return_code_2_writes_error_wrapper(tmp_path: Path, monke
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "error"
     _write_pack(pack_path)
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def fake_run(command, capture_output, text, check):
-        return subprocess.CompletedProcess(command, 2, stdout="", stderr="Error: No such option: --json")
+        return subprocess.CompletedProcess(
+            command, 2, stdout="", stderr="Error: No such option: --json"
+        )
 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
@@ -339,7 +356,9 @@ def test_parse_text_wrapper_hits_extracts_rank_file_and_range() -> None:
     ]
 
 
-def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_query_pack_warns_when_output_dir_contains_manifest(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     """Reusing an evidence directory should emit a clear warning and persist it in manifest."""
     module = _load_run_query_pack_module()
     pack_path = tmp_path / "pack.yaml"
@@ -347,7 +366,9 @@ def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, 
     _write_pack(pack_path)
     output_dir.mkdir(parents=True)
     (output_dir / "manifest.json").write_text("{}", encoding="utf-8")
-    monkeypatch.setattr(module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None)
+    monkeypatch.setattr(
+        module.shutil, "which", lambda name: "C:/bin/root-rag" if name == "root-rag" else None
+    )
 
     def fake_run(command, capture_output, text, check):
         return subprocess.CompletedProcess(command, 0, stdout="Evidence", stderr="")
@@ -377,7 +398,9 @@ def test_run_query_pack_warns_when_output_dir_contains_manifest(tmp_path: Path, 
     assert "Prefer a fresh evidence directory." in manifest["warnings"][0]
 
 
-def test_run_query_pack_fallbacks_to_python_module_when_root_rag_missing(tmp_path: Path, monkeypatch) -> None:
+def test_run_query_pack_fallbacks_to_python_module_when_root_rag_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
     module = _load_run_query_pack_module()
     pack_path = tmp_path / "pack.yaml"
     output_dir = tmp_path / "evidence" / "fallback"

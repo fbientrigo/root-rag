@@ -73,10 +73,21 @@ def run(cmd, cwd=None) -> None:
 
 
 def sparse_clone(repo_path: Path) -> None:
-    run([
-        "git", "clone", "--quiet", "--filter=blob:none", "--sparse",
-        "--no-checkout", "--depth=1", "--branch", ROOT_REF, REPO_URL, str(repo_path),
-    ])
+    run(
+        [
+            "git",
+            "clone",
+            "--quiet",
+            "--filter=blob:none",
+            "--sparse",
+            "--no-checkout",
+            "--depth=1",
+            "--branch",
+            ROOT_REF,
+            REPO_URL,
+            str(repo_path),
+        ]
+    )
     run(["git", "sparse-checkout", "set", "--no-cone", *SPARSE_CHECKOUT_PATTERNS], cwd=repo_path)
     run(["git", "checkout", "--quiet", ROOT_REF], cwd=repo_path)
 
@@ -128,7 +139,9 @@ def main() -> int:
         help="Cache directory for the ROOT corpus (default: data/raw/corpora)",
     )
     parser.add_argument("--window-lines", type=int, default=80, help="Lines per chunk window")
-    parser.add_argument("--overlap-lines", type=int, default=10, help="Lines of overlap between windows")
+    parser.add_argument(
+        "--overlap-lines", type=int, default=10, help="Lines of overlap between windows"
+    )
     parser.add_argument(
         "--force-refresh",
         action="store_true",
@@ -141,7 +154,9 @@ def main() -> int:
         return 8
 
     manifest = fetch_root_corpus(args.cache_dir, args.force_refresh)
-    logger.info(f"ROOT corpus ready at {manifest.local_path} (commit {manifest.resolved_commit[:12]})")
+    logger.info(
+        f"ROOT corpus ready at {manifest.local_path} (commit {manifest.resolved_commit[:12]})"
+    )
 
     for seed_corpus_config, output_dir in INDEX_BUILDS:
         logger.info(f"Building index from {seed_corpus_config} -> {output_dir}")

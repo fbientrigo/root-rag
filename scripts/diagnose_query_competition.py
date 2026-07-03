@@ -7,7 +7,6 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
 
 from root_rag.evaluation.competition_diagnostics import (
     DIAGNOSIS_LABELS,
@@ -21,11 +20,11 @@ from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.transformers import build_query_transformer
 
 
-def _load_corpus_by_id(rows: List[dict]) -> Dict[str, dict]:
+def _load_corpus_by_id(rows: list[dict]) -> dict[str, dict]:
     return {row["chunk_id"]: row for row in rows}
 
 
-def _load_query_map(queries_path: Path) -> Dict[str, dict]:
+def _load_query_map(queries_path: Path) -> dict[str, dict]:
     queries = load_queries(queries_path)
     return {
         row.query_id: {
@@ -68,7 +67,9 @@ def _render_markdown(report: dict) -> str:
         lines.append(f"- best_gold_rank: `{mode['best_gold_rank']}`")
         lines.append(f"- best_gold_score: `{mode['best_gold_score']}`")
         lines.append(f"- top_minus_best_gold: `{mode['top_minus_best_gold']}`")
-        lines.append(f"- gold_rank_positions: `{json.dumps(mode['gold_rank_positions'], sort_keys=True)}`")
+        lines.append(
+            f"- gold_rank_positions: `{json.dumps(mode['gold_rank_positions'], sort_keys=True)}`"
+        )
         lines.append("- gold presence detail:")
         for gold_chunk_id in report["gold_chunk_ids"]:
             presence = mode.get("gold_presence", {}).get(gold_chunk_id, {})
@@ -163,10 +164,12 @@ def main() -> int:
 
     query_entry = query_map[args.query_id]
     gold_chunk_ids = sorted(qrels_map[args.query_id].keys())
-    split_info = analyze_split_gold_same_file(gold_chunk_ids=gold_chunk_ids, corpus_by_id=corpus_by_id)
+    split_info = analyze_split_gold_same_file(
+        gold_chunk_ids=gold_chunk_ids, corpus_by_id=corpus_by_id
+    )
     query_transformer = build_query_transformer(args.query_mode)
 
-    modes: Dict[str, dict] = {
+    modes: dict[str, dict] = {
         "bm25": {"present": True, "backend": "lexical_bm25_memory"},
         "semantic": {"present": False, "backend": None},
         "hybrid": {"present": False, "backend": None},
@@ -202,7 +205,9 @@ def main() -> int:
             b=0.75,
             dense_dim=512,
         )
-        semantic_pipeline = RetrievalPipeline(backend=semantic_backend, query_transformer=query_transformer)
+        semantic_pipeline = RetrievalPipeline(
+            backend=semantic_backend, query_transformer=query_transformer
+        )
         semantic_results = semantic_pipeline.search(query_entry["query"], top_k=args.search_depth)
         modes["semantic"] = {
             "present": True,
@@ -225,7 +230,9 @@ def main() -> int:
             b=0.75,
             dense_dim=512,
         )
-        hybrid_pipeline = RetrievalPipeline(backend=hybrid_backend, query_transformer=query_transformer)
+        hybrid_pipeline = RetrievalPipeline(
+            backend=hybrid_backend, query_transformer=query_transformer
+        )
         hybrid_results = hybrid_pipeline.search(query_entry["query"], top_k=args.search_depth)
         modes["hybrid"] = {
             "present": True,
@@ -260,7 +267,9 @@ def main() -> int:
             "corpus": str(args.corpus),
             "queries": str(args.queries),
             "qrels": str(args.qrels),
-            "semantic_manifest": str(args.semantic_manifest) if args.semantic_manifest.exists() else None,
+            "semantic_manifest": str(args.semantic_manifest)
+            if args.semantic_manifest.exists()
+            else None,
         },
     }
 

@@ -2,6 +2,7 @@
 
 Tests the fix for P5: .hxx extension support and SOFIE corpus indexing.
 """
+
 import logging
 from pathlib import Path
 
@@ -133,9 +134,7 @@ class TestSofieCorpusConfig:
         logger.info(f"Filtered to {len(sofie_filtered)} SOFIE seed corpus files")
 
         # Should have matched some SOFIE files
-        assert len(sofie_filtered) > 0, (
-            "Filter should match SOFIE .hxx files (P5 fix verification)"
-        )
+        assert len(sofie_filtered) > 0, "Filter should match SOFIE .hxx files (P5 fix verification)"
 
         # Should be a reasonable match rate
         if len(sofie_discovered) > 0:
@@ -167,7 +166,7 @@ class TestSofieIndexing:
             pytest.skip("ROOT corpus not cached")
 
         corpus_dir = root_dirs[0]
-        repo_root = corpus_dir / "repo"
+        corpus_dir / "repo"
         manifest_path = corpus_dir / "manifest.json"
 
         if not manifest_path.exists():
@@ -178,6 +177,7 @@ class TestSofieIndexing:
 
         # Build index to temporary directory
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             result = build_index(
                 manifest=manifest,
@@ -194,13 +194,11 @@ class TestSofieIndexing:
 
             # After P5 fix, should have substantial chunks
             assert chunk_count >= 100, (
-                f"SOFIE should produce >=100 chunks (got {chunk_count}). "
-                "P5 fix may not be working."
+                f"SOFIE should produce >=100 chunks (got {chunk_count}). P5 fix may not be working."
             )
 
             assert file_count >= 20, (
-                f"SOFIE should index >=20 files (got {file_count}). "
-                "P5 fix may not be working."
+                f"SOFIE should index >=20 files (got {file_count}). P5 fix may not be working."
             )
 
     @pytest.mark.integration
@@ -228,15 +226,11 @@ class TestSofieIndexing:
         results = lexical_search(fts_db, "ROperator_Conv", top_k=10)
 
         # Should find operator definitions
-        assert len(results) > 0, (
-            "SOFIE index should contain ROperator_Conv after P5 fix"
-        )
+        assert len(results) > 0, "SOFIE index should contain ROperator_Conv after P5 fix"
 
         # Verify results are from .hxx files
         hxx_results = [r for r in results if r.file_path.endswith(".hxx")]
-        assert len(hxx_results) > 0, (
-            "At least some results should be from .hxx files"
-        )
+        assert len(hxx_results) > 0, "At least some results should be from .hxx files"
 
 
 class TestRegressionProtection:

@@ -1,13 +1,13 @@
 """Lint wiki claim blocks under docs/wiki."""
+
 from __future__ import annotations
 
 import argparse
 import re
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
-
 
 ALLOWED_STATUSES = {"CONFIRMED", "PROVISIONAL", "UNRESOLVED", "SUPERSEDED"}
 CLAIM_RE = re.compile(r"<!--\s*CLAIM:\s*([A-Z_]+)\s*-->")
@@ -20,9 +20,9 @@ class ClaimBlock:
     file_path: Path
     line: int
     status: str
-    body_lines: List[str]
-    source_values: List[str]
-    source_lines: List[int]
+    body_lines: list[str]
+    source_values: list[str]
+    source_lines: list[int]
 
 
 def _iter_markdown_files(root: Path) -> Iterable[Path]:
@@ -31,15 +31,15 @@ def _iter_markdown_files(root: Path) -> Iterable[Path]:
             yield path
 
 
-def _extract_claim_blocks(path: Path) -> List[ClaimBlock]:
+def _extract_claim_blocks(path: Path) -> list[ClaimBlock]:
     lines = path.read_text(encoding="utf-8").splitlines()
-    blocks: List[ClaimBlock] = []
+    blocks: list[ClaimBlock] = []
 
     active_status: str | None = None
     active_line = 0
-    active_body: List[str] = []
-    active_sources: List[str] = []
-    active_source_lines: List[int] = []
+    active_body: list[str] = []
+    active_sources: list[str] = []
+    active_source_lines: list[int] = []
 
     def flush() -> None:
         nonlocal active_status, active_line, active_body, active_sources, active_source_lines
@@ -82,9 +82,9 @@ def _extract_claim_blocks(path: Path) -> List[ClaimBlock]:
     return blocks
 
 
-def lint_wiki_claims(root: Path) -> List[str]:
+def lint_wiki_claims(root: Path) -> list[str]:
     """Return lint errors; empty list means success."""
-    errors: List[str] = []
+    errors: list[str] = []
 
     if not root.exists():
         return [f"{root}:1: wiki path does not exist"]
@@ -112,7 +112,9 @@ def lint_wiki_claims(root: Path) -> List[str]:
 
             if status == "CONFIRMED":
                 if len(block.source_values) == 0:
-                    errors.append(f"{src}:{block.line}: CONFIRMED claim requires at least one SOURCE.")
+                    errors.append(
+                        f"{src}:{block.line}: CONFIRMED claim requires at least one SOURCE."
+                    )
             elif status == "PROVISIONAL":
                 has_todo = "TODO" in body_text
                 if len(block.source_values) == 0 and not has_todo:
@@ -120,16 +122,17 @@ def lint_wiki_claims(root: Path) -> List[str]:
             elif status == "UNRESOLVED":
                 if "Next action:" not in body_text:
                     errors.append(f"{src}:{block.line}: UNRESOLVED claim requires 'Next action:'.")
-            elif status == "SUPERSEDED":
-                if "Superseded by:" not in body_text:
-                    errors.append(f"{src}:{block.line}: SUPERSEDED claim requires 'Superseded by:'.")
+            elif status == "SUPERSEDED" and "Superseded by:" not in body_text:
+                errors.append(f"{src}:{block.line}: SUPERSEDED claim requires 'Superseded by:'.")
 
     return errors
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Lint wiki claim blocks.")
-    parser.add_argument("wiki_path", nargs="?", default="docs/wiki", type=Path, help="Wiki root path")
+    parser.add_argument(
+        "wiki_path", nargs="?", default="docs/wiki", type=Path, help="Wiki root path"
+    )
     return parser.parse_args(argv)
 
 

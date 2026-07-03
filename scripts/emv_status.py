@@ -1,13 +1,14 @@
 """Authoritative EMV status command for Muon DIS harness state."""
+
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 import yaml
-
 
 HEARTBEAT_PATH = Path("agents/codex_emv/heartbeat/state.json")
 NEXT_PROMPT_DEFAULT = Path("agents/codex_emv/heartbeat/next_prompt.md")
@@ -34,18 +35,20 @@ MANDATORY_V0_AREAS: Mapping[str, str] = {
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Report Codex EMV harness status.")
-    parser.add_argument("--markdown", action="store_true", help="Print markdown report instead of JSON.")
+    parser.add_argument(
+        "--markdown", action="store_true", help="Print markdown report instead of JSON."
+    )
     return parser.parse_args(argv)
 
 
-def _load_json_object(path: Path) -> Dict[str, Any]:
+def _load_json_object(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"JSON root must be object: {path}")
     return payload
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if payload is None:
         return {}
@@ -54,7 +57,7 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _iter_vertical_summaries() -> List[Path]:
+def _iter_vertical_summaries() -> list[Path]:
     if not REPORTS_DIR.exists():
         return []
     return sorted(
@@ -70,23 +73,23 @@ def _classify_summary(summary: Mapping[str, Any]) -> str:
 
 
 def _pick_latest(
-    summaries: Sequence[Tuple[Path, Dict[str, Any], str]],
+    summaries: Sequence[tuple[Path, dict[str, Any], str]],
     wanted: str,
-) -> Optional[Tuple[Path, Dict[str, Any], str]]:
+) -> tuple[Path, dict[str, Any], str] | None:
     for row in summaries:
         if row[2] == wanted:
             return row
     return None
 
 
-def _resolve_candidate_file() -> Optional[Path]:
+def _resolve_candidate_file() -> Path | None:
     if QREL_CANDIDATES_PATH.exists():
         return QREL_CANDIDATES_PATH
     candidates = sorted(QREL_DIR.glob(QREL_GLOB), key=lambda row: row.stat().st_mtime, reverse=True)
     return candidates[0] if candidates else None
 
 
-def _count_candidates(payload: Mapping[str, Any]) -> Tuple[int, int]:
+def _count_candidates(payload: Mapping[str, Any]) -> tuple[int, int]:
     rows = payload.get("candidates")
     if rows is None:
         return 0, 0
@@ -104,12 +107,16 @@ def _count_candidates(payload: Mapping[str, Any]) -> Tuple[int, int]:
         if not isinstance(qrels, list):
             qrels = []
         candidate_count += len(qrels)
-        if review_status == "NOT_FOUND_IN_INDEX" or manifest_status == "ZERO_HIT" or len(qrels) == 0:
+        if (
+            review_status == "NOT_FOUND_IN_INDEX"
+            or manifest_status == "ZERO_HIT"
+            or len(qrels) == 0
+        ):
             not_found += 1
     return candidate_count, not_found
 
 
-def _count_decisions(payload: Mapping[str, Any]) -> Tuple[int, int, int, int]:
+def _count_decisions(payload: Mapping[str, Any]) -> tuple[int, int, int, int]:
     rows = payload.get("decisions")
     if rows is None:
         return 0, 0, 0, 0
@@ -132,14 +139,14 @@ def _count_decisions(payload: Mapping[str, Any]) -> Tuple[int, int, int, int]:
     return len(rows), approved, rejected, needs_context
 
 
-def _count_confirmed_qrels(payload: Mapping[str, Any]) -> Tuple[int, Dict[str, int]]:
+def _count_confirmed_qrels(payload: Mapping[str, Any]) -> tuple[int, dict[str, int]]:
     rows = payload.get("confirmed_qrels")
     if rows is None:
         return 0, {}
     if not isinstance(rows, list):
         raise ValueError("Qrels payload must contain list field: confirmed_qrels")
     count = 0
-    by_query: Dict[str, int] = {}
+    by_query: dict[str, int] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -151,7 +158,7 @@ def _count_confirmed_qrels(payload: Mapping[str, Any]) -> Tuple[int, Dict[str, i
     return count, by_query
 
 
-def _count_agent_adjudicated(payload: Mapping[str, Any]) -> Tuple[int, int, int, int, int]:
+def _count_agent_adjudicated(payload: Mapping[str, Any]) -> tuple[int, int, int, int, int]:
     rows = payload.get("adjudicated")
     if not isinstance(rows, list):
         return 0, 0, 0, 0, 0
@@ -177,11 +184,11 @@ def _count_agent_adjudicated(payload: Mapping[str, Any]) -> Tuple[int, int, int,
     return len(rows), approved, rejected, needs_context, human_approved_count
 
 
-def _approved_by_query(decisions_payload: Mapping[str, Any]) -> Dict[str, int]:
+def _approved_by_query(decisions_payload: Mapping[str, Any]) -> dict[str, int]:
     rows = decisions_payload.get("decisions")
     if not isinstance(rows, list):
         return {}
-    output: Dict[str, int] = {}
+    output: dict[str, int] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -212,9 +219,9 @@ def _compute_v0_coverage(
     confirmed_by_query: Mapping[str, int],
     approved_by_query: Mapping[str, int],
     not_found_reviewed_queries: set[str],
-) -> Tuple[bool, List[str], List[str]]:
-    missing_areas: List[str] = []
-    reviewed_not_found_areas: List[str] = []
+) -> tuple[bool, list[str], list[str]]:
+    missing_areas: list[str] = []
+    reviewed_not_found_areas: list[str] = []
     for query_id, area_name in MANDATORY_V0_AREAS.items():
         if query_id == "q09_inactivate_muon_processes":
             if query_id in not_found_reviewed_queries:
@@ -249,8 +256,10 @@ def _derive_v0_readiness_state(
     return "PARTIAL_COVERAGE"
 
 
-def _build_notes(*, latest_pass_exists: bool, latest_fail_exists: bool, malformed_paths: Iterable[str]) -> List[str]:
-    notes: List[str] = []
+def _build_notes(
+    *, latest_pass_exists: bool, latest_fail_exists: bool, malformed_paths: Iterable[str]
+) -> list[str]:
+    notes: list[str] = []
     if not latest_pass_exists:
         notes.append("No PASS vertical slice summary found.")
     if latest_fail_exists:
@@ -283,13 +292,13 @@ def _derive_metrics_status(*, confirmed_qrel_count: int, eval_artifact_status: s
     return "AVAILABLE"
 
 
-def collect_status() -> Dict[str, Any]:
-    malformed_paths: List[str] = []
+def collect_status() -> dict[str, Any]:
+    malformed_paths: list[str] = []
     if not HEARTBEAT_PATH.exists():
         raise FileNotFoundError(f"Missing heartbeat state file: {HEARTBEAT_PATH}")
     heartbeat = _load_json_object(HEARTBEAT_PATH)
 
-    summary_rows: List[Tuple[Path, Dict[str, Any], str]] = []
+    summary_rows: list[tuple[Path, dict[str, Any], str]] = []
     for summary_path in _iter_vertical_summaries():
         try:
             payload = _load_json_object(summary_path)
@@ -303,18 +312,20 @@ def collect_status() -> Dict[str, Any]:
 
     decision_payload = _load_yaml_mapping(QREL_DECISIONS_PATH)
     qrels_payload = _load_yaml_mapping(QRELS_PATH)
-    adjudicated_payload: Dict[str, Any] = {}
+    adjudicated_payload: dict[str, Any] = {}
     if QREL_AGENT_ADJUDICATED_PATH.exists():
         adjudicated_payload = _load_yaml_mapping(QREL_AGENT_ADJUDICATED_PATH)
 
     candidate_files = sorted([str(path) for path in QREL_DIR.glob(QREL_GLOB)], reverse=True)
     candidate_path = _resolve_candidate_file()
-    candidate_payload: Dict[str, Any] = {}
+    candidate_payload: dict[str, Any] = {}
     if candidate_path is not None:
         candidate_payload = _load_yaml_mapping(candidate_path)
 
     candidate_count, not_found_count = _count_candidates(candidate_payload)
-    review_count, approved_count, rejected_count, needs_context_count = _count_decisions(decision_payload)
+    review_count, approved_count, rejected_count, needs_context_count = _count_decisions(
+        decision_payload
+    )
     confirmed_qrel_count, confirmed_by_query = _count_confirmed_qrels(qrels_payload)
     (
         agent_adjudicated_count,
@@ -333,15 +344,21 @@ def collect_status() -> Dict[str, Any]:
 
     heartbeat_verdict = str(heartbeat.get("last_verdict", "UNKNOWN"))
     raw_next_prompt = heartbeat.get("next_prompt_path")
-    next_prompt_path = str(raw_next_prompt) if isinstance(raw_next_prompt, str) else str(NEXT_PROMPT_DEFAULT)
+    next_prompt_path = (
+        str(raw_next_prompt) if isinstance(raw_next_prompt, str) else str(NEXT_PROMPT_DEFAULT)
+    )
 
     latest_pass_run_id = str(latest_pass[1].get("run_id")) if latest_pass else None
     latest_fail_run_id = str(latest_fail[1].get("run_id")) if latest_fail else None
     latest_pass_summary_path = str(latest_pass[0]) if latest_pass else None
     latest_fail_summary_path = str(latest_fail[0]) if latest_fail else None
     acceptance_state = "PASS" if latest_pass else "FAIL"
-    qrels_state = str((latest_pass[1] if latest_pass else {}).get("qrels_state", "NO_CONFIRMED_QRELS"))
-    eval_artifact_status = _eval_artifact_status_from_summary(latest_pass[1]) if latest_pass else "NOT_AVAILABLE"
+    qrels_state = str(
+        (latest_pass[1] if latest_pass else {}).get("qrels_state", "NO_CONFIRMED_QRELS")
+    )
+    eval_artifact_status = (
+        _eval_artifact_status_from_summary(latest_pass[1]) if latest_pass else "NOT_AVAILABLE"
+    )
     metrics_status = _derive_metrics_status(
         confirmed_qrel_count=confirmed_qrel_count,
         eval_artifact_status=eval_artifact_status,
@@ -400,7 +417,7 @@ def collect_status() -> Dict[str, Any]:
 
 
 def _render_markdown(status: Mapping[str, Any]) -> str:
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# EMV Status")
     lines.append("")
     lines.append("## Harness")
@@ -451,7 +468,7 @@ def _render_markdown(status: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _error_payload(message: str) -> Dict[str, Any]:
+def _error_payload(message: str) -> dict[str, Any]:
     return {
         "heartbeat_verdict": "UNKNOWN",
         "next_prompt_path": str(NEXT_PROMPT_DEFAULT),

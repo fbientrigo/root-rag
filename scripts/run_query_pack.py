@@ -1,4 +1,5 @@
 """Execute workflow query packs through root-rag CLI and persist evidence artifacts."""
+
 from __future__ import annotations
 
 import argparse
@@ -7,10 +8,11 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any
 
 import yaml
 
@@ -20,7 +22,7 @@ class QuerySpec:
     """Normalized query definition loaded from query pack YAML."""
 
     query_id: str
-    bm25_tokens: List[str]
+    bm25_tokens: list[str]
 
 
 @dataclass(frozen=True)
@@ -41,21 +43,42 @@ class RunConfig:
 
 def parse_args(argv: Sequence[str] | None = None) -> RunConfig:
     """Parse CLI arguments into a strongly-typed runtime config."""
-    parser = argparse.ArgumentParser(description="Run root-rag query pack and save evidence JSON outputs.")
+    parser = argparse.ArgumentParser(
+        description="Run root-rag query pack and save evidence JSON outputs."
+    )
     parser.add_argument("--pack", required=True, type=Path, help="Path to query pack YAML file.")
-    parser.add_argument("--output-dir", required=True, type=Path, help="Evidence output directory for this run.")
-    parser.add_argument("--top-k", type=int, default=10, help="Top-K results per query (default: 10).")
-    parser.add_argument("--index-dir", type=Path, default=None, help="Directory containing indexes for root-rag ask.")
+    parser.add_argument(
+        "--output-dir", required=True, type=Path, help="Evidence output directory for this run."
+    )
+    parser.add_argument(
+        "--top-k", type=int, default=10, help="Top-K results per query (default: 10)."
+    )
+    parser.add_argument(
+        "--index-dir",
+        type=Path,
+        default=None,
+        help="Directory containing indexes for root-rag ask.",
+    )
     parser.add_argument("--index-id", default=None, help="Explicit index ID for root-rag ask.")
-    parser.add_argument("--root-ref", default=None, help="Root reference for root-rag ask when no index ID is provided.")
+    parser.add_argument(
+        "--root-ref",
+        default=None,
+        help="Root reference for root-rag ask when no index ID is provided.",
+    )
     parser.add_argument(
         "--evidence-format",
         choices=["text-wrapper"],
         default="text-wrapper",
         help="Evidence artifact format to write (default: text-wrapper).",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Write manifest/placeholder outputs without calling CLI.")
-    parser.add_argument("--fail-fast", action="store_true", help="Stop on first failed query execution.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Write manifest/placeholder outputs without calling CLI.",
+    )
+    parser.add_argument(
+        "--fail-fast", action="store_true", help="Stop on first failed query execution."
+    )
     parser.add_argument(
         "--root-rag-cmd",
         default=None,
@@ -77,7 +100,7 @@ def parse_args(argv: Sequence[str] | None = None) -> RunConfig:
     )
 
 
-def load_query_pack(pack_path: Path) -> Dict[str, Any]:
+def load_query_pack(pack_path: Path) -> dict[str, Any]:
     """Load and minimally validate a query pack YAML document."""
     with pack_path.open("r", encoding="utf-8") as handle:
         payload = yaml.safe_load(handle)
@@ -101,9 +124,9 @@ def load_query_pack(pack_path: Path) -> Dict[str, Any]:
     return payload
 
 
-def extract_queries(pack_payload: Mapping[str, Any]) -> List[QuerySpec]:
+def extract_queries(pack_payload: Mapping[str, Any]) -> list[QuerySpec]:
     """Extract normalized query specs from validated query-pack payload."""
-    query_specs: List[QuerySpec] = []
+    query_specs: list[QuerySpec] = []
     for query in pack_payload["queries"]:
         query_specs.append(
             QuerySpec(
@@ -114,7 +137,7 @@ def extract_queries(pack_payload: Mapping[str, Any]) -> List[QuerySpec]:
     return query_specs
 
 
-def _resolve_root_rag_command(explicit_cmd: str | None) -> Tuple[List[str], str, str | None]:
+def _resolve_root_rag_command(explicit_cmd: str | None) -> tuple[list[str], str, str | None]:
     """Resolve root-rag command with explicit > PATH > python module fallback priority."""
     if explicit_cmd:
         return [explicit_cmd], "path_executable", None
@@ -131,7 +154,7 @@ def _build_command(
     index_dir: Path | None,
     index_id: str | None,
     root_ref: str | None,
-) -> List[str]:
+) -> list[str]:
     """Build subprocess argument vector for root-rag query execution."""
     command = [*root_rag_prefix, "ask", query_text, "--top-k", str(top_k)]
     if index_dir is not None:
@@ -154,7 +177,7 @@ def _write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _execute_command(command: Sequence[str], dry_run: bool) -> Tuple[int, str, str]:
+def _execute_command(command: Sequence[str], dry_run: bool) -> tuple[int, str, str]:
     """Execute CLI command or synthesize dry-run result."""
     if dry_run:
         dry_payload = {
@@ -176,12 +199,14 @@ def _status_from_return_code(return_code: int) -> str:
     return "ERROR"
 
 
-_TEXT_HIT_PATTERN = re.compile(r"^\[(?P<rank>\d+)\]\s+(?P<file>.+?):(?P<start>\d+)-(?P<end>\d+)\s*$")
+_TEXT_HIT_PATTERN = re.compile(
+    r"^\[(?P<rank>\d+)\]\s+(?P<file>.+?):(?P<start>\d+)-(?P<end>\d+)\s*$"
+)
 
 
-def _parse_text_wrapper_hits(stdout: str) -> List[Dict[str, Any]]:
+def _parse_text_wrapper_hits(stdout: str) -> list[dict[str, Any]]:
     """Parse root-rag human-readable stdout lines into structured hit entries."""
-    hits: List[Dict[str, Any]] = []
+    hits: list[dict[str, Any]] = []
     for line in stdout.splitlines():
         match = _TEXT_HIT_PATTERN.match(line.strip())
         if not match:
@@ -206,7 +231,7 @@ def _build_text_wrapper(
     return_code: int,
     stdout: str,
     stderr: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Wrap text-only CLI output in deterministic JSON for downstream tools."""
     return {
         "query_id": query_id,
@@ -221,7 +246,7 @@ def _build_text_wrapper(
     }
 
 
-def run_query_pack(config: RunConfig) -> Tuple[Dict[str, Any], int]:
+def run_query_pack(config: RunConfig) -> tuple[dict[str, Any], int]:
     """Run all queries in pack, write evidence files, and return manifest + exit code."""
     pack_payload = load_query_pack(config.pack_path)
     query_specs = extract_queries(pack_payload)
@@ -239,7 +264,7 @@ def run_query_pack(config: RunConfig) -> Tuple[Dict[str, Any], int]:
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
-    manifest: Dict[str, Any] = {
+    manifest: dict[str, Any] = {
         "pack_path": str(config.pack_path),
         "pack_id": pack_payload.get("pack_id"),
         "timestamp": timestamp,
@@ -254,7 +279,9 @@ def run_query_pack(config: RunConfig) -> Tuple[Dict[str, Any], int]:
         "warnings": [reuse_warning] if reuse_warning else [],
         "queries": [],
     }
-    root_rag_prefix, resolution_mode, fallback_python_executable = _resolve_root_rag_command(config.root_rag_cmd)
+    root_rag_prefix, resolution_mode, fallback_python_executable = _resolve_root_rag_command(
+        config.root_rag_cmd
+    )
     manifest["command_resolution_mode"] = resolution_mode
     manifest["root_rag_command_prefix"] = list(root_rag_prefix)
     manifest["root_rag_cmd"] = config.root_rag_cmd
@@ -286,7 +313,7 @@ def run_query_pack(config: RunConfig) -> Tuple[Dict[str, Any], int]:
         )
         _write_text(output_file, json.dumps(wrapper, indent=2))
 
-        query_entry: Dict[str, Any] = {
+        query_entry: dict[str, Any] = {
             "id": query_spec.query_id,
             "command": command,
             "query": query_text,

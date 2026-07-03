@@ -4,6 +4,7 @@ SOFIE (System for Optimized Fast Inference code Emit) is ROOT's experimental
 ML inference framework. These tests ensure SOFIE APIs are properly indexed
 and retrievable for FairShip ML workflow integration.
 """
+
 import pytest
 
 from root_rag.parser.seed_filter import load_seed_corpus_config
@@ -40,18 +41,18 @@ corpus:
       headers:
         - "tmva/sofie/inc/SOFIE/SOFIE.hxx"
 """
-        
+
         config_file = tmp_path / "sofie_config.yaml"
         config_file.write_text(config_content)
-        
+
         # Load and validate
         config = load_seed_corpus_config(config_file)
-        
+
         assert config is not None
         assert config["root"]["version"] == "6.36.08"
         assert config["corpus"]["tier"] == "sofie_experimental"
         assert len(config["corpus"]["classes"]) == 3
-        
+
         # Check SOFIE classes are defined
         class_names = [c["name"] for c in config["corpus"]["classes"]]
         assert "ROOT::Experimental::SOFIE::RModel" in class_names
@@ -87,7 +88,7 @@ class TestSOFIEChunkProvenance:
         """SOFIE chunks should be marked as experimental."""
         # Mock chunk validation
         from root_rag.index.schemas import Chunk
-        
+
         chunk = Chunk(
             chunk_id="sofie_test_1",
             root_ref="v6-36-08",
@@ -101,7 +102,7 @@ class TestSOFIEChunkProvenance:
             symbol_path="ROOT::Experimental::SOFIE::RModel",
             has_doxygen=True,
         )
-        
+
         # Validate chunk
         assert chunk.file_path.startswith("tmva/sofie/")
         assert "SOFIE" in chunk.symbol_path
@@ -115,21 +116,23 @@ class TestSOFIEFairShipIntegration:
         """Verify SOFIE is not yet used by FairShip master (as of audit)."""
         import json
         from pathlib import Path
-        
+
         # Load FairShip extraction results
         inventory_path = Path("artifacts/fairship_root_usage_inventory.json")
         if not inventory_path.exists():
             pytest.skip("FairShip inventory not available")
-        
+
         inventory = json.loads(inventory_path.read_text())
         headers = [h["name"] for h in inventory["root_headers"]]
         symbols = [s["name"] for s in inventory["root_symbols"]]
-        
+
         # SOFIE should NOT be in current FairShip usage
-        assert not any("SOFIE" in h for h in headers), \
+        assert not any("SOFIE" in h for h in headers), (
             "SOFIE should not be in current FairShip (experimental)"
-        assert not any("RModel" in s for s in symbols), \
+        )
+        assert not any("RModel" in s for s in symbols), (
             "RModel should not be in current FairShip (experimental)"
+        )
 
     def test_future_sofie_integration_readiness(self, tmp_path):
         """Verify system is ready to index SOFIE when FairShip adopts it."""
@@ -149,12 +152,12 @@ corpus:
     - name: "ROOT::Experimental::SOFIE::RModel"
       headers: ["tmva/sofie/inc/SOFIE/RModel.hxx"]
 """
-        
+
         config_file = tmp_path / "future_config.yaml"
         config_file.write_text(config_content)
-        
+
         config = load_seed_corpus_config(config_file)
-        
+
         # System supports mixing traditional ROOT + experimental SOFIE
         class_names = [c["name"] for c in config["corpus"]["classes"]]
         assert "TGeoManager" in class_names
@@ -173,7 +176,7 @@ class TestSOFIEDocumentation:
         /// @warning This is EXPERIMENTAL and may change in future ROOT versions
         /// @note Requires ROOT compiled with -Dtmva-sofie=ON
         """
-        
+
         assert "EXPERIMENTAL" in mock_doxygen
         assert "@warning" in mock_doxygen
 
@@ -185,6 +188,6 @@ class TestSOFIEDocumentation:
         - Optional: ONNX Runtime for inference
         - CMake flag: -Dtmva-sofie=ON -Dtmva-sofie-onnx=ON
         """
-        
+
         assert "ONNX Runtime" in mock_requirements
         assert "tmva-sofie" in mock_requirements

@@ -1,4 +1,5 @@
 """Tests for scripts/run_muon_dis_qrel_review.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -31,16 +32,30 @@ def test_generate_qrel_review_creates_candidates_and_report(tmp_path: Path) -> N
         manifest = {
             "pack_id": "muon_dis_workflow_v1",
             "queries": [
-                {"id": "q01_muondis_anchor", "query": "muonDIS", "status": "HIT_OR_TEXT_EVIDENCE", "output_file": str(evidence_dir / "q01_muondis_anchor.json")},
-                {"id": "q09_inactivate_muon_processes", "query": "InactivateMuonProcesses", "status": "ZERO_HIT", "output_file": str(evidence_dir / "q09_inactivate_muon_processes.json")},
+                {
+                    "id": "q01_muondis_anchor",
+                    "query": "muonDIS",
+                    "status": "HIT_OR_TEXT_EVIDENCE",
+                    "output_file": str(evidence_dir / "q01_muondis_anchor.json"),
+                },
+                {
+                    "id": "q09_inactivate_muon_processes",
+                    "query": "InactivateMuonProcesses",
+                    "status": "ZERO_HIT",
+                    "output_file": str(evidence_dir / "q09_inactivate_muon_processes.json"),
+                },
             ],
         }
         (evidence_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         (evidence_dir / "q01_muondis_anchor.json").write_text(
-            json.dumps({"hits": [{"file": "muonDIS/makeMuonDIS.py", "start_line": 351, "end_line": 355}]}),
+            json.dumps(
+                {"hits": [{"file": "muonDIS/makeMuonDIS.py", "start_line": 351, "end_line": 355}]}
+            ),
             encoding="utf-8",
         )
-        (evidence_dir / "q09_inactivate_muon_processes.json").write_text(json.dumps({"hits": []}), encoding="utf-8")
+        (evidence_dir / "q09_inactivate_muon_processes.json").write_text(
+            json.dumps({"hits": []}), encoding="utf-8"
+        )
 
         summary = module.generate_qrel_review(
             evidence_dir=evidence_dir,
@@ -72,7 +87,12 @@ def test_generate_qrel_review_uses_timestamped_output_when_candidates_exist(tmp_
         evidence_dir = tmp_path / "evidence" / "run2"
         evidence_dir.mkdir(parents=True)
         (evidence_dir / "manifest.json").write_text(
-            json.dumps({"pack_id": "muon_dis_workflow_v1", "queries": [{"id": "q1", "query": "x", "status": "ZERO_HIT"}]}),
+            json.dumps(
+                {
+                    "pack_id": "muon_dis_workflow_v1",
+                    "queries": [{"id": "q1", "query": "x", "status": "ZERO_HIT"}],
+                }
+            ),
             encoding="utf-8",
         )
 

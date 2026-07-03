@@ -1,4 +1,5 @@
 """Tests for scripts/print_muon_dis_review_sheet.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -98,7 +99,19 @@ def test_generates_markdown_sheet_from_candidates_and_decisions(tmp_path: Path) 
         _write_candidates(candidates)
         _write_decisions(decisions)
 
-        assert module.main(["--candidates", str(candidates), "--decisions", str(decisions), "--output", str(output)]) == 0
+        assert (
+            module.main(
+                [
+                    "--candidates",
+                    str(candidates),
+                    "--decisions",
+                    str(decisions),
+                    "--output",
+                    str(output),
+                ]
+            )
+            == 0
+        )
         text = output.read_text(encoding="utf-8")
         assert "## Summary" in text
         assert "## Query Review Table" in text
@@ -157,7 +170,19 @@ def test_detects_missing_decisions(tmp_path: Path) -> None:
         payload["decisions"] = payload["decisions"][:1]
         decisions.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
-        assert module.main(["--candidates", str(candidates), "--decisions", str(decisions), "--output", str(output)]) == 0
+        assert (
+            module.main(
+                [
+                    "--candidates",
+                    str(candidates),
+                    "--decisions",
+                    str(decisions),
+                    "--output",
+                    str(output),
+                ]
+            )
+            == 0
+        )
         text = output.read_text(encoding="utf-8")
         assert "MISSING_DECISION" in text
         assert "## Missing Decisions" in text
@@ -192,7 +217,19 @@ def test_detects_orphan_decisions(tmp_path: Path) -> None:
         )
         decisions.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
-        assert module.main(["--candidates", str(candidates), "--decisions", str(decisions), "--output", str(output)]) == 0
+        assert (
+            module.main(
+                [
+                    "--candidates",
+                    str(candidates),
+                    "--decisions",
+                    str(decisions),
+                    "--output",
+                    str(output),
+                ]
+            )
+            == 0
+        )
         text = output.read_text(encoding="utf-8")
         assert "## Orphan Decisions" in text
         assert "orphan/path.py:1-2" in text
@@ -213,7 +250,19 @@ def test_does_not_modify_input_files(tmp_path: Path) -> None:
 
         before_candidates = candidates.read_text(encoding="utf-8")
         before_decisions = decisions.read_text(encoding="utf-8")
-        assert module.main(["--candidates", str(candidates), "--decisions", str(decisions), "--output", str(output)]) == 0
+        assert (
+            module.main(
+                [
+                    "--candidates",
+                    str(candidates),
+                    "--decisions",
+                    str(decisions),
+                    "--output",
+                    str(output),
+                ]
+            )
+            == 0
+        )
         after_candidates = candidates.read_text(encoding="utf-8")
         after_decisions = decisions.read_text(encoding="utf-8")
 
@@ -221,4 +270,3 @@ def test_does_not_modify_input_files(tmp_path: Path) -> None:
         assert before_decisions == after_decisions
     finally:
         os.chdir(cwd_before)
-

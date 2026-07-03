@@ -1,15 +1,16 @@
 """Run the Muon DIS EMV vertical slice in one deterministic command."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
-
+from typing import Any
 
 DEFAULT_TEST_ARGS = [
     "-m",
@@ -64,7 +65,7 @@ def _is_valid_index_dir(path: Path) -> bool:
     return path.is_dir() and any((path / marker).exists() for marker in INDEX_MARKER_FILES)
 
 
-def _find_valid_child_indexes(index_dir: Path) -> List[Path]:
+def _find_valid_child_indexes(index_dir: Path) -> list[Path]:
     if not index_dir.exists() or not index_dir.is_dir():
         return []
     children = [candidate for candidate in index_dir.iterdir() if candidate.is_dir()]
@@ -72,8 +73,8 @@ def _find_valid_child_indexes(index_dir: Path) -> List[Path]:
     return sorted(valid, key=lambda candidate: candidate.stat().st_mtime, reverse=True)
 
 
-def _resolve_index_target(config: VerticalSliceConfig) -> Tuple[Path | None, str | None, List[str]]:
-    notes: List[str] = []
+def _resolve_index_target(config: VerticalSliceConfig) -> tuple[Path | None, str | None, list[str]]:
+    notes: list[str] = []
 
     if config.index_id:
         explicit_target = config.index_dir / config.index_id
@@ -91,9 +92,7 @@ def _resolve_index_target(config: VerticalSliceConfig) -> Tuple[Path | None, str
     valid_children = _find_valid_child_indexes(config.index_dir)
     if valid_children:
         detected = valid_children[0]
-        notes.append(
-            f"Index auto-detected from {config.index_dir}: {detected.name}."
-        )
+        notes.append(f"Index auto-detected from {config.index_dir}: {detected.name}.")
         return config.index_dir, detected.name, notes
 
     notes.append(
@@ -102,12 +101,14 @@ def _resolve_index_target(config: VerticalSliceConfig) -> Tuple[Path | None, str
     return None, None, notes
 
 
-def _run(command: List[str]) -> Dict[str, Any]:
+def _run(command: list[str]) -> dict[str, Any]:
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.stdout:
         print(completed.stdout, end="" if completed.stdout.endswith("\n") else "\n")
     if completed.stderr:
-        print(completed.stderr, file=sys.stderr, end="" if completed.stderr.endswith("\n") else "\n")
+        print(
+            completed.stderr, file=sys.stderr, end="" if completed.stderr.endswith("\n") else "\n"
+        )
     return {
         "command": command,
         "return_code": completed.returncode,
@@ -116,7 +117,7 @@ def _run(command: List[str]) -> Dict[str, Any]:
     }
 
 
-def _load_json(path: Path) -> Dict[str, Any] | None:
+def _load_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     try:
@@ -128,7 +129,7 @@ def _load_json(path: Path) -> Dict[str, Any] | None:
     return payload
 
 
-def _collect_manifest_counts(manifest: Mapping[str, Any] | None) -> Dict[str, int]:
+def _collect_manifest_counts(manifest: Mapping[str, Any] | None) -> dict[str, int]:
     if not manifest:
         return {"query_count": 0, "hit_count": 0, "zero_hit_count": 0, "error_count": 0}
     rows = manifest.get("queries", [])
@@ -172,8 +173,8 @@ def _build_summary(
     eval_path: Path,
     evidence_dir: Path,
     acceptance_gate_status: str,
-    notes: List[str] | None = None,
-) -> Dict[str, Any]:
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
     return {
         "run_id": run_id,
         "index_id": index_id,
@@ -193,7 +194,7 @@ def _build_summary(
     }
 
 
-def run_vertical_slice(config: VerticalSliceConfig) -> Dict[str, Any]:
+def run_vertical_slice(config: VerticalSliceConfig) -> dict[str, Any]:
     resolved_index_dir, index_id, detection_notes = _resolve_index_target(config)
     evidence_dir = Path("evidence") / config.run_id
     report_path = Path("reports") / f"{config.run_id}.md"
@@ -287,7 +288,11 @@ def run_vertical_slice(config: VerticalSliceConfig) -> Dict[str, Any]:
 
     wiki_lint_result = _run([sys.executable, "scripts/lint_wiki_claims.py", "docs/wiki"])
     graph_validate_result = _run(
-        [sys.executable, "scripts/validate_workflow_graph.py", "workflow_graphs/muon_dis_workflow.json"]
+        [
+            sys.executable,
+            "scripts/validate_workflow_graph.py",
+            "workflow_graphs/muon_dis_workflow.json",
+        ]
     )
 
     manifest = _load_json(evidence_dir / "manifest.json")

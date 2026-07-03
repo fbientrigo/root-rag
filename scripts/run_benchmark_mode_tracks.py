@@ -19,7 +19,6 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Dict, List, Optional
 
 from root_rag.evaluation.metrics import (
     TopKMetrics,
@@ -32,7 +31,7 @@ from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.transformers import build_query_transformer
 
 TOP_K = 10
-TRACKS: Dict[str, Dict[str, str]] = {
+TRACKS: dict[str, dict[str, str]] = {
     "B0": {"backend": "lexical_bm25_memory", "query_mode": "baseline"},
     "B1": {"backend": "lexical_bm25_memory", "query_mode": "lexnorm"},
     "S0": {"backend": "semantic_hash_memory", "query_mode": "baseline"},
@@ -42,7 +41,7 @@ EPS = 1e-12
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
-def _run_cmd(cmd: List[str], *, py_path: str) -> None:
+def _run_cmd(cmd: list[str], *, py_path: str) -> None:
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = py_path if not existing else f"{py_path}{os.pathsep}{existing}"
@@ -58,17 +57,17 @@ def _metric_triplet(query_row: dict) -> dict:
     return {k: query_row[k] for k in METRIC_KEYS}
 
 
-def _tokenize(text: str) -> List[str]:
+def _tokenize(text: str) -> list[str]:
     return [token.lower() for token in TOKEN_RE.findall(text)]
 
 
-def _load_queries(path: Path) -> List[dict]:
+def _load_queries(path: Path) -> list[dict]:
     rows = json.loads(path.read_text(encoding="utf-8"))
     return sorted(rows, key=lambda row: row["id"])
 
 
-def _load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
-    qrels: Dict[str, Dict[str, int]] = defaultdict(dict)
+def _load_qrels(path: Path) -> dict[str, dict[str, int]]:
+    qrels: dict[str, dict[str, int]] = defaultdict(dict)
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -77,15 +76,15 @@ def _load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
     return dict(qrels)
 
 
-def _load_corpus(path: Path) -> List[dict]:
-    rows: List[dict] = []
+def _load_corpus(path: Path) -> list[dict]:
+    rows: list[dict] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
     return rows
 
 
-def _compute_latency_summary_ms(samples_s: List[float]) -> dict:
+def _compute_latency_summary_ms(samples_s: list[float]) -> dict:
     if not samples_s:
         return {"count": 0, "mean": 0.0, "p50": 0.0, "p95": 0.0, "min": 0.0, "max": 0.0}
 
@@ -117,11 +116,11 @@ def _run_eval_track(
     *,
     backend_name: str,
     query_mode: str,
-    corpus_rows: List[dict],
+    corpus_rows: list[dict],
     corpus_path: Path,
-    queries: List[dict],
-    qrels_map: Dict[str, Dict[str, int]],
-    semantic_manifest_path: Optional[Path] = None,
+    queries: list[dict],
+    qrels_map: dict[str, dict[str, int]],
+    semantic_manifest_path: Path | None = None,
     semantic_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> dict:
     backend = build_retrieval_backend(
@@ -141,8 +140,8 @@ def _run_eval_track(
     )
 
     per_query_rows = []
-    metric_rows: List[TopKMetrics] = []
-    latency_samples_s: List[float] = []
+    metric_rows: list[TopKMetrics] = []
+    latency_samples_s: list[float] = []
 
     for query_entry in queries:
         query_id = query_entry["id"]
@@ -182,7 +181,7 @@ def _run_eval_track(
 
     summary = aggregate_topk_metrics(metric_rows)
 
-    by_class: Dict[str, List[dict]] = defaultdict(list)
+    by_class: dict[str, list[dict]] = defaultdict(list)
     for row in per_query_rows:
         by_class[row["query_class"]].append(row)
 
@@ -215,7 +214,9 @@ def _run_eval_track(
             "k1": backend_metrics.get("k1", 1.5),
             "b": backend_metrics.get("b", 0.75),
             "avgdl": backend_metrics.get("avgdl"),
-            "docs": int(backend_metrics["docs"]) if backend_metrics.get("docs") is not None else None,
+            "docs": int(backend_metrics["docs"])
+            if backend_metrics.get("docs") is not None
+            else None,
         }
 
     output = {
@@ -237,7 +238,12 @@ def _run_eval_track(
     }
     if bm25_meta is not None:
         output["metadata"]["bm25"] = bm25_meta
-    if operational["backend_id"] in {"dense_hash_memory", "semantic_hash_memory", "semantic_faiss", "hybrid_s1"}:
+    if operational["backend_id"] in {
+        "dense_hash_memory",
+        "semantic_hash_memory",
+        "semantic_faiss",
+        "hybrid_s1",
+    }:
         output["metadata"]["dense"] = {
             "vector_dim": backend_metrics.get("vector_dim"),
             "similarity": backend_metrics.get("similarity"),
@@ -250,8 +256,8 @@ def _recommendation(
     *,
     before_summary: dict,
     after_summary: dict,
-    helped: List[str],
-    hurt: List[str],
+    helped: list[str],
+    hurt: list[str],
 ) -> str:
     after_not_worse = all(after_summary[m] >= before_summary[m] - EPS for m in METRIC_KEYS)
     before_not_worse = all(before_summary[m] >= after_summary[m] - EPS for m in METRIC_KEYS)
@@ -278,14 +284,14 @@ def _build_comparison_markdown(
     after_by_id = {row["id"]: row for row in after_eval["per_query"]}
     query_ids = sorted(before_by_id.keys())
 
-    helped: List[dict] = []
-    hurt: List[dict] = []
-    unchanged: List[str] = []
+    helped: list[dict] = []
+    hurt: list[dict] = []
+    unchanged: list[str] = []
 
-    interpretation_changed: List[str] = []
-    ranking_changed: List[str] = []
-    metric_changed: List[str] = []
-    metric_changed_without_interpretation: List[str] = []
+    interpretation_changed: list[str] = []
+    ranking_changed: list[str] = []
+    metric_changed: list[str] = []
+    metric_changed_without_interpretation: list[str] = []
 
     for query_id in query_ids:
         before_row = before_by_id[query_id]
@@ -367,7 +373,9 @@ def _build_comparison_markdown(
     for metric in METRIC_KEYS:
         before_v = before_eval["summary"][metric]
         after_v = after_eval["summary"][metric]
-        lines.append(f"| {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |")
+        lines.append(
+            f"| {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |"
+        )
 
     lines.extend(
         [
@@ -384,7 +392,9 @@ def _build_comparison_markdown(
         for metric in METRIC_KEYS:
             before_v = before_metrics[metric]
             after_v = after_metrics[metric]
-            lines.append(f"| {query_class} | {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |")
+            lines.append(
+                f"| {query_class} | {metric} | {before_v:.4f} | {after_v:.4f} | {_fmt_delta(after_v - before_v)} |"
+            )
 
     lines.extend(
         [
@@ -500,15 +510,19 @@ def _write_manual_zero_recall_template(*, b0_eval: dict, output_path: Path) -> N
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_queries_snapshot(path: Path, queries: List[dict]) -> None:
+def _write_queries_snapshot(path: Path, queries: list[dict]) -> None:
     path.write_text(json.dumps(queries, indent=2), encoding="utf-8")
 
 
-def _write_qrels_snapshot(path: Path, qrels_map: Dict[str, Dict[str, int]]) -> None:
+def _write_qrels_snapshot(path: Path, qrels_map: dict[str, dict[str, int]]) -> None:
     lines = []
     for query_id in sorted(qrels_map.keys()):
-        for chunk_id, relevance in sorted(qrels_map[query_id].items(), key=lambda kv: (-kv[1], kv[0])):
-            lines.append(json.dumps({"query_id": query_id, "chunk_id": chunk_id, "relevance": relevance}))
+        for chunk_id, relevance in sorted(
+            qrels_map[query_id].items(), key=lambda kv: (-kv[1], kv[0])
+        ):
+            lines.append(
+                json.dumps({"query_id": query_id, "chunk_id": chunk_id, "relevance": relevance})
+            )
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -552,7 +566,7 @@ def main() -> int:
     args = parser.parse_args()
 
     args.artifacts_dir.mkdir(parents=True, exist_ok=True)
-    py_path = str((Path(__file__).resolve().parents[1] / "src"))
+    py_path = str(Path(__file__).resolve().parents[1] / "src")
 
     corpus_rows = _load_corpus(args.corpus)
     queries = _load_queries(args.queries)
@@ -616,9 +630,15 @@ def main() -> int:
             )
         _run_cmd(cmd, py_path=py_path)
 
-    b0_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_B0.json").read_text(encoding="utf-8"))
-    b1_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_B1.json").read_text(encoding="utf-8"))
-    s0_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_S0.json").read_text(encoding="utf-8"))
+    b0_eval = json.loads(
+        (args.artifacts_dir / "benchmark_eval_results_B0.json").read_text(encoding="utf-8")
+    )
+    b1_eval = json.loads(
+        (args.artifacts_dir / "benchmark_eval_results_B1.json").read_text(encoding="utf-8")
+    )
+    s0_eval = json.loads(
+        (args.artifacts_dir / "benchmark_eval_results_S0.json").read_text(encoding="utf-8")
+    )
 
     comparison_path = args.artifacts_dir / "benchmark_mode_comparison.md"
     _build_comparison_markdown(
@@ -639,7 +659,9 @@ def main() -> int:
         output_path=semantic_comparison_path,
     )
     if args.s1_semantic_manifest is not None:
-        s1_eval = json.loads((args.artifacts_dir / "benchmark_eval_results_S1.json").read_text(encoding="utf-8"))
+        s1_eval = json.loads(
+            (args.artifacts_dir / "benchmark_eval_results_S1.json").read_text(encoding="utf-8")
+        )
         semantic_comparison_s1_path = args.artifacts_dir / "benchmark_semantic_comparison_S1.md"
         _build_comparison_markdown(
             before_eval=b0_eval,
@@ -659,7 +681,9 @@ def main() -> int:
     print(f"Wrote comparison: {comparison_path}")
     print(f"Wrote semantic comparison: {semantic_comparison_path}")
     if args.s1_semantic_manifest is not None:
-        print(f"Wrote semantic comparison: {args.artifacts_dir / 'benchmark_semantic_comparison_S1.md'}")
+        print(
+            f"Wrote semantic comparison: {args.artifacts_dir / 'benchmark_semantic_comparison_S1.md'}"
+        )
     print(f"Wrote manual review template: {manual_template_path}")
     return 0
 

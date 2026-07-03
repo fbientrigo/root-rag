@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, development]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Ruff lint
+        run: ruff check src scripts tests
+
+      - name: Ruff format check
+        run: ruff format --check src scripts tests
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project (with semantic extras)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev,s1]
+
+      - name: Run tests
+        # Integration tests that need pre-built indices / benchmark artifacts
+        # self-skip on a bare checkout (see tests/conftest.py).
+        run: pytest -q

@@ -1,20 +1,30 @@
 """Evaluate Muon DIS retrieval runs against scaffolded golden queries and qrels."""
+
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Any
 
 import yaml
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
-    parser = argparse.ArgumentParser(description="Evaluate Muon DIS retrieval outputs against qrels.")
-    parser.add_argument("--evidence-dir", required=True, type=Path, help="Evidence run directory with manifest.json.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate Muon DIS retrieval outputs against qrels."
+    )
+    parser.add_argument(
+        "--evidence-dir",
+        required=True,
+        type=Path,
+        help="Evidence run directory with manifest.json.",
+    )
     parser.add_argument(
         "--golden",
         default=Path("benchmarks/muon_dis/golden_queries.yaml"),
@@ -32,37 +42,42 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_manifest(evidence_dir: Path) -> Dict[str, Any]:
+def _load_manifest(evidence_dir: Path) -> dict[str, Any]:
     manifest_path = evidence_dir / "manifest.json"
     if not manifest_path.exists():
         raise FileNotFoundError(f"Manifest not found: {manifest_path}")
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("Manifest must be a JSON object.")
-    
+
     # Adapt to simpler manifest if needed
     if "queries" not in payload and "results" in payload:
-         payload["queries"] = [{"id": r["query_id"], "query": r["query_text"], "output_file": r["artifact_path"]} for r in payload["results"]]
-         
+        payload["queries"] = [
+            {"id": r["query_id"], "query": r["query_text"], "output_file": r["artifact_path"]}
+            for r in payload["results"]
+        ]
+
     if "queries" not in payload or not isinstance(payload["queries"], list):
         raise ValueError("Manifest field queries must be a list.")
     return payload
 
 
-def _load_mapping(path: Path) -> Dict[str, Any]:
+def _load_mapping(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
-    
+
     if path.suffix == ".json":
         data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, list):
-             return {"golden_queries": [{"query_id": q["id"], "query_text": q["query"]} for q in data]}
+            return {
+                "golden_queries": [{"query_id": q["id"], "query_text": q["query"]} for q in data]
+            }
         return data
-    
+
     if path.suffix == ".jsonl":
         # Handle JSONL qrels: convert to confirmed_qrels mapping
-        by_query: Dict[str, List[Dict[str, Any]]] = {}
-        with open(path, "r", encoding="utf-8") as f:
+        by_query: dict[str, list[dict[str, Any]]] = {}
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -72,7 +87,7 @@ def _load_mapping(path: Path) -> Dict[str, Any]:
                     if qid not in by_query:
                         by_query[qid] = []
                     by_query[qid].append(row)
-        
+
         confirmed = []
         for qid, qrels in by_query.items():
             confirmed.append({"query_id": qid, "qrels": qrels})
@@ -85,21 +100,23 @@ def _load_mapping(path: Path) -> Dict[str, Any]:
 
 
 def _resolve_output_file(output_ref: str | None, evidence_dir: Path, query_id: str) -> Path:
-    if output_ref:
-        output_path = Path(str(output_ref))
-    else:
-        output_path = evidence_dir / f"{query_id}.json"
+    output_path = Path(str(output_ref)) if output_ref else evidence_dir / f"{query_id}.json"
 
     if output_path.is_absolute():
         return output_path
 
-    candidates = [output_path, evidence_dir / output_path, evidence_dir / output_path.name, Path.cwd() / output_path]
+    candidates = [
+        output_path,
+        evidence_dir / output_path,
+        evidence_dir / output_path.name,
+        Path.cwd() / output_path,
+    ]
     # Special case for forest benchmark where output files are in subdirs
     if not any(c.exists() for c in candidates):
-         # Try looking in evidence_dir's parent if it was relative to OUTPUT_ROOT
-         parent_candidate = evidence_dir.parent / output_ref if output_ref else None
-         if parent_candidate and parent_candidate.exists():
-              return parent_candidate
+        # Try looking in evidence_dir's parent if it was relative to OUTPUT_ROOT
+        parent_candidate = evidence_dir.parent / output_ref if output_ref else None
+        if parent_candidate and parent_candidate.exists():
+            return parent_candidate
 
     for candidate in candidates:
         if candidate.exists():
@@ -107,7 +124,7 @@ def _resolve_output_file(output_ref: str | None, evidence_dir: Path, query_id: s
     return output_path
 
 
-def _normalize_hits(payload: Any) -> Tuple[str, List[Mapping[str, Any]], str]:
+def _normalize_hits(payload: Any) -> tuple[str, list[Mapping[str, Any]], str]:
     if isinstance(payload, list):
         hits = [row for row in payload if isinstance(row, dict)]
         if not hits:
@@ -142,7 +159,7 @@ def _normalize_hits(payload: Any) -> Tuple[str, List[Mapping[str, Any]], str]:
     return "ERROR", [], "unsupported-json-type"
 
 
-def _read_hits(path: Path) -> Tuple[str, List[Mapping[str, Any]], str]:
+def _read_hits(path: Path) -> tuple[str, list[Mapping[str, Any]], str]:
     if not path.exists():
         return "ERROR", [], f"missing-file:{path.name}"
     if path.stat().st_size == 0:
@@ -183,20 +200,22 @@ def _canonical_qrel_anchor(qrel: Mapping[str, Any]) -> str:
     return ""
 
 
-def _load_golden_queries(golden_payload: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+def _load_golden_queries(golden_payload: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     rows = golden_payload.get("golden_queries")
     if not isinstance(rows, list):
         raise ValueError("golden_queries must contain a list.")
-    by_id: Dict[str, Dict[str, Any]] = {}
+    by_id: dict[str, dict[str, Any]] = {}
     for row in rows:
         if isinstance(row, dict) and isinstance(row.get("query_id"), str):
             by_id[row["query_id"]] = row
     return by_id
 
 
-def _load_qrels_payload(qrels_payload: Mapping[str, Any]) -> Tuple[Dict[str, Dict[str, int]], List[str]]:
-    confirmed_map: Dict[str, Dict[str, int]] = {}
-    pending_ids: List[str] = []
+def _load_qrels_payload(
+    qrels_payload: Mapping[str, Any],
+) -> tuple[dict[str, dict[str, int]], list[str]]:
+    confirmed_map: dict[str, dict[str, int]] = {}
+    pending_ids: list[str] = []
 
     for row in qrels_payload.get("confirmed_qrels", []):
         if not isinstance(row, dict):
@@ -205,7 +224,7 @@ def _load_qrels_payload(qrels_payload: Mapping[str, Any]) -> Tuple[Dict[str, Dic
         entries = row.get("qrels")
         if not isinstance(query_id, str) or not isinstance(entries, list):
             continue
-        rel_map: Dict[str, int] = {}
+        rel_map: dict[str, int] = {}
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
@@ -227,9 +246,9 @@ def _load_qrels_payload(qrels_payload: Mapping[str, Any]) -> Tuple[Dict[str, Dic
     return confirmed_map, sorted(set(pending_ids))
 
 
-import math
-
-def _compute_ndcg(hits: List[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int) -> float:
+def _compute_ndcg(
+    hits: list[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int
+) -> float:
     # Anchor by file and range
     gains = []
     for hit in hits[:top_k]:
@@ -250,26 +269,28 @@ def _compute_ndcg(hits: List[Mapping[str, Any]], relevance_map: Mapping[str, int
         elif hit_anchor in relevance_map:
             gain = relevance_map[hit_anchor]
         gains.append(gain)
-    
+
     dcg = 0.0
     for i, g in enumerate(gains, 1):
         dcg += (2**g - 1) / math.log2(i + 1)
-        
+
     ideal_gains = sorted(relevance_map.values(), reverse=True)[:top_k]
     idcg = 0.0
     for i, g in enumerate(ideal_gains, 1):
         idcg += (2**g - 1) / math.log2(i + 1)
-        
+
     return dcg / idcg if idcg > 0 else 0.0
 
 
-def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int) -> Dict[str, Any]:
+def _compute_query_metrics(
+    hits: list[Mapping[str, Any]], relevance_map: Mapping[str, int], top_k: int
+) -> dict[str, Any]:
     top_hits = hits[:top_k]
     retrieved = [_canonical_hit_anchor(hit) for hit in top_hits]
     retrieved = [row for row in retrieved if row]
     positives = [anchor for anchor, gain in relevance_map.items() if gain > 0]
     positive_set = set(positives)
-    
+
     # For forest benchmark, we need loose matching because chunk boundaries differ
     # We'll count a hit if the retrieved file matches and lines overlap
     found_positives = set()
@@ -282,13 +303,13 @@ def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping
             unique_files_positive.add(pos_anchor)
 
     line_span_hits = 0
-    
+
     for ret_anchor in retrieved:
         is_hit = False
         if ":" in ret_anchor:
             ret_file, ret_range = ret_anchor.split(":", 1)
             ret_start, ret_end = map(int, ret_range.split("-"))
-            
+
             for pos_anchor in positive_set:
                 if ":" in pos_anchor:
                     pos_file, pos_range = pos_anchor.split(":", 1)
@@ -313,13 +334,13 @@ def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping
             is_hit = True
             found_positives.add(ret_anchor)
             if ":" in ret_anchor:
-                 unique_files_retrieved.add(ret_anchor.split(":", 1)[0])
+                unique_files_retrieved.add(ret_anchor.split(":", 1)[0])
             else:
-                 unique_files_retrieved.add(ret_anchor)
-    
+                unique_files_retrieved.add(ret_anchor)
+
     # Duplicate rate: count how many results are from the same file and overlap significantly
     duplicates = 0
-    seen_ranges = [] # list of (file, start, end)
+    seen_ranges = []  # list of (file, start, end)
     for hit in top_hits:
         h_anchor = _canonical_hit_anchor(hit)
         if ":" in h_anchor:
@@ -336,12 +357,16 @@ def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping
                 duplicates += 1
             seen_ranges.append((h_file, h_start, h_end))
 
-    precision_at_k = (len(found_positives) / top_k) if top_k > 0 else 0.0 # This is still tricky for Precision
+    precision_at_k = (
+        (len(found_positives) / top_k) if top_k > 0 else 0.0
+    )  # This is still tricky for Precision
     recall_at_k = (len(found_positives) / len(positive_set)) if positive_set else 0.0
-    unique_file_recall = (len(unique_files_retrieved) / len(unique_files_positive)) if unique_files_positive else 0.0
+    unique_file_recall = (
+        (len(unique_files_retrieved) / len(unique_files_positive)) if unique_files_positive else 0.0
+    )
     line_span_hit_rate = (line_span_hits / len(positive_set)) if positive_set else 0.0
     duplicate_result_rate = (duplicates / len(top_hits)) if top_hits else 0.0
-    
+
     # MRR
     mrr = 0.0
     best_rank = None
@@ -363,7 +388,7 @@ def _compute_query_metrics(hits: List[Mapping[str, Any]], relevance_map: Mapping
                     break
         elif ret_anchor in positive_set:
             is_hit = True
-            
+
         if is_hit:
             mrr = 1.0 / i
             best_rank = i
@@ -392,7 +417,7 @@ def evaluate_run(
     golden_path: Path,
     qrels_path: Path,
     top_k_override: int | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Evaluate one manifest run and return deterministic JSON-serializable summary."""
     manifest = _load_manifest(evidence_dir)
     golden_queries = _load_golden_queries(_load_mapping(golden_path))
@@ -400,17 +425,19 @@ def evaluate_run(
 
     top_k = int(top_k_override if top_k_override is not None else manifest.get("top_k", 10))
 
-    per_query: List[Dict[str, Any]] = []
-    unresolved: List[str] = []
-    pending: List[str] = []
-    text_unsupported: List[str] = []
-    scored_rows: List[Dict[str, float]] = []
+    per_query: list[dict[str, Any]] = []
+    unresolved: list[str] = []
+    pending: list[str] = []
+    text_unsupported: list[str] = []
+    scored_rows: list[dict[str, float]] = []
 
     for query_row in manifest["queries"]:
         query_id = str(query_row.get("id", query_row.get("query_id", "UNKNOWN")))
         query_text = str(query_row.get("query", query_row.get("query_text", "")))
         return_code = int(query_row.get("return_code", 0))
-        output_file = _resolve_output_file(query_row.get("output_file", query_row.get("artifact_path")), evidence_dir, query_id)
+        output_file = _resolve_output_file(
+            query_row.get("output_file", query_row.get("artifact_path")), evidence_dir, query_id
+        )
         entry_format = query_row.get("evidence_format", manifest.get("evidence_format"))
 
         if entry_format == "text-wrapper":
@@ -424,10 +451,12 @@ def evaluate_run(
             status, hits, error_detail = _read_hits(output_file)
 
         has_golden = query_id in golden_queries
-        is_pending = query_id in pending_ids or bool(golden_queries.get(query_id, {}).get("pending_label"))
+        is_pending = query_id in pending_ids or bool(
+            golden_queries.get(query_id, {}).get("pending_label")
+        )
         relevance_map = confirmed_qrels.get(query_id, {})
 
-        row: Dict[str, Any] = {
+        row: dict[str, Any] = {
             "query_id": query_id,
             "query": query_text,
             "status": status,
@@ -463,14 +492,14 @@ def evaluate_run(
             row.update(metrics)
             row["scored"] = True
             row["evaluation_state"] = "scored"
-            
+
             # Diagnosis logic (simplified for ablation study)
             diagnosis = "no_change"
             if metrics["recall_at_k"] == 0:
-                 diagnosis = "missing_source"
+                diagnosis = "missing_source"
             elif metrics["best_relevant_rank"] == 1:
-                 diagnosis = "ranking_gain" if metrics["best_relevant_rank"] == 1 else "no_change"
-            
+                diagnosis = "ranking_gain" if metrics["best_relevant_rank"] == 1 else "no_change"
+
             # More complex diagnosis would require comparison with baseline A
             # We'll handle aggregate diagnosis in the final report
             row["diagnosis"] = diagnosis
@@ -512,7 +541,9 @@ def evaluate_run(
             "macro_precision_at_k": macro_precision,
             "macro_recall_at_k": macro_recall,
             "macro_mrr_at_k": macro_mrr,
-            "qrels_state": "NO_CONFIRMED_QRELS" if not confirmed_qrels else "CONFIRMED_QRELS_PRESENT",
+            "qrels_state": "NO_CONFIRMED_QRELS"
+            if not confirmed_qrels
+            else "CONFIRMED_QRELS_PRESENT",
         },
         "per_query": per_query,
         "pending_queries": pending,
@@ -535,6 +566,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
     return 0

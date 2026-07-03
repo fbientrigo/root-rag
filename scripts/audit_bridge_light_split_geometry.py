@@ -112,7 +112,9 @@ def main() -> int:
         "queries": str(args.queries),
         "qrels": str(args.qrels),
     }
-    audit["verdict"] = "split geometry explains the failure: most bridge-light same-file cases are far apart, one is self-sufficient, and only one is merely local-nonadjacent"
+    audit["verdict"] = (
+        "split geometry explains the failure: most bridge-light same-file cases are far apart, one is self-sufficient, and only one is merely local-nonadjacent"
+    )
     audit["next_action"] = (
         "Run a second diagnostic on a noncontiguous multi-span geometry model before any retrieval rerun."
     )

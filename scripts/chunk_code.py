@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """CLI script to generate chunks.jsonl from a corpus manifest."""
+
 import logging
 import sys
 from pathlib import Path
@@ -56,11 +57,11 @@ def main(manifest: Path, out: Path, window_lines: int, overlap_lines: int):
         # Load manifest
         logger.info(f"Loading manifest from {manifest}")
         manifest_obj = Manifest.load(manifest)
-        
+
         logger.info(f"Corpus: {manifest_obj.root_ref}")
         logger.info(f"Commit: {manifest_obj.resolved_commit}")
         logger.info(f"Path: {manifest_obj.local_path}")
-        
+
         # Build index
         logger.info(f"Building index with window={window_lines}, overlap={overlap_lines}")
         result = build_index(
@@ -69,24 +70,23 @@ def main(manifest: Path, out: Path, window_lines: int, overlap_lines: int):
             window_lines=window_lines,
             overlap_lines=overlap_lines,
         )
-        
+
         if result.get("status") != "success":
             logger.error(f"Build failed: {result.get('error', 'unknown error')}")
             sys.exit(1)
-        
+
         # Print summary
         logger.info(f"Chunks: {result['chunk_count']}")
         logger.info(f"Files: {result['file_count']}")
         logger.info(f"Output: {result['chunks_path']}")
-        
+
         click.echo(
-            f"\n[OK] Generated {result['chunk_count']} chunks from "
-            f"{result['file_count']} files"
+            f"\n[OK] Generated {result['chunk_count']} chunks from {result['file_count']} files"
         )
         click.echo(f"Chunks written to: {result['chunks_path']}")
-        
+
         sys.exit(0)
-    
+
     except Exception as e:
         logger.error(f"Error: {str(e)}", exc_info=True)
         click.echo(f"[ERROR] {str(e)}", err=True)

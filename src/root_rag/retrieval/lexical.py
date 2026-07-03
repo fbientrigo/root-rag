@@ -1,6 +1,6 @@
 """Lexical retrieval wrappers."""
+
 from pathlib import Path
-from typing import List
 
 from root_rag.retrieval.backends import build_retrieval_backend
 from root_rag.retrieval.models import EvidenceCandidate
@@ -14,7 +14,7 @@ def lexical_search(
     top_k: int = 10,
     query_mode: str = "baseline",
     backend_name: str = "lexical_fts5",
-) -> List[EvidenceCandidate]:
+) -> list[EvidenceCandidate]:
     """Search SQLite FTS5 index for query and return ranked evidence.
 
     `query_mode` controls pre-search query transformation:

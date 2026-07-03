@@ -1,4 +1,5 @@
 """Tests for scripts/freeze_muon_dis_benchmark.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -8,7 +9,6 @@ import sys
 from pathlib import Path
 
 import yaml
-
 
 MANDATORY = [
     "q02_make_muon_dis",
@@ -54,10 +54,21 @@ def _write_qrels(path: Path, confirmed_queries: list[str]) -> None:
         confirmed_rows.append(
             {
                 "query_id": query_id,
-                "qrels": [{"file_path": f"{query_id}.py", "start_line": 10, "end_line": 20, "relevance": 1}],
+                "qrels": [
+                    {
+                        "file_path": f"{query_id}.py",
+                        "start_line": 10,
+                        "end_line": 20,
+                        "relevance": 1,
+                    }
+                ],
             }
         )
-    payload = {"pack_id": "muon_dis_workflow_v1", "confirmed_qrels": confirmed_rows, "pending_qrels": []}
+    payload = {
+        "pack_id": "muon_dis_workflow_v1",
+        "confirmed_qrels": confirmed_rows,
+        "pending_qrels": [],
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
@@ -138,7 +149,9 @@ def _prepare(
     return summary, qrels, candidates, decisions, golden, query_pack, output, json_output
 
 
-def test_freeze_refuses_final_v0_when_coverage_incomplete_even_if_qrel_threshold_met(tmp_path: Path) -> None:
+def test_freeze_refuses_final_v0_when_coverage_incomplete_even_if_qrel_threshold_met(
+    tmp_path: Path,
+) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
@@ -200,7 +213,9 @@ def test_draft_freeze_still_works_and_is_marked(tmp_path: Path) -> None:
         os.chdir(cwd_before)
 
 
-def test_reviewed_not_found_inactivate_satisfies_area_without_confirmed_qrel(tmp_path: Path) -> None:
+def test_reviewed_not_found_inactivate_satisfies_area_without_confirmed_qrel(
+    tmp_path: Path,
+) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)

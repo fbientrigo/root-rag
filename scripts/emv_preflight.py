@@ -1,15 +1,17 @@
 """Run non-mutating EMV preflight checks for local Muon DIS harness workflows."""
+
 from __future__ import annotations
 
 import argparse
 import json
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any
 
 
-def _check_pyyaml() -> Dict[str, Any]:
+def _check_pyyaml() -> dict[str, Any]:
     try:
         import yaml  # type: ignore
     except Exception as exc:  # pragma: no cover
@@ -17,7 +19,7 @@ def _check_pyyaml() -> Dict[str, Any]:
     return {"ok": True, "error": None, "version": getattr(yaml, "__version__", "unknown")}
 
 
-def _run_help_command(command: List[str]) -> Dict[str, Any]:
+def _run_help_command(command: list[str]) -> dict[str, Any]:
     try:
         completed = subprocess.run(command, capture_output=True, text=True, check=False)
     except FileNotFoundError:
@@ -35,7 +37,7 @@ def _run_help_command(command: List[str]) -> Dict[str, Any]:
     }
 
 
-def _list_latest_indexes(index_dir: Path, limit: int = 5) -> Dict[str, Any]:
+def _list_latest_indexes(index_dir: Path, limit: int = 5) -> dict[str, Any]:
     if not index_dir.exists():
         return {
             "exists": False,
@@ -58,7 +60,7 @@ def _list_latest_indexes(index_dir: Path, limit: int = 5) -> Dict[str, Any]:
     }
 
 
-def collect_preflight(index_dir: Path) -> Dict[str, Any]:
+def collect_preflight(index_dir: Path) -> dict[str, Any]:
     pyyaml = _check_pyyaml()
     ask_help = _run_help_command(["root-rag", "ask", "--help"])
     search_help = _run_help_command(["root-rag", "search", "--help"])
@@ -77,7 +79,9 @@ def collect_preflight(index_dir: Path) -> Dict[str, Any]:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run EMV preflight checks without modifying files.")
+    parser = argparse.ArgumentParser(
+        description="Run EMV preflight checks without modifying files."
+    )
     parser.add_argument(
         "--index-dir",
         default=Path("data/indexes_fairship"),
@@ -87,7 +91,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _should_fail(summary: Dict[str, Any]) -> bool:
+def _should_fail(summary: dict[str, Any]) -> bool:
     pyyaml_ok = bool(summary["checks"]["pyyaml"]["ok"])
     ask_help = summary["checks"]["root_rag_ask_help"]
     search_help = summary["checks"]["root_rag_search_help"]

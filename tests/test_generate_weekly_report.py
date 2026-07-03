@@ -1,4 +1,5 @@
 """Tests for scripts/generate_weekly_report.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -31,13 +32,13 @@ def _write_pack(path: Path) -> None:
                 "  - fairship",
                 "queries:",
                 "  - id: q_hit",
-                "    natural_language: \"hit\"",
+                '    natural_language: "hit"',
                 "    bm25_tokens: [makeMuonDIS, sigmaDIS]",
                 "    expected_files: []",
                 "    tier: mvp",
                 "    golden: true",
                 "  - id: q_zero",
-                "    natural_language: \"zero\"",
+                '    natural_language: "zero"',
                 "    bm25_tokens: [unknown, token]",
                 "    expected_files: []",
                 "    tier: mvp",
@@ -88,14 +89,16 @@ def test_generate_report_handles_hit_and_zero_hit(tmp_path: Path) -> None:
     _write_manifest(evidence_dir, pack_path)
 
     (evidence_dir / "q_hit.json").write_text(
-        json.dumps([
-            {
-                "file_path": "shipgen/muonDIS.py",
-                "start_line": 12,
-                "end_line": 24,
-                "score": 0.88,
-            }
-        ]),
+        json.dumps(
+            [
+                {
+                    "file_path": "shipgen/muonDIS.py",
+                    "start_line": 12,
+                    "end_line": 24,
+                    "score": 0.88,
+                }
+            ]
+        ),
         encoding="utf-8",
     )
     (evidence_dir / "q_zero.json").write_text("[]", encoding="utf-8")
@@ -110,7 +113,10 @@ def test_generate_report_handles_hit_and_zero_hit(tmp_path: Path) -> None:
     assert "## Candidate Workflow Nodes" in report
     assert "## Missing or Zero-Hit Queries" in report
     assert "## Errors" in report
-    assert "| q_hit | makeMuonDIS sigmaDIS | 1 | shipgen/muonDIS.py | 12-24 | 0.880000 | HIT |" in report
+    assert (
+        "| q_hit | makeMuonDIS sigmaDIS | 1 | shipgen/muonDIS.py | 12-24 | 0.880000 | HIT |"
+        in report
+    )
     assert "| q_zero | unknown token | 0 | N/A | N/A | N/A | ZERO_HIT |" in report
     assert "TODO `q_zero`: no hits for query `unknown token`." in report
 
@@ -169,7 +175,10 @@ def test_generate_report_accepts_object_evidence_shape(tmp_path: Path) -> None:
     module.generate_report(evidence_dir, output_path)
     report = output_path.read_text(encoding="utf-8")
 
-    assert "| q_hit | makeMuonDIS sigmaDIS | 1 | macro/run_simScript.py | 30-42 | 0.770000 | HIT |" in report
+    assert (
+        "| q_hit | makeMuonDIS sigmaDIS | 1 | macro/run_simScript.py | 30-42 | 0.770000 | HIT |"
+        in report
+    )
     assert "| q_zero | unknown token | 0 | N/A | N/A | N/A | ZERO_HIT |" in report
 
 
@@ -388,7 +397,9 @@ def test_generate_report_resolves_manifest_output_paths_from_repo_root(tmp_path:
     }
     (evidence_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (evidence_dir / "q_hit.json").write_text(
-        json.dumps([{"file_path": "muonDIS/makeMuonDIS.py", "start_line": 1, "end_line": 8, "score": 0.91}]),
+        json.dumps(
+            [{"file_path": "muonDIS/makeMuonDIS.py", "start_line": 1, "end_line": 8, "score": 0.91}]
+        ),
         encoding="utf-8",
     )
 
@@ -396,13 +407,17 @@ def test_generate_report_resolves_manifest_output_paths_from_repo_root(tmp_path:
     cwd_before = Path.cwd()
     try:
         import os
+
         os.chdir(root)
         module.generate_report(evidence_dir, output_path)
     finally:
         os.chdir(cwd_before)
 
     report = output_path.read_text(encoding="utf-8")
-    assert "| q_hit | makeMuonDIS sigmaDIS | 1 | muonDIS/makeMuonDIS.py | 1-8 | 0.910000 | HIT |" in report
+    assert (
+        "| q_hit | makeMuonDIS sigmaDIS | 1 | muonDIS/makeMuonDIS.py | 1-8 | 0.910000 | HIT |"
+        in report
+    )
 
 
 def test_main_returns_error_on_bad_manifest(tmp_path: Path) -> None:
@@ -413,12 +428,14 @@ def test_main_returns_error_on_bad_manifest(tmp_path: Path) -> None:
     (evidence_dir / "manifest.json").write_text("{}", encoding="utf-8")
 
     output_path = tmp_path / "reports" / "bad.md"
-    exit_code = module.main([
-        "--evidence-dir",
-        str(evidence_dir),
-        "--output",
-        str(output_path),
-    ])
+    exit_code = module.main(
+        [
+            "--evidence-dir",
+            str(evidence_dir),
+            "--output",
+            str(output_path),
+        ]
+    )
 
     assert exit_code == 1
     assert not output_path.exists()

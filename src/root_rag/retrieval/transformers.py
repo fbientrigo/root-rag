@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
 
 from root_rag.retrieval.interfaces import QueryTransformer
+from root_rag.retrieval.text_utils import tokenize
 
-TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
-
-
-LOW_SIGNAL_QUERY_TERMS: Set[str] = {
+LOW_SIGNAL_QUERY_TERMS: set[str] = {
     "and",
     "in",
     "through",
@@ -39,7 +35,7 @@ LOW_SIGNAL_QUERY_TERMS: Set[str] = {
 }
 
 
-QUERY_ALIAS_EXPANSIONS: Dict[str, List[str]] = {
+QUERY_ALIAS_EXPANSIONS: dict[str, list[str]] = {
     "tgeomanager": ["ggeomanager", "gettopvolume", "tgeonavigator", "findnode"],
     "navigation": ["findnode", "getcurrentnode", "tgeonavigator", "ggeomanager"],
     "open": ["tfile", "tfile_open"],
@@ -52,15 +48,11 @@ QUERY_ALIAS_EXPANSIONS: Dict[str, List[str]] = {
 }
 
 
-EXACT_SYMBOL_BOOST_TOKENS: Set[str] = {
+EXACT_SYMBOL_BOOST_TOKENS: set[str] = {
     "setbranchaddress",
     "constructgeometry",
     "processhits",
 }
-
-
-def _tokenize(query: str) -> List[str]:
-    return [token.lower() for token in TOKEN_RE.findall(query)]
 
 
 @dataclass
@@ -75,17 +67,21 @@ class IdentityQueryTransformer(QueryTransformer):
 class RootLexicalQueryTransformer(QueryTransformer):
     """Rule-based lexical normalization for ROOT/FairShip query mismatch."""
 
-    low_signal_terms: Set[str] = field(default_factory=lambda: set(LOW_SIGNAL_QUERY_TERMS))
-    alias_expansions: Dict[str, List[str]] = field(
-        default_factory=lambda: {token: aliases[:] for token, aliases in QUERY_ALIAS_EXPANSIONS.items()}
+    low_signal_terms: set[str] = field(default_factory=lambda: set(LOW_SIGNAL_QUERY_TERMS))
+    alias_expansions: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            token: aliases[:] for token, aliases in QUERY_ALIAS_EXPANSIONS.items()
+        }
     )
-    exact_symbol_boost_tokens: Set[str] = field(default_factory=lambda: set(EXACT_SYMBOL_BOOST_TOKENS))
+    exact_symbol_boost_tokens: set[str] = field(
+        default_factory=lambda: set(EXACT_SYMBOL_BOOST_TOKENS)
+    )
 
     def transform(self, query: str) -> str:
-        base_tokens = _tokenize(query)
+        base_tokens = tokenize(query)
         filtered_tokens = [token for token in base_tokens if token not in self.low_signal_terms]
 
-        expanded_tokens: List[str] = []
+        expanded_tokens: list[str] = []
         for token in filtered_tokens:
             aliases = self.alias_expansions.get(token)
             if aliases:

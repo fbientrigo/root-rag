@@ -1,16 +1,17 @@
 """Guarded Muon DIS V0 benchmark freeze generator."""
+
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
 import sys
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 import yaml
-
 
 DEFAULT_SUMMARY = Path("reports/muon_dis_emv_reconciled_01_vertical_slice_summary.json")
 DEFAULT_QRELS = Path("benchmarks/muon_dis/qrels.yaml")
@@ -37,27 +38,47 @@ MANDATORY_V0_AREAS: Mapping[str, str] = {
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create guarded Muon DIS V0 benchmark freeze.")
-    parser.add_argument("--summary", type=Path, default=None, help="PASS vertical slice summary JSON.")
+    parser.add_argument(
+        "--summary", type=Path, default=None, help="PASS vertical slice summary JSON."
+    )
     parser.add_argument("--qrels", type=Path, default=DEFAULT_QRELS, help="Qrels YAML path.")
-    parser.add_argument("--candidates", type=Path, default=DEFAULT_CANDIDATES, help="Qrel candidates YAML path.")
-    parser.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS, help="Qrel decisions YAML path.")
-    parser.add_argument("--golden", type=Path, default=DEFAULT_GOLDEN, help="Golden queries YAML path.")
-    parser.add_argument("--query-pack", type=Path, default=DEFAULT_QUERY_PACK, help="Query pack path.")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Final freeze markdown output path.")
-    parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_OUTPUT, help="Freeze metadata JSON path.")
-    parser.add_argument("--min-confirmed-qrels", type=int, default=5, help="Minimum confirmed qrels required.")
-    parser.add_argument("--draft", action="store_true", help="Write DRAFT freeze document and do not claim final freeze.")
+    parser.add_argument(
+        "--candidates", type=Path, default=DEFAULT_CANDIDATES, help="Qrel candidates YAML path."
+    )
+    parser.add_argument(
+        "--decisions", type=Path, default=DEFAULT_DECISIONS, help="Qrel decisions YAML path."
+    )
+    parser.add_argument(
+        "--golden", type=Path, default=DEFAULT_GOLDEN, help="Golden queries YAML path."
+    )
+    parser.add_argument(
+        "--query-pack", type=Path, default=DEFAULT_QUERY_PACK, help="Query pack path."
+    )
+    parser.add_argument(
+        "--output", type=Path, default=DEFAULT_OUTPUT, help="Final freeze markdown output path."
+    )
+    parser.add_argument(
+        "--json-output", type=Path, default=DEFAULT_JSON_OUTPUT, help="Freeze metadata JSON path."
+    )
+    parser.add_argument(
+        "--min-confirmed-qrels", type=int, default=5, help="Minimum confirmed qrels required."
+    )
+    parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="Write DRAFT freeze document and do not claim final freeze.",
+    )
     return parser.parse_args(argv)
 
 
-def _load_json_object(path: Path) -> Dict[str, Any]:
+def _load_json_object(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"JSON root must be object: {path}")
     return payload
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if payload is None:
         return {}
@@ -66,14 +87,14 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _count_confirmed_qrels(qrels_payload: Mapping[str, Any]) -> Tuple[int, Dict[str, int]]:
+def _count_confirmed_qrels(qrels_payload: Mapping[str, Any]) -> tuple[int, dict[str, int]]:
     rows = qrels_payload.get("confirmed_qrels")
     if rows is None:
         return 0, {}
     if not isinstance(rows, list):
         raise ValueError("Qrels payload must contain list field: confirmed_qrels")
     count = 0
-    by_query: Dict[str, int] = {}
+    by_query: dict[str, int] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -85,11 +106,11 @@ def _count_confirmed_qrels(qrels_payload: Mapping[str, Any]) -> Tuple[int, Dict[
     return count, by_query
 
 
-def _approved_by_query(decisions_payload: Mapping[str, Any]) -> Dict[str, int]:
+def _approved_by_query(decisions_payload: Mapping[str, Any]) -> dict[str, int]:
     rows = decisions_payload.get("decisions")
     if not isinstance(rows, list):
         return {}
-    output: Dict[str, int] = {}
+    output: dict[str, int] = {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -100,7 +121,7 @@ def _approved_by_query(decisions_payload: Mapping[str, Any]) -> Dict[str, int]:
     return output
 
 
-def _count_agent_adjudicated(payload: Mapping[str, Any]) -> Tuple[int, int, int, int]:
+def _count_agent_adjudicated(payload: Mapping[str, Any]) -> tuple[int, int, int, int]:
     rows = payload.get("adjudicated")
     if not isinstance(rows, list):
         return 0, 0, 0, 0
@@ -140,9 +161,9 @@ def _compute_v0_coverage(
     confirmed_by_query: Mapping[str, int],
     approved_by_query: Mapping[str, int],
     not_found_reviewed_queries: set[str],
-) -> Tuple[bool, List[str], List[str]]:
-    missing_areas: List[str] = []
-    reviewed_not_found_areas: List[str] = []
+) -> tuple[bool, list[str], list[str]]:
+    missing_areas: list[str] = []
+    reviewed_not_found_areas: list[str] = []
     for query_id, area_name in MANDATORY_V0_AREAS.items():
         if query_id == "q09_inactivate_muon_processes":
             if query_id in not_found_reviewed_queries:
@@ -169,7 +190,7 @@ def _load_emv_status_module():
     return module
 
 
-def _resolve_summary_path(summary_path: Optional[Path]) -> Path:
+def _resolve_summary_path(summary_path: Path | None) -> Path:
     if summary_path is not None:
         return summary_path
     module = _load_emv_status_module()
@@ -180,7 +201,7 @@ def _resolve_summary_path(summary_path: Optional[Path]) -> Path:
     return Path(latest)
 
 
-def _read_eval_status(summary_payload: Mapping[str, Any]) -> Dict[str, Any]:
+def _read_eval_status(summary_payload: Mapping[str, Any]) -> dict[str, Any]:
     eval_path_raw = summary_payload.get("eval_path")
     if not isinstance(eval_path_raw, str) or not eval_path_raw.strip():
         return {"eval_path": None, "eval_artifact_status": "NOT_AVAILABLE"}
@@ -266,7 +287,7 @@ def _build_markdown(metadata: Mapping[str, Any], *, draft_mode: bool) -> str:
 
 def freeze_benchmark(
     *,
-    summary_path: Optional[Path],
+    summary_path: Path | None,
     qrels_path: Path,
     candidates_path: Path = DEFAULT_CANDIDATES,
     decisions_path: Path = DEFAULT_DECISIONS,
@@ -277,7 +298,7 @@ def freeze_benchmark(
     json_output_path: Path,
     min_confirmed_qrels: int,
     draft: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     resolved_summary_path = _resolve_summary_path(summary_path)
     if not resolved_summary_path.exists():
         raise FileNotFoundError(f"Summary file not found: {resolved_summary_path}")
@@ -291,12 +312,14 @@ def freeze_benchmark(
     summary_payload = _load_json_object(resolved_summary_path)
     gate_status = str(summary_payload.get("acceptance_gate_status", "")).strip().upper()
     if gate_status != "PASS":
-        raise ValueError(f"Freeze requires PASS summary; found {gate_status or 'UNKNOWN'} in {resolved_summary_path}")
+        raise ValueError(
+            f"Freeze requires PASS summary; found {gate_status or 'UNKNOWN'} in {resolved_summary_path}"
+        )
 
     qrels_payload = _load_yaml_mapping(qrels_path)
     candidates_payload = _load_yaml_mapping(candidates_path)
     decisions_payload = _load_yaml_mapping(decisions_path)
-    agent_adjudicated_payload: Dict[str, Any] = {}
+    agent_adjudicated_payload: dict[str, Any] = {}
     if agent_adjudicated_path.exists():
         agent_adjudicated_payload = _load_yaml_mapping(agent_adjudicated_path)
     (
@@ -320,7 +343,9 @@ def freeze_benchmark(
         confirmed_qrel_count=confirmed_qrel_count,
         eval_artifact_status=eval_artifact_status,
     )
-    qrels_state = str(summary_payload.get("qrels_state") or eval_status.get("qrels_state") or "NO_CONFIRMED_QRELS")
+    qrels_state = str(
+        summary_payload.get("qrels_state") or eval_status.get("qrels_state") or "NO_CONFIRMED_QRELS"
+    )
 
     enough_qrels = confirmed_qrel_count >= min_confirmed_qrels
     freeze_status = "READY_FOR_FREEZE"
@@ -332,13 +357,11 @@ def freeze_benchmark(
         block_reason = f"Missing mandatory V0 coverage areas: {', '.join(missing_areas)}."
     elif not enough_qrels:
         freeze_status = "BLOCKED_INSUFFICIENT_QRELS"
-        block_reason = (
-            f"confirmed_qrel_count {confirmed_qrel_count} is below min_confirmed_qrels {min_confirmed_qrels}."
-        )
+        block_reason = f"confirmed_qrel_count {confirmed_qrel_count} is below min_confirmed_qrels {min_confirmed_qrels}."
 
     freeze_doc_path = output_path.with_name("V0_FREEZE_DRAFT.md") if draft else output_path
 
-    metadata: Dict[str, Any] = {
+    metadata: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "run_id": summary_payload.get("run_id"),
         "summary_path": str(resolved_summary_path),
@@ -412,7 +435,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             min_confirmed_qrels=args.min_confirmed_qrels,
             draft=args.draft,
         )
-    except (FileNotFoundError, ValueError, RuntimeError, json.JSONDecodeError, yaml.YAMLError) as exc:
+    except (
+        FileNotFoundError,
+        ValueError,
+        RuntimeError,
+        json.JSONDecodeError,
+        yaml.YAMLError,
+    ) as exc:
         print(json.dumps({"freeze_status": "ERROR", "error": str(exc)}, indent=2), file=sys.stderr)
         return 2
 

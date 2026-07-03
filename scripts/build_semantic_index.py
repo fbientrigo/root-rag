@@ -7,10 +7,10 @@ import argparse
 import json
 import platform
 import sys
-from math import ceil
 from datetime import datetime, timezone
-from time import perf_counter
+from math import ceil
 from pathlib import Path
+from time import perf_counter
 
 from root_rag.retrieval.s1_semantic import (
     SemanticIndexManifest,
@@ -101,9 +101,15 @@ def main() -> int:
     embedded_batches = []
     for batch_idx, batch_start in enumerate(range(0, total_rows, batch_size), start=1):
         batch_texts = texts[batch_start : batch_start + batch_size]
-        _log(f"[build] embed batch {batch_idx}/{ceil(total_rows / batch_size)} ({len(batch_texts)} rows)")
+        _log(
+            f"[build] embed batch {batch_idx}/{ceil(total_rows / batch_size)} ({len(batch_texts)} rows)"
+        )
         embedded_batches.append(embedder.embed(batch_texts))
-    vectors = np.vstack(embedded_batches) if embedded_batches else np.zeros((0, embedder.embedding_dimension()), dtype=np.float32)
+    vectors = (
+        np.vstack(embedded_batches)
+        if embedded_batches
+        else np.zeros((0, embedder.embedding_dimension()), dtype=np.float32)
+    )
     vectors = normalize_vectors(np.asarray(vectors, dtype=np.float32))
     if len(ordered_rows) != int(vectors.shape[0]):
         raise ValueError("row/vector count mismatch while building semantic index")
@@ -153,8 +159,7 @@ def main() -> int:
             rows=manifest.row_count,
             shape=list(vectors.shape),
             files=", ".join(
-                str(path)
-                for path in (manifest_path, records_path, index_path, vectors_path)
+                str(path) for path in (manifest_path, records_path, index_path, vectors_path)
             ),
             elapsed=elapsed,
         )

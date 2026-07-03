@@ -19,8 +19,11 @@ from root_rag.evaluation.focal_chunk_experiment import (
     summarize_query,
 )
 from root_rag.evaluation.semantic_v1 import load_corpus, load_qrels, load_queries
-from root_rag.retrieval.s1_semantic import SemanticIndexManifest, SentenceTransformerLocalEmbedder, build_semantic_index_artifacts
-
+from root_rag.retrieval.s1_semantic import (
+    SemanticIndexManifest,
+    SentenceTransformerLocalEmbedder,
+    build_semantic_index_artifacts,
+)
 
 BRIDGE_LIGHT_QUERY_IDS = {f"br{i:03d}" for i in range(1, 9)}
 
@@ -88,13 +91,13 @@ def _build_verdict(
     delta_both = shadow_summary["both_golds_found_rate"] - baseline_summary["both_golds_found_rate"]
     delta_late = baseline_summary["late_rank_rate"] - shadow_summary["late_rank_rate"]
 
-    br006_improved = (
-        br006_after["aggregate"]["best_mode_gold_count"] > br006_before["aggregate"]["best_mode_gold_count"]
-        or (
-            br006_before["aggregate"]["best_mode_best_rank"] is not None
-            and br006_after["aggregate"]["best_mode_best_rank"] is not None
-            and br006_after["aggregate"]["best_mode_best_rank"] < br006_before["aggregate"]["best_mode_best_rank"]
-        )
+    br006_improved = br006_after["aggregate"]["best_mode_gold_count"] > br006_before["aggregate"][
+        "best_mode_gold_count"
+    ] or (
+        br006_before["aggregate"]["best_mode_best_rank"] is not None
+        and br006_after["aggregate"]["best_mode_best_rank"] is not None
+        and br006_after["aggregate"]["best_mode_best_rank"]
+        < br006_before["aggregate"]["best_mode_best_rank"]
     )
 
     if delta_both > 0 and delta_late >= 0 and br006_improved:
@@ -250,7 +253,9 @@ def main() -> int:
     parser.add_argument(
         "--baseline-json",
         type=Path,
-        default=Path("artifacts/diagnostics/bridge_light_br001_br008_depth200/bridge_light_br001_br008_depth200_competition_diagnostic.json"),
+        default=Path(
+            "artifacts/diagnostics/bridge_light_br001_br008_depth200/bridge_light_br001_br008_depth200_competition_diagnostic.json"
+        ),
         help="Frozen V1.2 bridge-light depth-200 diagnostic JSON.",
     )
     parser.add_argument(
@@ -297,10 +302,16 @@ def main() -> int:
     shadow_rows, shadow_membership = build_shadow_corpus_rows(corpus_rows)
     args.shadow_dir.mkdir(parents=True, exist_ok=True)
     shadow_corpus_path = args.shadow_dir / "shadow_corpus.jsonl"
-    shadow_corpus_path.write_text("\n".join(json.dumps(row) for row in shadow_rows), encoding="utf-8")
+    shadow_corpus_path.write_text(
+        "\n".join(json.dumps(row) for row in shadow_rows), encoding="utf-8"
+    )
     shadow_qrels_path = args.shadow_dir / "shadow_qrels.jsonl"
-    shadow_qrels_rows = build_shadow_qrels_rows(qrels_map=bridge_light_qrels, shadow_membership=shadow_membership)
-    shadow_qrels_path.write_text("\n".join(json.dumps(row) for row in shadow_qrels_rows), encoding="utf-8")
+    shadow_qrels_rows = build_shadow_qrels_rows(
+        qrels_map=bridge_light_qrels, shadow_membership=shadow_membership
+    )
+    shadow_qrels_path.write_text(
+        "\n".join(json.dumps(row) for row in shadow_qrels_rows), encoding="utf-8"
+    )
 
     _log("[3/6] Build shadow semantic index")
     embedder = SentenceTransformerLocalEmbedder(
@@ -352,10 +363,14 @@ def main() -> int:
     comparison = {
         "rate_delta": rate_delta,
         "shadow_minus_baseline": {
-            "both_golds_found_rate": shadow_summary["both_golds_found_rate"] - baseline_summary["both_golds_found_rate"],
-            "one_gold_found_rate": shadow_summary["one_gold_found_rate"] - baseline_summary["one_gold_found_rate"],
-            "zero_gold_found_rate": shadow_summary["zero_gold_found_rate"] - baseline_summary["zero_gold_found_rate"],
-            "same_file_split_rate": shadow_summary["same_file_split_rate"] - baseline_summary["same_file_split_rate"],
+            "both_golds_found_rate": shadow_summary["both_golds_found_rate"]
+            - baseline_summary["both_golds_found_rate"],
+            "one_gold_found_rate": shadow_summary["one_gold_found_rate"]
+            - baseline_summary["one_gold_found_rate"],
+            "zero_gold_found_rate": shadow_summary["zero_gold_found_rate"]
+            - baseline_summary["zero_gold_found_rate"],
+            "same_file_split_rate": shadow_summary["same_file_split_rate"]
+            - baseline_summary["same_file_split_rate"],
             "late_rank_rate": shadow_summary["late_rank_rate"] - baseline_summary["late_rank_rate"],
         },
     }
@@ -410,13 +425,20 @@ def main() -> int:
                 "shadow": row,
                 "delta": {
                     "best_mode_gold_count": row["aggregate"]["best_mode_gold_count"]
-                    - _baseline_query_lookup(baseline, row["query_id"])["aggregate"]["best_mode_gold_count"],
+                    - _baseline_query_lookup(baseline, row["query_id"])["aggregate"][
+                        "best_mode_gold_count"
+                    ],
                     "best_mode_best_rank": (
                         None
                         if row["aggregate"]["best_mode_best_rank"] is None
-                        or _baseline_query_lookup(baseline, row["query_id"])["aggregate"]["best_mode_best_rank"] is None
+                        or _baseline_query_lookup(baseline, row["query_id"])["aggregate"][
+                            "best_mode_best_rank"
+                        ]
+                        is None
                         else row["aggregate"]["best_mode_best_rank"]
-                        - _baseline_query_lookup(baseline, row["query_id"])["aggregate"]["best_mode_best_rank"]
+                        - _baseline_query_lookup(baseline, row["query_id"])["aggregate"][
+                            "best_mode_best_rank"
+                        ]
                     ),
                 },
             }

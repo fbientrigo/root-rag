@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Iterable, Mapping
-
 
 IDCG_TWO_DOCS_GRADED = ((2**2 - 1) / math.log2(2)) + ((2**1 - 1) / math.log2(3))
 
@@ -65,7 +64,9 @@ def aggregate_topk_metrics(rows: Iterable[TopKMetrics]) -> dict[str, float]:
     }
 
 
-def classify_effect(before: Mapping[str, float], after: Mapping[str, float], *, eps: float = 1e-12) -> str:
+def classify_effect(
+    before: Mapping[str, float], after: Mapping[str, float], *, eps: float = 1e-12
+) -> str:
     """Classify before/after change as helped, hurt, or unchanged."""
     improved = (
         after["mrr_at_k"] > before["mrr_at_k"] + eps

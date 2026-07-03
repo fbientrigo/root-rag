@@ -1,20 +1,20 @@
 """Print manual promotion checklist from a weekly report markdown file."""
+
 from __future__ import annotations
 
 import argparse
 import re
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence
-
 
 HEADING_RE = re.compile(r"^##\s+(.+?)\s*$")
 
 
-def _extract_section_lines(text: str, section_name: str) -> List[str]:
+def _extract_section_lines(text: str, section_name: str) -> list[str]:
     lines = text.splitlines()
     active = False
-    collected: List[str] = []
+    collected: list[str] = []
     for line in lines:
         heading = HEADING_RE.match(line)
         if heading:
@@ -27,7 +27,7 @@ def _extract_section_lines(text: str, section_name: str) -> List[str]:
     return collected
 
 
-def build_checklist(report_path: Path) -> List[str]:
+def build_checklist(report_path: Path) -> list[str]:
     if not report_path.exists():
         raise FileNotFoundError(f"Report file not found: {report_path}")
     text = report_path.read_text(encoding="utf-8")
@@ -48,19 +48,26 @@ def build_checklist(report_path: Path) -> List[str]:
         if line.strip().startswith("- ")
     ]
 
-    checklist: List[str] = []
+    checklist: list[str] = []
     checklist.append("Manual Wiki Promotion Checklist")
     checklist.append(f"- Report: {report_path}")
     checklist.append("")
     checklist.append("Candidate confirmed claims:")
     if candidate_nodes:
-        checklist.extend([f"- Review node evidence for claim promotion: {row[2:].strip()}" for row in candidate_nodes])
+        checklist.extend(
+            [
+                f"- Review node evidence for claim promotion: {row[2:].strip()}"
+                for row in candidate_nodes
+            ]
+        )
     else:
         checklist.append("- None detected; keep claims provisional/unresolved.")
     checklist.append("")
     checklist.append("Candidate unresolved questions:")
     if unresolved:
-        checklist.extend([f"- Add/update open question entry: {row[2:].strip()}" for row in unresolved])
+        checklist.extend(
+            [f"- Add/update open question entry: {row[2:].strip()}" for row in unresolved]
+        )
     else:
         checklist.append("- None detected.")
     checklist.append("")

@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Dict, List, Optional, Sequence
 
-from root_rag.evaluation.metrics import TopKMetrics, aggregate_topk_metrics, classify_effect, compute_topk_metrics
+from root_rag.evaluation.metrics import (
+    TopKMetrics,
+    aggregate_topk_metrics,
+    classify_effect,
+    compute_topk_metrics,
+)
 from root_rag.retrieval.backends import build_retrieval_backend
 from root_rag.retrieval.pipeline import RetrievalPipeline
 from root_rag.retrieval.s1_semantic import LocalEmbedder, SemanticIndexManifest
@@ -32,7 +37,7 @@ class QueryEntry:
     query_class: str
 
 
-def load_queries(path: Path) -> List[QueryEntry]:
+def load_queries(path: Path) -> list[QueryEntry]:
     rows = json.loads(Path(path).read_text(encoding="utf-8"))
     return [
         QueryEntry(
@@ -44,8 +49,8 @@ def load_queries(path: Path) -> List[QueryEntry]:
     ]
 
 
-def load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
-    qrels: Dict[str, Dict[str, int]] = defaultdict(dict)
+def load_qrels(path: Path) -> dict[str, dict[str, int]]:
+    qrels: dict[str, dict[str, int]] = defaultdict(dict)
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -54,8 +59,8 @@ def load_qrels(path: Path) -> Dict[str, Dict[str, int]]:
     return dict(qrels)
 
 
-def load_corpus(path: Path) -> List[dict]:
-    rows: List[dict] = []
+def load_corpus(path: Path) -> list[dict]:
+    rows: list[dict] = []
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
@@ -94,14 +99,14 @@ def _compute_latency_summary_ms(samples_s: Sequence[float]) -> dict:
 def evaluate_mode(
     *,
     mode: str,
-    corpus_rows: List[dict],
+    corpus_rows: list[dict],
     corpus_path: Path,
-    queries: List[QueryEntry],
-    qrels_map: Dict[str, Dict[str, int]],
+    queries: list[QueryEntry],
+    qrels_map: dict[str, dict[str, int]],
     top_k: int,
     semantic_manifest_path: Path,
     semantic_model_name: str,
-    semantic_embedder: Optional[LocalEmbedder] = None,
+    semantic_embedder: LocalEmbedder | None = None,
 ) -> dict:
     backend = build_retrieval_backend(
         MODE_TO_BACKEND[mode],
@@ -119,9 +124,9 @@ def evaluate_mode(
         query_transformer=build_query_transformer("baseline"),
     )
 
-    per_query: List[dict] = []
-    metric_rows: List[TopKMetrics] = []
-    latency_samples: List[float] = []
+    per_query: list[dict] = []
+    metric_rows: list[TopKMetrics] = []
+    latency_samples: list[float] = []
 
     for query_entry in queries:
         t0 = perf_counter()
@@ -153,8 +158,8 @@ def evaluate_mode(
             }
         )
 
-    per_category: Dict[str, dict] = {}
-    grouped: Dict[str, List[dict]] = defaultdict(list)
+    per_category: dict[str, dict] = {}
+    grouped: dict[str, list[dict]] = defaultdict(list)
     for row in per_query:
         grouped[row["query_class"]].append(row)
 
@@ -191,10 +196,10 @@ def evaluate_mode(
 def compare_mode_runs(before: dict, after: dict) -> dict:
     before_by_id = {row["id"]: row for row in before["per_query"]}
     after_by_id = {row["id"]: row for row in after["per_query"]}
-    per_query: List[dict] = []
-    helped: List[str] = []
-    hurt: List[str] = []
-    unchanged: List[str] = []
+    per_query: list[dict] = []
+    helped: list[str] = []
+    hurt: list[str] = []
+    unchanged: list[str] = []
 
     for query_id in sorted(after_by_id.keys()):
         before_row = before_by_id[query_id]
@@ -242,9 +247,12 @@ def compare_mode_runs(before: dict, after: dict) -> dict:
             "before": before_category["metrics"],
             "after": after_category["metrics"],
             "delta": {
-                "mrr_at_k": after_category["metrics"]["mrr_at_k"] - before_category["metrics"]["mrr_at_k"],
-                "recall_at_k": after_category["metrics"]["recall_at_k"] - before_category["metrics"]["recall_at_k"],
-                "ndcg_at_k": after_category["metrics"]["ndcg_at_k"] - before_category["metrics"]["ndcg_at_k"],
+                "mrr_at_k": after_category["metrics"]["mrr_at_k"]
+                - before_category["metrics"]["mrr_at_k"],
+                "recall_at_k": after_category["metrics"]["recall_at_k"]
+                - before_category["metrics"]["recall_at_k"],
+                "ndcg_at_k": after_category["metrics"]["ndcg_at_k"]
+                - before_category["metrics"]["ndcg_at_k"],
             },
         }
 
@@ -281,8 +289,13 @@ def _pick_recommendation(results: dict) -> str:
     bridge_delta = hybrid_comparison["per_category"].get("bridge-light", {}).get("delta", {})
     semantic_delta = hybrid_comparison["per_category"].get("semantic", {}).get("delta", {})
     target_help = any(
-        hybrid_comparison["per_category"].get(category, {}).get("delta", {}).get("ndcg_at_k", 0.0) > 0.0
-        or hybrid_comparison["per_category"].get(category, {}).get("delta", {}).get("recall_at_k", 0.0) > 0.0
+        hybrid_comparison["per_category"].get(category, {}).get("delta", {}).get("ndcg_at_k", 0.0)
+        > 0.0
+        or hybrid_comparison["per_category"]
+        .get(category, {})
+        .get("delta", {})
+        .get("recall_at_k", 0.0)
+        > 0.0
         for category in TARGET_CATEGORIES
     )
 
@@ -311,8 +324,8 @@ def run_semantic_v1_benchmark(
     semantic_manifest_path: Path,
     semantic_model_name: str,
     top_k: int = TOP_K_DEFAULT,
-    commands_run: Optional[List[str]] = None,
-    semantic_embedder: Optional[LocalEmbedder] = None,
+    commands_run: list[str] | None = None,
+    semantic_embedder: LocalEmbedder | None = None,
 ) -> dict:
     corpus_rows = load_corpus(corpus_path)
     queries = load_queries(queries_path)
@@ -350,7 +363,9 @@ def run_semantic_v1_benchmark(
         },
         "modes": modes,
         "comparisons": {
-            "semantic_only_vs_bm25_only": compare_mode_runs(modes["bm25_only"], modes["semantic_only"]),
+            "semantic_only_vs_bm25_only": compare_mode_runs(
+                modes["bm25_only"], modes["semantic_only"]
+            ),
             "hybrid_vs_bm25_only": compare_mode_runs(modes["bm25_only"], modes["hybrid"]),
         },
     }
@@ -389,13 +404,15 @@ def _compare_results_against_baseline(current: dict, baseline: dict) -> dict:
     return deltas
 
 
-def _representative_wins(comparison: dict, *, limit: int = 5) -> List[dict]:
+def _representative_wins(comparison: dict, *, limit: int = 5) -> list[dict]:
     helped = [row for row in comparison["per_query"] if row["effect"] == "helped"]
-    helped.sort(key=lambda row: (-row["delta"]["ndcg_at_k"], -row["delta"]["recall_at_k"], row["id"]))
+    helped.sort(
+        key=lambda row: (-row["delta"]["ndcg_at_k"], -row["delta"]["recall_at_k"], row["id"])
+    )
     return helped[:limit]
 
 
-def _representative_failures(hybrid_run: dict, comparison: dict, *, limit: int = 5) -> List[dict]:
+def _representative_failures(hybrid_run: dict, comparison: dict, *, limit: int = 5) -> list[dict]:
     hurt_ids = set(comparison["effects"]["hurt"])
     failures = []
     for row in hybrid_run["per_query"]:

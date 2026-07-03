@@ -119,7 +119,9 @@ def test_missing_branches_return_null(tmp_path: Path, monkeypatch) -> None:
     class FakeROOT:
         TFile = FakeTFile
 
-    monkeypatch.setattr(module.importlib, "import_module", lambda name: FakeROOT if name == "ROOT" else None)
+    monkeypatch.setattr(
+        module.importlib, "import_module", lambda name: FakeROOT if name == "ROOT" else None
+    )
     rec = module.probe_file(existing)
     assert rec["dis_tree_exists"] is True
     assert rec["n_DISParticles"] is None
@@ -155,7 +157,9 @@ def test_json_schema_fields_exact(tmp_path: Path, monkeypatch, capsys) -> None:
     class FakeROOT:
         TFile = FakeTFile
 
-    monkeypatch.setattr(module.importlib, "import_module", lambda name: FakeROOT if name == "ROOT" else None)
+    monkeypatch.setattr(
+        module.importlib, "import_module", lambda name: FakeROOT if name == "ROOT" else None
+    )
     monkeypatch.setattr(sys, "argv", ["probe", "--input", str(existing)])
 
     rc = module.main()

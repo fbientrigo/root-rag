@@ -64,8 +64,8 @@ def test_build_embedding_text_adds_local_relation_hints():
         "headers_used": ["TGeoBBox.h", "TGeoManager.h"],
         "content": (
             "TGeoVolume* top = gGeoManager->GetTopVolume();\n"
-            "ShipGeo::InitMedium(\"Concrete\");\n"
-            "TGeoMedium* concrete = gGeoManager->GetMedium(\"Concrete\");"
+            'ShipGeo::InitMedium("Concrete");\n'
+            'TGeoMedium* concrete = gGeoManager->GetMedium("Concrete");'
         ),
     }
 

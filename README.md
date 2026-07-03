@@ -116,6 +116,10 @@ Includes ROOT's ML inference framework (39 operators) for future FairShip ML int
 **Python**: 3.10+ recommended  
 **SOFIE**: Available but not yet used by FairShip (ready for future adoption)
 
+> Need to build or run FairShip itself (pixi vs CVMFS + aliBuild on lxplus)?
+> See **[FairShip Build Methods](docs/wiki/guides/FairShip_build_methods.md)** —
+> root-rag is `pip install`-ed; FairShip is built separately.
+
 ---
 
 ## Use Cases & How-Tos

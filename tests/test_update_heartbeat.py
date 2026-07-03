@@ -1,4 +1,5 @@
 """Tests for scripts/update_heartbeat.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -78,7 +79,10 @@ def test_preset_mode_updates_state(tmp_path: Path) -> None:
     assert module.main(["--state-file", str(state_path), "--preset", "qrel_review_pending"]) == 0
     written = json.loads(state_path.read_text(encoding="utf-8"))
     assert written["last_verdict"] == "ACCEPT WITH NOTES"
-    assert written["last_run_summary"] == "EMV harness operational; manual qrel review remains pending."
+    assert (
+        written["last_run_summary"]
+        == "EMV harness operational; manual qrel review remains pending."
+    )
     assert written["next_prompt_path"] == "agents/codex_emv/heartbeat/next_prompt.md"
     assert "Manual qrel review pending" in written["open_items"]
 

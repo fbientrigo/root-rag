@@ -1,11 +1,13 @@
 """Agentic review assistant for Muon DIS qrel candidates."""
+
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 import yaml
 
@@ -40,12 +42,22 @@ class CandidateRow:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Review Muon DIS qrel candidates with source snippets.")
-    parser.add_argument("--candidates", type=Path, default=Path("benchmarks/muon_dis/qrels_candidates.yaml"))
-    parser.add_argument("--decisions", type=Path, default=Path("benchmarks/muon_dis/qrels_review_decisions.yaml"))
+    parser = argparse.ArgumentParser(
+        description="Review Muon DIS qrel candidates with source snippets."
+    )
+    parser.add_argument(
+        "--candidates", type=Path, default=Path("benchmarks/muon_dis/qrels_candidates.yaml")
+    )
+    parser.add_argument(
+        "--decisions", type=Path, default=Path("benchmarks/muon_dis/qrels_review_decisions.yaml")
+    )
     parser.add_argument("--fairship-path", type=Path, default=Path("..\\FairShip"))
-    parser.add_argument("--output", type=Path, default=Path("benchmarks/muon_dis/qrels_agent_review_proposals.yaml"))
-    parser.add_argument("--report", type=Path, default=Path("reports/muon_dis_agent_qrel_review.md"))
+    parser.add_argument(
+        "--output", type=Path, default=Path("benchmarks/muon_dis/qrels_agent_review_proposals.yaml")
+    )
+    parser.add_argument(
+        "--report", type=Path, default=Path("reports/muon_dis_agent_qrel_review.md")
+    )
     parser.add_argument("--preset", choices=("critical-path",), default=None)
     parser.add_argument("--top-per-area", type=int, default=1)
     parser.add_argument("--limit", type=int, default=10)
@@ -53,7 +65,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if payload is None:
         return {}
@@ -62,8 +74,8 @@ def _load_yaml_mapping(path: Path) -> Dict[str, Any]:
     return payload
 
 
-def _flatten_candidates(payload: Mapping[str, Any]) -> List[CandidateRow]:
-    rows: List[CandidateRow] = []
+def _flatten_candidates(payload: Mapping[str, Any]) -> list[CandidateRow]:
+    rows: list[CandidateRow] = []
     candidates = payload.get("candidates")
     if not isinstance(candidates, list):
         raise ValueError("Candidates payload must contain list field: candidates")
@@ -76,7 +88,9 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> List[CandidateRow]:
         review_status = str(query.get("review_status", ""))
         if not isinstance(qrels, list):
             qrels = []
-        if len(qrels) == 0 and (review_status == "NOT_FOUND_IN_INDEX" or query_id == "q09_inactivate_muon_processes"):
+        if len(qrels) == 0 and (
+            review_status == "NOT_FOUND_IN_INDEX" or query_id == "q09_inactivate_muon_processes"
+        ):
             rows.append(
                 CandidateRow(
                     query_id=query_id,
@@ -95,7 +109,11 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> List[CandidateRow]:
             file_path = qrel.get("file_path")
             start_line = qrel.get("start_line")
             end_line = qrel.get("end_line")
-            if not isinstance(file_path, str) or not isinstance(start_line, int) or not isinstance(end_line, int):
+            if (
+                not isinstance(file_path, str)
+                or not isinstance(start_line, int)
+                or not isinstance(end_line, int)
+            ):
                 continue
             rows.append(
                 CandidateRow(
@@ -111,17 +129,19 @@ def _flatten_candidates(payload: Mapping[str, Any]) -> List[CandidateRow]:
     return rows
 
 
-def _apply_ordering(rows: List[CandidateRow], preset: Optional[str], top_per_area: int, limit: int) -> List[CandidateRow]:
+def _apply_ordering(
+    rows: list[CandidateRow], preset: str | None, top_per_area: int, limit: int
+) -> list[CandidateRow]:
     if preset != "critical-path":
         ordered = sorted(rows, key=lambda r: (r.query_id, r.rank, r.file_path))
         return ordered[:limit] if limit > 0 else ordered
     index = {qid: i for i, qid in enumerate(PRESET_CRITICAL_PATH)}
-    grouped: Dict[str, List[CandidateRow]] = {}
+    grouped: dict[str, list[CandidateRow]] = {}
     ordered = sorted(rows, key=lambda r: (index.get(r.query_id, 999), r.rank, r.file_path))
     for row in ordered:
         grouped.setdefault(row.query_id, []).append(row)
     cap = top_per_area if top_per_area > 0 else 1
-    out: List[CandidateRow] = []
+    out: list[CandidateRow] = []
     for qid in PRESET_CRITICAL_PATH:
         queue = grouped.get(qid, [])
         out.extend(queue[:cap])
@@ -140,26 +160,34 @@ def _apply_ordering(rows: List[CandidateRow], preset: Optional[str], top_per_are
     return out[:limit] if limit and limit > 0 else out
 
 
-def _read_snippet(file_path: Path, start_line: int, end_line: int, window: int = 20) -> Tuple[int, int, str, str]:
+def _read_snippet(
+    file_path: Path, start_line: int, end_line: int, window: int = 20
+) -> tuple[int, int, str, str]:
     lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
     total = len(lines)
     start = max(1, start_line - window)
     end = min(total, end_line + window)
 
     context = "\n".join(f"{ln:>6}: {lines[ln - 1]}" for ln in range(start, end + 1))
-    exact = "\n".join(f"{ln:>6}: {lines[ln - 1]}" for ln in range(start_line, min(end_line, total) + 1))
+    exact = "\n".join(
+        f"{ln:>6}: {lines[ln - 1]}" for ln in range(start_line, min(end_line, total) + 1)
+    )
     return start, end, context, exact
 
 
-def _propose_from_snippet(row: CandidateRow, context: str, exact: str) -> Tuple[str, int, str, str, str]:
+def _propose_from_snippet(
+    row: CandidateRow, context: str, exact: str
+) -> tuple[str, int, str, str, str]:
     exact_lower = exact.lower()
     context_lower = context.lower()
     file_lower = row.file_path.lower()
     key = row.query_text.lower()
     exact_lines = [line for line in exact.splitlines() if line.strip()]
     non_comment_lines = [line for line in exact_lines if "#" not in line]
-    looks_like_doc = file_lower.endswith("readme.md") or file_lower.endswith("changelog.md")
-    explicit_symbol_anchor = any(token in exact_lower for token in ("def ", "class ", "(", "import "))
+    looks_like_doc = file_lower.endswith(("readme.md", "changelog.md"))
+    explicit_symbol_anchor = any(
+        token in exact_lower for token in ("def ", "class ", "(", "import ")
+    )
     # Stricter approval: in-snippet match, enough context, non-doc path, and explicit executable anchor.
     if (
         key
@@ -217,8 +245,8 @@ def _propose_from_snippet(row: CandidateRow, context: str, exact: str) -> Tuple[
     )
 
 
-def _review_rows(rows: Iterable[CandidateRow], fairship_path: Path) -> List[Dict[str, Any]]:
-    proposals: List[Dict[str, Any]] = []
+def _review_rows(rows: Iterable[CandidateRow], fairship_path: Path) -> list[dict[str, Any]]:
+    proposals: list[dict[str, Any]] = []
     for row in rows:
         if row.is_not_found:
             proposals.append(
@@ -268,8 +296,12 @@ def _review_rows(rows: Iterable[CandidateRow], fairship_path: Path) -> List[Dict
             continue
 
         assert row.start_line is not None and row.end_line is not None
-        ev_start, ev_end, context, exact = _read_snippet(evidence_file, row.start_line, row.end_line)
-        decision, relevance, confidence, reasoning, risk = _propose_from_snippet(row, context, exact)
+        ev_start, ev_end, context, exact = _read_snippet(
+            evidence_file, row.start_line, row.end_line
+        )
+        decision, relevance, confidence, reasoning, risk = _propose_from_snippet(
+            row, context, exact
+        )
         proposals.append(
             {
                 "query_id": row.query_id,
@@ -299,7 +331,7 @@ def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
 
 
 def _write_report(path: Path, proposals: Sequence[Mapping[str, Any]], next_command: str) -> None:
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Muon DIS Agentic Qrel Review")
     lines.append("")
     lines.append("| query_id | rank | proposed_decision | relevance | confidence | file |")

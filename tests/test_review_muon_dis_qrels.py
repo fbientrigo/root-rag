@@ -1,4 +1,5 @@
 """Tests for scripts/review_muon_dis_qrels.py."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -29,13 +30,17 @@ def _write_candidates(path: Path) -> None:
                 "query_id": "q03_run_simscript",
                 "query_text": "run_simScript",
                 "review_status": "REVIEW_REQUIRED",
-                "qrels": [{"file_path": "macro/run_simScript.py", "start_line": 10, "end_line": 20}],
+                "qrels": [
+                    {"file_path": "macro/run_simScript.py", "start_line": 10, "end_line": 20}
+                ],
             },
             {
                 "query_id": "q02_make_muon_dis",
                 "query_text": "makeMuonDIS",
                 "review_status": "REVIEW_REQUIRED",
-                "qrels": [{"file_path": "muonDIS/makeMuonDIS.py", "start_line": 30, "end_line": 40}],
+                "qrels": [
+                    {"file_path": "muonDIS/makeMuonDIS.py", "start_line": 30, "end_line": 40}
+                ],
             },
             {
                 "query_id": "q09_inactivate_muon_processes",
@@ -68,7 +73,9 @@ def _write_unbalanced_candidates(path: Path) -> None:
                 "query_id": "q03_run_simscript",
                 "query_text": "run_simScript",
                 "review_status": "REVIEW_REQUIRED",
-                "qrels": [{"file_path": "macro/run_simScript.py", "start_line": 10, "end_line": 20}],
+                "qrels": [
+                    {"file_path": "macro/run_simScript.py", "start_line": 10, "end_line": 20}
+                ],
             },
             {
                 "query_id": "q04_shipreco",
@@ -145,7 +152,10 @@ def test_list_mode_prints_rows(tmp_path: Path, capsys) -> None:
         decisions = Path("benchmarks/muon_dis/qrels_review_decisions.yaml")
         _write_candidates(candidates)
         _write_decisions(decisions)
-        assert module.main(["--list", "--candidates", str(candidates), "--decisions", str(decisions)]) == 0
+        assert (
+            module.main(["--list", "--candidates", str(candidates), "--decisions", str(decisions)])
+            == 0
+        )
         out = capsys.readouterr().out
         assert "q02_make_muon_dis" in out
         assert "q03_run_simscript" in out
@@ -338,7 +348,9 @@ def test_filter_by_decision_status(tmp_path: Path, capsys) -> None:
         os.chdir(cwd_before)
 
 
-def test_critical_path_limit_10_is_area_balanced_and_includes_not_found_row(tmp_path: Path, capsys) -> None:
+def test_critical_path_limit_10_is_area_balanced_and_includes_not_found_row(
+    tmp_path: Path, capsys
+) -> None:
     module = _load_module()
     cwd_before = Path.cwd()
     os.chdir(tmp_path)
@@ -375,7 +387,9 @@ def test_critical_path_limit_10_is_area_balanced_and_includes_not_found_row(tmp_
         assert "q07_ubt" in covered
         assert "q08_muioni" in covered
         assert "q09_inactivate_muon_processes" in covered
-        inactivate_line = next(line for line in first_batch if line.startswith("q09_inactivate_muon_processes"))
+        inactivate_line = next(
+            line for line in first_batch if line.startswith("q09_inactivate_muon_processes")
+        )
         assert "NOT_FOUND_IN_INDEX" in inactivate_line
     finally:
         os.chdir(cwd_before)

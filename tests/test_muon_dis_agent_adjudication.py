@@ -43,7 +43,9 @@ def test_agent_approved_requires_proposal_redteam_agreement() -> None:
     for row in adjudicated["adjudicated"]:
         if row["agent_decision"] != "AGENT_APPROVED":
             continue
-        p = p_index[(row["query_id"], row["file_path"], row["start_line"], row["end_line"], row["rank"])]
+        p = p_index[
+            (row["query_id"], row["file_path"], row["start_line"], row["end_line"], row["rank"])
+        ]
         rt = r_index[(row["query_id"], row["file_path"], row["start_line"], row["end_line"])]
         assert p["proposed_decision"] == "PROPOSE_APPROVED"
         assert p["proposed_relevance"] == 3
@@ -59,7 +61,9 @@ def test_agent_approved_requires_proposal_redteam_agreement() -> None:
 def test_not_found_in_index_cannot_be_agent_approved() -> None:
     adjudicated = _load_yaml("benchmarks/muon_dis/qrels_agent_adjudicated.yaml")
     for row in adjudicated["adjudicated"]:
-        assert not (row["agent_decision"] == "AGENT_APPROVED" and row["file_path"] == "NOT_FOUND_IN_INDEX")
+        assert not (
+            row["agent_decision"] == "AGENT_APPROVED" and row["file_path"] == "NOT_FOUND_IN_INDEX"
+        )
 
 
 def test_qrels_yaml_not_modified() -> None:
