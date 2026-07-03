@@ -40,6 +40,16 @@ cd FairShip
 pixi run build
 ```
 
+> **Heads-up:** the first `pixi run build` solves and downloads a large dependency
+> environment (multiple GB) and compiles FairShip, so it can take a long time — it is
+> not stalled. Subsequent runs reuse the cached environment.
+
+**Verify the build succeeded** (should print the simulation CLI help, not an import
+error):
+```bash
+pixi run python macro/run_simScript.py --help
+```
+
 **Run inside the environment** — either invoke per-command or open a shell:
 ```bash
 # one-off command
@@ -72,6 +82,16 @@ the required `geometry/` and `files/` directories, and pixi sets `FAIRSHIP` and
 This is the path most existing SHiP/lxplus workflows use. FairShip is built with
 aliBuild against a CVMFS-provided software release.
 
+**Environment variables used below**
+- `$SHIP_RELEASE` — the CVMFS software release you build against. Pick a valid value
+  from the [`ShipSoft/cvmfs_release`](https://github.com/ShipSoft/cvmfs_release) repo;
+  root-rag records validated releases in
+  [`configs/support_matrix.yaml`](../../../configs/support_matrix.yaml)
+  (e.g. `26.02` / `26.03`, `slc9_x86-64`).
+- `$SHIPDIST` — the path to the FairShip build recipes; it is **exported for you when
+  you `source setUp.sh`** on CVMFS. (Self-hosted builds set it to a local `shipdist`
+  clone — see below.)
+
 **On lxplus (or any host with CVMFS):**
 ```bash
 # 1. Clone (git-lfs pulls the large data files)
@@ -81,9 +101,8 @@ git clone https://github.com/ShipSoft/FairShip.git
 # 2. Verify CVMFS is mounted
 ls /cvmfs/ship.cern.ch
 
-# 3. Source a release. The exact $SHIP_RELEASE comes from the
-#    ShipSoft/cvmfs_release repo; root-rag pins validated releases in
-#    configs/support_matrix.yaml (e.g. 26.02 / 26.03, slc9_x86-64).
+# 3. Source a release (note the capital U in setUp.sh — this is the canonical name).
+#    This also exports $SHIPDIST used in the next step.
 source /cvmfs/ship.cern.ch/$SHIP_RELEASE/setUp.sh
 
 # 4. Build FairShip with aliBuild
@@ -94,6 +113,17 @@ alienv enter FairShip/latest
 # non-interactive equivalent:
 eval $(alienv load FairShip/latest --no-refresh)
 ```
+
+> **Heads-up:** the aliBuild step compiles a multi-GB software stack and the first
+> build can take a long time (tens of minutes or more). It is not stalled.
+
+**Verify the build succeeded** (inside the loaded environment):
+```bash
+python "$FAIRSHIP/macro/run_simScript.py" --help
+```
+This is the same probe that [`scripts/lxplus_muondis_preflight.sh`](../../../scripts/lxplus_muondis_preflight.sh)
+runs — if it prints the CLI help rather than an import/symbol error, the environment
+is loaded correctly.
 
 **Self-hosted (no CVMFS):**
 ```bash

@@ -8,7 +8,7 @@
 
 ## 1. Environment Prerequisites
 - [ ] **FairShip Commit/Index**: Verify local `fairship` version matches the target LXPLUS environment.
-- [ ] **Setup Command**: `source /cvmfs/ship.cern.ch/SHiP-202X/setup.sh` (or equivalent).
+- [ ] **Setup Command**: `source /cvmfs/ship.cern.ch/$SHIP_RELEASE/setUp.sh` (canonical name — note the capital `U`; pick `$SHIP_RELEASE` per [FairShip Build Methods](FairShip_build_methods.md)).
 - [ ] **AliBuild State**: Confirm `alienv load FairShip` completes without errors.
 
 ## 2. Input Data Verification
